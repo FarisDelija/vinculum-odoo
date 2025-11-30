@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Custom layout template for vCard pages without header and footer -->
+    <template id="vcard_layout" name="vCard Layout">
+        <html>
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <title><t t-esc="request.website.name or 'vCard'"/></title>
+                <link rel="stylesheet" href="/web/static/lib/bootstrap/dist/css/bootstrap.css"/>
+                <link rel="stylesheet" href="/web/static/lib/fontawesome/css/font-awesome.css"/>
+                <!-- Fallback Font Awesome CDN -->
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+                <link rel="stylesheet" href="/website/static/src/css/website.css"/>
+                <style>
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        font-family: 'Poppins', sans-serif;
+                    }
+                    .o_wrap {
+                        min-height: 100vh;
+                        background: #f8f9fa;
+                    }
+                    .o_wrap_content {
+                        padding: 0;
+                    }
+                    /* Fix z-index for intl-tel-input country dropdown to appear above modals */
+                    .iti__country-list {
+                        z-index: 9999 !important;
+                    }
+                    .intl-tel-input .iti__country-list {
+                        z-index: 9999 !important;
+                    }
+                    /* Ensure it works inside modals */
+                    .modal .iti__country-list {
+                        z-index: 9999 !important;
+                    }
+                    .modal .intl-tel-input .iti__country-list {
+                        z-index: 9999 !important;
+                    }
+                </style>
+            </head>
+            <body class="o_website_fullscreen">
+                <!-- Main content area without header and footer -->
+                <div class="o_wrap">
+                    <div class="o_wrap_content">
+                        <t t-raw="0"/>
+                    </div>
+                </div>
+            </body>
+        </html>
+    </template>
+</odoo>

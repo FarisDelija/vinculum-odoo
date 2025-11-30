@@ -1,0 +1,35 @@
+/* Backend Reviews Text Overflow Fix */
+.o_list_view .o_field_text {
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    overflow-x: hidden !important;
+}
+
+/* Make the review text column wider (desktop only) */
+@media (min-width: 769px) {
+    .o_list_view .o_field_text[data-field="review_text"] {
+        min-width: 300px !important;
+        max-width: 500px !important;
+    }
+    
+    /* Adjust column widths for better layout (desktop) */
+    .o_list_view th[data-name="reviewer_name"],
+    .o_list_view td[data-name="reviewer_name"] {
+        width: 150px !important;
+        min-width: 150px !important;
+    }
+    
+    .o_list_view th[data-name="rating"],
+    .o_list_view td[data-name="rating"] {
+        width: 100px !important;
+        min-width: 100px !important;
+    }
+    
+    .o_list_view th[data-name="is_published"],
+    .o_list_view td[data-name="is_published"] {
+        width: 80px !important;
+        min-width: 80px !important;
+    }
+}

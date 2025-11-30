@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Email Preview Dialog -->
+    <record id="view_leadback_preview_email" model="ir.ui.view">
+        <field name="name">leadback.preview.email.form</field>
+        <field name="model">leadback.preview</field>
+        <field name="arch" type="xml">
+            <form string="Email Preview" create="0" delete="0">
+                <sheet>
+                    <div invisible="preview_type != 'email'">
+                        <div style="background: #f8f9fa; padding: 16px; border-radius: 4px; margin-bottom: 16px;">
+                            <strong>📧 Email Preview</strong>
+                        </div>
+                        <div style="background: white; border: 1px solid #ddd; border-radius: 4px; padding: 20px; margin-bottom: 16px;">
+                            <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #eee;">
+                                <strong>To:</strong> <field name="email_to" readonly="1" nolabel="1"/><br/>
+                                <strong>From:</strong> <field name="email_from" readonly="1" nolabel="1"/><br/>
+                                <strong>Subject:</strong> <field name="subject" readonly="1" nolabel="1"/>
+                            </div>
+                            <div style="line-height: 1.6;">
+                                <field name="body_html" readonly="1" nolabel="1" widget="html"/>
+                            </div>
+                        </div>
+                        <div style="padding: 12px; background: #e7f3ff; border-radius: 4px; font-size: 0.9em; color: #0066cc;">
+                            💡 <strong>Note:</strong> This is a preview with sample data. The actual email will use real contact information.
+                        </div>
+                    </div>
+                    
+                    <div invisible="preview_type != 'message'">
+                        <div style="background: #f8f9fa; padding: 16px; border-radius: 4px; margin-bottom: 16px;">
+                            <strong>💬 Message Preview</strong>
+                        </div>
+                        <div style="background: white; border: 1px solid #ddd; border-radius: 4px; padding: 20px; margin-bottom: 16px;">
+                            <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #eee;">
+                                <strong>To:</strong> <field name="message_to" readonly="1" nolabel="1"/><br/>
+                                <strong>Channels:</strong> <field name="channels" readonly="1" nolabel="1"/>
+                            </div>
+                            <div style="background: #f8f9fa; padding: 16px; border-radius: 4px; white-space: pre-wrap; font-family: monospace; font-size: 0.9em; line-height: 1.6;">
+                                <field name="message_preview" readonly="1" nolabel="1" widget="text"/>
+                            </div>
+                        </div>
+                        <div style="background: white; border: 1px solid #ddd; border-radius: 4px; padding: 20px; margin-bottom: 16px;">
+                            <strong style="display: block; margin-bottom: 12px;">🔗 Generated Links:</strong>
+                            <field name="links_html" readonly="1" nolabel="1" widget="html"/>
+                        </div>
+                        <div style="padding: 12px; background: #e7f3ff; border-radius: 4px; font-size: 0.9em; color: #0066cc;">
+                            💡 <strong>Note:</strong> This is a preview with sample data. The actual message will use real contact information. These links use a test phone number - click to see the link format.
+                        </div>
+                    </div>
+                </sheet>
+                <footer>
+                    <button string="Close" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action for Email Preview -->
+    <record id="action_leadback_preview_email" model="ir.actions.act_window">
+        <field name="name">Email Preview</field>
+        <field name="res_model">leadback.preview</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_leadback_preview_email"/>
+        <field name="target">new</field>
+        <field name="context">{'default_preview_type': 'email'}</field>
+    </record>
+
+    <!-- Action for Message Preview -->
+    <record id="action_leadback_preview_message" model="ir.actions.act_window">
+        <field name="name">Message Preview</field>
+        <field name="res_model">leadback.preview</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_leadback_preview_email"/>
+        <field name="target">new</field>
+        <field name="context">{'default_preview_type': 'message'}</field>
+    </record>
+</odoo>

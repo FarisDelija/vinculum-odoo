@@ -1,0 +1,1895 @@
+<odoo>
+  <template id="vcard_form_page" name="Get Started Form Page">
+    <t t-call="website.layout">
+      <!-- Welcome Banner -->
+      <section style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 0; text-align: center;">
+        <div class="container">
+          <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem;">
+            Let's Create Your Digital Business Card
+          </h1>
+          <p style="font-size: 1.2rem; opacity: 0.95; margin-bottom: 1rem;">
+            You're just a few minutes away from transforming how you network
+          </p>
+          <div style="display: inline-flex; align-items: center; background: rgba(255,255,255,0.2); padding: 10px 25px; border-radius: 50px; margin-top: 10px;">
+            <span style="margin-right: 15px; font-size: 1.1rem;">📱 Setup Your Card</span>
+            <span style="margin-right: 15px;">→</span>
+            <span style="margin-right: 15px; font-size: 1.1rem;">🎨 Customize Design</span>
+            <span style="margin-right: 15px;">→</span>
+            <span style="font-size: 1.1rem;">✨ Start Sharing</span>
+          </div>
+        </div>
+      </section>
+      
+      <div class="container mt-5 mb-5">
+        <div class="row justify-content-center">
+          <div class="col-lg-8" id="form-column">
+            <div class="text-center mb-4">
+              <h2 class="text-primary" style="font-size: 2rem; font-weight: 600;">Complete Your Profile</h2>
+              <p class="lead text-muted">Fill in your details below to create your personalized vCard</p>
+            </div>
+            
+            <!-- Error Alert -->
+            <t t-if="error">
+              <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fa fa-exclamation-triangle me-2"></i>
+                <t t-esc="error"/>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            </t>
+            
+            <!-- Progress Indicator -->
+            <div class="progress mb-4" style="height: 8px;">
+              <div class="progress-bar bg-primary" role="progressbar" style="width: 0%" id="form-progress"></div>
+            </div>
+            
+            <form action="/vcard/submit" method="post" enctype="multipart/form-data" id="vcard-form">
+              <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+
+              <!-- Step 1: Basic Information -->
+              <div class="form-section" data-step="1">
+                <div class="card mb-4">
+                  <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fa fa-user me-2"></i>Step 1: Basic Information</h4>
+                  </div>
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Full Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control form-control-lg" required="required" placeholder="John Doe" t-att-value="default_name or ''"/>
+                        <div class="invalid-feedback">Please enter your full name.</div>
+                      </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Email Address <span class="text-danger">*</span></label>
+                        <input type="email" name="email" class="form-control form-control-lg" required="required" placeholder="john@example.com" t-att-value="default_email or ''"/>
+                        <div class="invalid-feedback">Please enter a valid email address.</div>
+                      </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Phone Number</label>
+                        <input type="tel" name="phone" class="form-control" placeholder="+1 (555) 123-4567"/>
+                        <small class="form-text text-muted">Include country code for international numbers</small>
+                      </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Mobile Number</label>
+                        <input type="tel" name="mobile" class="form-control" placeholder="+1 (555) 123-4567"/>
+                        <small class="form-text text-muted">Your primary mobile number</small>
+                      </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Job Title</label>
+                        <input type="text" name="function" class="form-control" placeholder="Sales Manager, CEO, Developer..."/>
+                        <small class="form-text text-muted">Your current position or role</small>
+                      </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Profile Photo <span class="text-danger">*</span></label>
+                        <input type="file" name="image_url" class="form-control" accept="image/*" required="required" id="profile_photo_input"/>
+                        <small class="form-text text-muted">Upload a professional headshot (JPG, PNG, max 5MB)</small>
+                        <div class="invalid-feedback">Please upload a valid image file.</div>
+            </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Banner Image</label>
+                        <input type="file" name="banner_image" class="form-control" accept="image/*" id="banner_image_input"/>
+                        <small class="form-text text-muted">Upload a banner image that appears behind your profile picture (optional, JPG, PNG, max 5MB)</small>
+            </div>
+            </div>
+            </div>
+            </div>
+          </div>
+
+              <!-- Step 2: Company & Branding -->
+              <div class="form-section" data-step="2">
+                <div class="card mb-4">
+                  <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="fa fa-building me-2"></i>Step 2: Company &amp; Branding</h4>
+                  </div>
+                  <div class="card-body">
+          <div class="row">
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Company Name</label>
+                        <input type="text" name="company_name" class="form-control" placeholder="Your Company LLC" t-att-value="default_company or ''"/>
+                        <small class="form-text text-muted">Your company or organization name (optional)</small>
+                      </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Company Website</label>
+                        <input type="url" name="website" class="form-control" placeholder="https://yourwebsite.com"/>
+                        <small class="form-text text-muted">Your company's main website</small>
+                      </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Your vCard URL <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                          <span class="input-group-text"><t t-esc="base_url_display or 'your-domain.com'"/>/</span>
+                          <input type="text" name="website_slug" class="form-control" required="required" placeholder="john-doe"/>
+                        </div>
+                        <small class="form-text text-muted">Choose a unique URL for your vCard (letters, numbers, and hyphens only)</small>
+                        <div class="invalid-feedback">Please enter a valid URL slug.</div>
+                      </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Calendar URL</label>
+                        <input type="url" name="calendly_url" class="form-control" placeholder="https://calendly.com/your-link"/>
+                        <small class="form-text text-muted">Link to your booking page (Calendly, Google Calendar, etc.)</small>
+                      </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Primary Brand Color <span class="text-danger">*</span></label>
+                        <input type="color" name="primary_color" id="primary_color" required="required" class="form-control form-control-color" value="#ffffff" style="width: 100%; height: 50px; cursor: pointer;"/>
+                        <small class="form-text text-muted">Main color for your Vinculum Card design, primarily background</small>
+                      </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Secondary Brand Color <span class="text-danger">*</span></label>
+                        <input type="color" name="secondary_color" id="secondary_color" required="required" class="form-control form-control-color" value="#000000" style="width: 100%; height: 50px; cursor: pointer;"/>
+                        <small class="form-text text-muted">Accent color for your Vinculum Card design, used for buttons, borders, sections</small>
+                      </div>
+                      <div class="form-group col-12 mb-3">
+                        <label class="form-label fw-bold">About You <span class="text-danger">*</span></label>
+                        <textarea name="about" class="form-control" rows="4" required="required" placeholder="Tell people about yourself, your expertise, and what you do..."></textarea>
+                        <small class="form-text text-muted">Write a compelling description of yourself (tip: use your LinkedIn summary as inspiration)</small>
+                        <div class="invalid-feedback">Please tell us about yourself.</div>
+                      </div>
+                    </div>
+                  </div>
+            </div>
+            </div>
+
+              <!-- Step 3: Address Information -->
+              <div class="form-section" data-step="3">
+                <div class="card mb-4">
+                  <div class="card-header bg-info text-white">
+                    <h4 class="mb-0"><i class="fa fa-map-marker-alt me-2"></i>Step 3: Address Information</h4>
+            </div>
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Street Address</label>
+                        <input type="text" name="street" class="form-control" placeholder="123 Main Street"/>
+            </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Address Line 2</label>
+                        <input type="text" name="street2" class="form-control" placeholder="Suite 100, Floor 2"/>
+            </div>
+                      <div class="form-group col-md-4 mb-3">
+                        <label class="form-label fw-bold">City</label>
+              <input type="text" name="city" class="form-control" placeholder="Los Angeles"/>
+            </div>
+                      <div class="form-group col-md-4 mb-3">
+                        <label class="form-label fw-bold">ZIP/Postal Code</label>
+                        <input type="text" name="zip" class="form-control" placeholder="90210"/>
+            </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Country</label>
+                        <select name="country_id" id="vcard_country" class="form-control">
+                          <option value="">Select a country</option>
+                          <t t-foreach="countries" t-as="country">
+                            <option t-att-value="country.id"><t t-esc="country.name"/></option>
+                          </t>
+                        </select>
+                      </div>
+                      <div class="form-group col-md-4 mb-3" id="state_group" style="display: none;">
+                        <label class="form-label fw-bold">State/Province</label>
+                        <select name="state_id" id="vcard_state" class="form-control">
+                          <option value="">Select a state</option>
+                          <t t-foreach="states" t-as="state">
+                            <option t-att-value="state.id" t-att-data-country-id="state.country_id.id">
+                              <t t-esc="state.name"/>
+                            </option>
+                          </t>
+                        </select>
+                      </div>
+            </div>
+            </div>
+            </div>
+          </div>
+
+              <!-- Step 4: Social Media Links -->
+              <div class="form-section" data-step="4">
+                <div class="card mb-4">
+                  <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0"><i class="fa fa-share-alt me-2"></i>Step 4: Social Media Links</h4>
+                    <small class="text-muted">Connect your social media profiles to your vCard</small>
+                  </div>
+                  <div class="card-body">
+          <div class="row">
+                      <div class="col-12 mb-3">
+                        <h6 class="text-primary"><i class="fa fa-user me-2"></i>Personal Profiles</h6>
+                      </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">LinkedIn Profile</label>
+                        <input type="url" name="linkedin_url" class="form-control" placeholder="https://www.linkedin.com/in/username"/>
+                        <small class="form-text text-muted">Your personal LinkedIn profile</small>
+                      </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Twitter/X Profile</label>
+                        <input type="url" name="twitter_url" class="form-control" placeholder="https://twitter.com/username"/>
+                        <small class="form-text text-muted">Your Twitter/X handle</small>
+            </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Instagram Profile</label>
+                        <input type="url" name="instagram_url" class="form-control" placeholder="https://www.instagram.com/username"/>
+                        <small class="form-text text-muted">Your Instagram profile</small>
+            </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Facebook Profile</label>
+                        <input type="url" name="facebook_url" class="form-control" placeholder="https://www.facebook.com/username"/>
+                        <small class="form-text text-muted">Your personal Facebook profile</small>
+            </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">YouTube Channel</label>
+                        <input type="url" name="youtube_url" class="form-control" placeholder="https://www.youtube.com/channel/CHANNEL_ID"/>
+                        <small class="form-text text-muted">Your YouTube channel or videos</small>
+            </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">WhatsApp</label>
+                        <input type="url" name="whatsapp_url" class="form-control" placeholder="https://wa.me/1234567890"/>
+                        <small class="form-text text-muted">Your WhatsApp number for direct contact</small>
+          </div>
+
+                      <div class="col-12 mb-3 mt-4">
+                        <h6 class="text-success"><i class="fa fa-building me-2"></i>Company Profiles</h6>
+                      </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Company LinkedIn</label>
+                        <input type="url" name="linkedin_url_company" class="form-control" placeholder="https://www.linkedin.com/company/companyname"/>
+                        <small class="form-text text-muted">Your company's LinkedIn page</small>
+                      </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Company Twitter/X</label>
+                        <input type="url" name="twitter_url_company" class="form-control" placeholder="https://twitter.com/companyname"/>
+                        <small class="form-text text-muted">Your company's Twitter/X handle</small>
+                      </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Company Instagram</label>
+                        <input type="url" name="instagram_url_company" class="form-control" placeholder="https://www.instagram.com/companyname"/>
+                        <small class="form-text text-muted">Your company's Instagram profile</small>
+                      </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">Company Facebook</label>
+                        <input type="url" name="facebook_url_company" class="form-control" placeholder="https://www.facebook.com/companyname"/>
+                        <small class="form-text text-muted">Your company's Facebook page</small>
+                      </div>
+                    </div>
+                  </div>
+              </div>
+              </div>
+          
+              <!-- Step 5: Additional Content -->
+              <div class="form-section" data-step="5">
+                <div class="card mb-4">
+                  <div class="card-header bg-secondary text-white">
+                    <h4 class="mb-0"><i class="fa fa-plus-circle me-2"></i>Step 5: Additional Content</h4>
+                    <small class="text-muted">Add websites and videos to showcase your work</small>
+                  </div>
+                  <div class="card-body">
+                    <!-- External Websites -->
+                    <div class="mb-4">
+                      <h6 class="text-primary mb-3"><i class="fa fa-globe me-2"></i>External Websites</h6>
+                      <p class="text-muted small">Add links to your portfolio, blog, or other websites you want to showcase.</p>
+                      <div id="websites-container">
+                        <div class="website-item mb-3 p-3 border rounded bg-light">
+                          <div class="row">
+                            <div class="form-group col-md-4 mb-3">
+                              <label class="form-label fw-bold">Website URL</label>
+                              <input type="url" name="website_url[]" class="form-control" placeholder="https://example.com"/>
+                            </div>
+                            <div class="form-group col-md-4 mb-3">
+                              <label class="form-label fw-bold">Website Name</label>
+                              <input type="text" name="website_name[]" class="form-control" placeholder="My Portfolio"/>
+                            </div>
+                            <div class="form-group col-md-3 mb-3">
+                              <label class="form-label fw-bold">Button Color</label>
+                              <input type="color" name="website_color[]" class="form-control form-control-color" id="website_color_0" value="#4C75A3"/>
+                              <small class="form-text text-muted" style="font-size: 0.75rem;">Defaults to Secondary Color</small>
+                            </div>
+                            <div class="form-group col-md-1 d-flex align-items-end">
+                              <button type="button" class="btn btn-outline-danger btn-sm remove-website" style="display: none;">
+                                <i class="fa fa-trash"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <button type="button" class="btn btn-outline-primary btn-sm" id="add-website">
+                        <i class="fa fa-plus me-1"></i> Add Another Website
+                      </button>
+                    </div>
+
+                    <!-- Videos -->
+                    <div class="mb-4">
+                      <h6 class="text-success mb-3"><i class="fa fa-video me-2"></i>Videos</h6>
+                      <p class="text-muted small">Add YouTube, Vimeo, or other videos to showcase your work or introduce yourself.</p>
+                      <div id="videos-container">
+                        <div class="video-item mb-3 p-3 border rounded bg-light">
+                          <div class="row">
+                            <div class="form-group col-md-6 mb-3">
+                              <label class="form-label fw-bold">Video URL</label>
+                              <input type="url" name="video_url[]" class="form-control" placeholder="https://www.youtube.com/watch?v=..."/>
+                            </div>
+                            <div class="form-group col-md-5 mb-3">
+                              <label class="form-label fw-bold">Video Title</label>
+                              <input type="text" name="video_name[]" class="form-control" placeholder="My Introduction Video"/>
+                            </div>
+                            <div class="form-group col-md-1 d-flex align-items-end">
+                              <button type="button" class="btn btn-outline-danger btn-sm remove-video" style="display: none;">
+                                <i class="fa fa-trash"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <button type="button" class="btn btn-outline-success btn-sm" id="add-video">
+                        <i class="fa fa-plus me-1"></i> Add Another Video
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 6: Extra Features -->
+              <div class="form-section" data-step="6">
+                <div class="card mb-4">
+                  <div class="card-header bg-dark text-white">
+                    <h4 class="mb-0"><i class="fa fa-cog me-2"></i>Step 6: Extra Features</h4>
+                    <small class="text-muted">Configure additional features for your vCard</small>
+                  </div>
+                  <div class="card-body">
+                    <!-- Lead Collection Form -->
+                    <div class="mb-4 p-3 border rounded">
+                      <div class="form-check mb-3">
+                        <input type="checkbox" name="show_form" class="form-check-input" id="show_form_yes" value="yes"/>
+                        <label for="show_form_yes" class="form-check-label fw-bold">Lead Collection Form</label>
+                    </div>
+                      <p class="text-muted small ms-4 mb-3">Allow visitors to submit their contact information through your Vinculum Card</p>
+                      <div class="row ms-4" id="lead_extra_fields" style="display: none;">
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">
+                          Lead Button Label
+                        </label>
+                        <input type="text" name="lead_button_label" class="form-control" placeholder="Get In Touch"/>
+                        <small class="form-text text-muted">Text for the button that opens the lead form</small>
+                        
+                      </div>
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">
+                          Thank You Message
+                        </label>
+                        <input type="text" name="form_thank_you_message" class="form-control" placeholder="Thank you! I'll be in touch soon."/>
+                        <small class="form-text text-muted">Message shown after someone submits the form</small>
+                        
+                      </div>
+                        <div class="form-group col-md-12 mb-3">
+                        <label class="form-label fw-bold">Mailing List Name <span class="text-danger">*</span></label>
+                        <input type="text" name="mailing_list_name" class="form-control" data-required-when-enabled="1" placeholder="e.g., Main Contacts, Newsletter Subscribers"/>
+                        <small class="form-text text-muted"><i class="fa fa-info-circle"></i> We use this list to automatically add leads captured from your vCard. You can manage additional lists later from your dashboard.</small>
+                      </div>
+                    </div>
+                  </div>
+
+                    <!-- Notify on New Lead -->
+                    <div class="mb-4 p-3 border rounded">
+                      <div class="form-check">
+                        <input type="checkbox" name="notify_on_new_lead" class="form-check-input" id="notify_on_new_lead_yes" value="yes"/>
+                        <label for="notify_on_new_lead_yes" class="form-check-label fw-bold">Notify on New Lead</label>
+                </div>
+                      <p class="text-muted small ms-4">Send an email notification when a new lead is submitted through the form</p>
+              </div>
+
+                    <!-- Send Intro Email Automatically -->
+                    <div class="mb-4 p-3 border rounded">
+                      
+                      <div class="form-check">
+                        <input type="checkbox" name="intro_email_enabled" class="form-check-input" id="intro_email_enabled_yes" value="yes"/>
+                        <label for="intro_email_enabled_yes" class="form-check-label fw-bold">
+                          Send Intro Email Automatically
+                        </label>
+                      </div>
+                      <p class="text-muted small ms-4">
+                        Automatically send an introduction email to new leads
+                      </p>
+                    </div>
+
+                    <!-- Instant Lead Back -->
+                    <div class="mb-4 p-3 border rounded">
+                      
+                      <div class="form-check mb-3">
+                        <input type="checkbox" name="enable_instant_leadback" class="form-check-input" id="enable_instant_leadback_yes" value="yes"/>
+                        <label for="enable_instant_leadback_yes" class="form-check-label fw-bold">
+                          Instant Lead Back
+                        </label>
+                      </div>
+                      <p class="text-muted small ms-4 mb-3">
+                        Automatically send email and messaging links to new contacts
+                      </p>
+                      
+                      <!-- Enable Automated Email - Only visible when Instant Lead Back is enabled -->
+                      <div class="ms-4 mb-3" id="leadback_email_container" style="display: none;">
+                        <div class="form-check">
+                          <input type="checkbox" name="leadback_send_email" class="form-check-input" id="leadback_send_email_yes" value="yes"/>
+                          <label for="leadback_send_email_yes" class="form-check-label fw-bold">Enable Automated Email</label>
+                        </div>
+                        <p class="text-muted small ms-4">Automatically send an email to new leads using your email marketing system</p>
+                      </div>
+
+                      <!-- Enable Click to Chat - Only visible when Instant Lead Back is enabled -->
+                      <div class="ms-4 mb-3" id="leadback_messaging_container" style="display: none;">
+                        <div class="form-check mb-2">
+                          <input type="checkbox" name="leadback_enable_messaging" class="form-check-input" id="leadback_enable_messaging_yes" value="yes"/>
+                          <label for="leadback_enable_messaging_yes" class="form-check-label fw-bold">Enable Click to Chat</label>
+                        </div>
+                        <p class="text-muted small ms-4 mb-2">Generate click-to-chat links for messaging platforms (WhatsApp, Viber, Telegram)</p>
+                        <div id="messaging_channels_container" style="display: none; margin-left: 2rem;">
+                          <label class="form-label fw-bold small">Select Messaging Channels <span class="text-danger">*</span></label>
+                          <div class="form-check">
+                            <input type="checkbox" name="leadback_channels[]" class="form-check-input" id="channel_whatsapp" value="whatsapp"/>
+                            <label for="channel_whatsapp" class="form-check-label">WhatsApp</label>
+                          </div>
+                          <div class="form-check">
+                            <input type="checkbox" name="leadback_channels[]" class="form-check-input" id="channel_viber" value="viber"/>
+                            <label for="channel_viber" class="form-check-label">Viber</label>
+                          </div>
+                          <div class="form-check">
+                            <input type="checkbox" name="leadback_channels[]" class="form-check-input" id="channel_telegram" value="telegram"/>
+                            <label for="channel_telegram" class="form-check-label">Telegram</label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Show Reviews Section -->
+                    <div class="mb-4 p-3 border rounded">
+                      
+                      <div class="form-check mb-3">
+                        <input type="checkbox" name="show_reviews" class="form-check-input" id="show_reviews_yes" value="yes"/>
+                        <label for="show_reviews_yes" class="form-check-label fw-bold">
+                          Show Reviews Section
+                        </label>
+                      </div>
+                      <p class="text-muted small ms-4">
+                        Display the reviews section on your vCard website
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 7: QR Code & Final Touches -->
+              <div class="form-section" data-step="7">
+                <div class="card mb-4">
+                  <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fa fa-qrcode me-2"></i>Step 7: QR Code &amp; Final Touches</h4>
+                    <small class="text-muted">Customize your QR code and finalize your vCard</small>
+                  </div>
+                  <div class="card-body">
+                    <div class="form-group col-md-6 mb-3">
+                      
+                      <label class="form-label fw-bold">QR Code Logo</label>
+                      <input type="file" name="qr_logo" class="form-control" accept="image/*"/>
+                      <small class="form-text text-muted">Add your logo to the center of your QR code (optional)</small>
+                    </div>
+                  </div>
+              </div>
+          </div>
+          
+              <!-- Step 8: Choose Template -->
+              <div class="form-section" data-step="8">
+                <div class="card mb-4">
+                  <div class="card-header bg-info text-white">
+                    <h4 class="mb-0"><i class="fa fa-palette me-2"></i>Step 8: Choose Your Template</h4>
+                    <small class="text-muted">Select a design template for your vCard</small>
+                  </div>
+                  <div class="card-body">
+                    <t t-set="default_template" t-value="'modern'"/>
+                    <input type="hidden" name="website_template" id="selected_template" t-att-value="default_template"/>
+                    <div class="row" id="template-selection">
+                      <!-- Classic template - Scale only -->
+                      <div class="col-md-6 mb-3">
+                        
+                        <div class="template-option card h-100" data-template="classic">
+                          <div class="card-body text-center">
+                            <h5 class="card-title">Classic</h5>
+                            <p class="card-text small text-muted">Traditional gradient card layout with centered profile picture</p>
+                            <div class="template-preview" style="height: 150px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; position: relative; margin-top: 10px;">
+                              <div style="position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; background: white; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.2);"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Modern template - All plans -->
+                      <div class="col-md-6 mb-3">
+                        <div class="template-option card h-100" data-template="modern">
+                          <div class="card-body text-center">
+                            <h5 class="card-title">Modern</h5>
+                            <p class="card-text small text-muted">Side-by-side layout with inline action buttons</p>
+                            <div class="template-preview" style="height: 150px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 8px; position: relative; margin-top: 10px; display: flex; align-items: center; padding: 20px;">
+                              <div style="width: 50px; height: 50px; background: white; border-radius: 50%; margin-right: 15px;"></div>
+                              <div style="flex: 1; background: rgba(255,255,255,0.3); height: 40px; border-radius: 4px;"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Corporate template - Scale only -->
+                      <div class="col-md-6 mb-3">
+                        
+                        <div class="template-option card h-100" data-template="corporate">
+                          <div class="card-body text-center">
+                            <h5 class="card-title">Corporate</h5>
+                            <p class="card-text small text-muted">Professional banner header with structured sections</p>
+                            <div class="template-preview" style="height: 150px; background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); border-radius: 8px; position: relative; margin-top: 10px;">
+                              <div style="position: absolute; top: 0; left: 0; right: 0; height: 40px; background: rgba(255,255,255,0.1); border-radius: 8px 8px 0 0;"></div>
+                              <div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 50px; height: 50px; background: white; border-radius: 50%;"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Minimal template - Grow and Scale -->
+                      <div class="col-md-6 mb-3">
+                        
+                        <div class="template-option card h-100" data-template="minimal">
+                          <div class="card-body text-center">
+                            <h5 class="card-title">Minimal</h5>
+                            <p class="card-text small text-muted">Tabbed navigation with maximum white space</p>
+                            <div class="template-preview" style="height: 150px; background: #fafafa; border-radius: 8px; position: relative; margin-top: 10px; border: 1px solid #e0e0e0;">
+                              <div style="position: absolute; top: 10px; left: 10px; right: 10px; height: 30px; background: #e0e0e0; border-radius: 4px;"></div>
+                              <div style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 50px; height: 50px; background: #d0d0d0; border-radius: 50%;"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Creative template - Grow and Scale -->
+                      <div class="col-md-6 mb-3">
+                        
+                        <div class="template-option card h-100" data-template="creative">
+                          <div class="card-body text-center">
+                            <h5 class="card-title">Creative</h5>
+                            <p class="card-text small text-muted">Floating background elements with vibrant colors</p>
+                            <div class="template-preview" style="height: 150px; background: linear-gradient(45deg, #FF6B6B, #4ECDC4, #45B7D1); border-radius: 8px; position: relative; margin-top: 10px; overflow: hidden;">
+                              <div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; background: white; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.3);"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </form>
+          </div>
+          
+          <!-- Phone Preview Column (Right Side) -->
+          <div class="col-lg-4 d-none d-lg-block" id="preview-column" style="position: sticky; top: 20px; height: fit-content;">
+            <div class="phone-preview-container" style="position: relative; max-width: 320px; margin: 0 auto;">
+              <!-- Phone Frame -->
+              <div class="phone-frame" style="background: #1a1a1a; border-radius: 40px; padding: 20px 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                <!-- Phone Screen -->
+                <div class="phone-screen" style="background: white; border-radius: 30px; overflow: hidden; height: 600px; position: relative;">
+                  <!-- Status Bar -->
+                  <div style="background: #1a1a1a; color: white; padding: 8px 15px; font-size: 11px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>9:41</span>
+                    <div style="display: flex; gap: 4px;">
+                      <span style="width: 18px; height: 10px; border: 1px solid white; border-radius: 2px;"></span>
+                      <span style="width: 4px; height: 4px; background: white; border-radius: 50%;"></span>
+                    </div>
+                  </div>
+                  <!-- Preview Content -->
+                  <div id="template-preview-content" style="height: calc(100% - 40px); overflow-y: auto; overflow-x: hidden; background: white; position: relative;">
+                    <!-- Preview iframe -->
+                    <iframe id="vcard-preview-iframe" 
+                            src="about:blank"
+                            style="width: 125%; height: 125%; border: none; transform: scale(0.8); transform-origin: top left; display: block;"
+                            frameborder="0"
+                            scrolling="no">
+                    </iframe>
+                    <!-- Loading indicator -->
+                    <div id="preview-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #999; z-index: 10;">
+                      <i class="fa fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i>
+                      <p style="font-size: 12px; margin: 0;">Loading preview...</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+            </div>
+          </div>
+
+      <style>
+        .form-section {
+          display: none;
+        }
+        .form-section.active {
+          display: block;
+        }
+        .form-section.completed {
+          opacity: 0.7;
+        }
+        .form-section.completed .card-header {
+          background-color: #28a745 !important;
+        }
+        .form-section.completed .card-header::after {
+          content: " ✓";
+          font-weight: bold;
+        }
+        .form-control:focus {
+          border-color: #007bff;
+          box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+        .card {
+          box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+          border: 1px solid rgba(0, 0, 0, 0.125);
+        }
+        .card-header {
+          border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+        }
+        .progress {
+          border-radius: 10px;
+        }
+        .progress-bar {
+          transition: width 0.3s ease;
+        }
+        .btn-lg {
+          padding: 0.75rem 2rem;
+          font-size: 1.1rem;
+        }
+        .form-control.is-invalid {
+          border-color: #dc3545;
+        }
+        .form-control.is-valid {
+          border-color: #28a745;
+        }
+        .btn {
+          transition: all 0.3s ease;
+        }
+        .btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        /* Toast notification styles */
+        .limit-notification {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: #fff3cd;
+          border: 1px solid #ffc107;
+          border-radius: 8px;
+          padding: 16px 20px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          z-index: 10000;
+          max-width: 400px;
+          display: none;
+          animation: slideInRight 0.3s ease-out;
+        }
+        .limit-notification.show {
+          display: block;
+        }
+        .limit-notification .notification-content {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+        }
+        .limit-notification .notification-icon {
+          color: #856404;
+          font-size: 20px;
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+        .limit-notification .notification-text {
+          flex: 1;
+        }
+        .limit-notification .notification-title {
+          font-weight: 600;
+          color: #856404;
+          margin-bottom: 4px;
+          font-size: 14px;
+        }
+        .limit-notification .notification-message {
+          color: #856404;
+          font-size: 13px;
+          line-height: 1.4;
+        }
+        .limit-notification .notification-close {
+          background: none;
+          border: none;
+          color: #856404;
+          font-size: 18px;
+          cursor: pointer;
+          padding: 0;
+          margin-left: 8px;
+          line-height: 1;
+          opacity: 0.7;
+        }
+        .limit-notification .notification-close:hover {
+          opacity: 1;
+        }
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+      </style>
+
+          <script type="text/javascript">
+            // Get plan limits from template (set before CDATA)
+            const maxWebsites = <t t-esc="max_websites or 2"/>;
+            const maxVideos = <t t-esc="max_videos or 1"/>;
+          </script>
+          <script type="text/javascript"><![CDATA[
+            // Function to show limit notification
+            function showLimitNotification(message) {
+              // Remove existing notification if any
+              const existing = document.getElementById('limit-notification');
+              if (existing) {
+                existing.remove();
+              }
+              
+              // Create notification element
+              const notification = document.createElement('div');
+              notification.id = 'limit-notification';
+              notification.className = 'limit-notification';
+              notification.innerHTML = 
+                '<div class="notification-content">' +
+                  '<i class="fa fa-exclamation-triangle notification-icon"></i>' +
+                  '<div class="notification-text">' +
+                    '<div class="notification-title">Plan Limit Reached</div>' +
+                    '<div class="notification-message">' + message + '</div>' +
+                  '</div>' +
+                  '<button type="button" class="notification-close" onclick="this.parentElement.parentElement.remove()">&times;</button>' +
+                '</div>';
+              
+              document.body.appendChild(notification);
+              
+              // Show with animation
+              setTimeout(function() {
+                notification.classList.add('show');
+              }, 10);
+              
+              // Auto-hide after 5 seconds
+              setTimeout(function() {
+                notification.classList.remove('show');
+                setTimeout(function() {
+                  if (notification.parentElement) {
+                    notification.remove();
+                  }
+                }, 300);
+              }, 5000);
+            }
+            
+            document.addEventListener("DOMContentLoaded", function () {
+          // Form state management
+          let currentStep = 1;
+          const totalSteps = 8;
+          const form = document.getElementById('vcard-form');
+          const progressBar = document.getElementById('form-progress');
+          const submitBtn = document.getElementById('submit-btn');
+          
+          // Initialize form
+          loadFormData(); // Load any saved data first
+          showStep(1);
+          updateProgress();
+          
+          // Clear saved data on successful form submission
+          form.addEventListener('submit', function() {
+            clearFormData();
+          });
+          
+          // Color input handlers
+              const primaryColorInput = document.getElementById('primary_color');
+              const secondaryColorInput = document.getElementById('secondary_color');
+              
+              if (primaryColorInput) {
+                primaryColorInput.addEventListener('input', function() {
+                  const selectedTemplate = document.getElementById('selected_template') ? document.getElementById('selected_template').value || 'modern' : 'modern';
+                  if (typeof updateTemplatePreview === 'function') {
+                    updateTemplatePreview(selectedTemplate);
+                  }
+                });
+                primaryColorInput.addEventListener('change', function() {
+                  const selectedTemplate = document.getElementById('selected_template') ? document.getElementById('selected_template').value || 'modern' : 'modern';
+                  if (typeof updateTemplatePreview === 'function') {
+                    updateTemplatePreview(selectedTemplate);
+                  }
+                });
+              }
+              
+              if (secondaryColorInput) {
+                secondaryColorInput.addEventListener('input', function() {
+                  const selectedTemplate = document.getElementById('selected_template') ? document.getElementById('selected_template').value || 'modern' : 'modern';
+                  if (typeof updateTemplatePreview === 'function') {
+                    updateTemplatePreview(selectedTemplate);
+                  }
+                });
+                secondaryColorInput.addEventListener('change', function() {
+                  const selectedTemplate = document.getElementById('selected_template') ? document.getElementById('selected_template').value || 'modern' : 'modern';
+                  if (typeof updateTemplatePreview === 'function') {
+                    updateTemplatePreview(selectedTemplate);
+                  }
+                });
+              }
+          
+          // Lead form toggle functionality
+              const showFormYes = document.getElementById("show_form_yes");
+              const extraFields = document.getElementById("lead_extra_fields");
+              const mailingListField = document.querySelector('input[name="mailing_list_name"]');
+              
+              const toggleLeadFields = () => {
+                const isEnabled = showFormYes && showFormYes.checked;
+                extraFields.style.display = isEnabled ? "block" : "none";
+                if (mailingListField) {
+                  if (isEnabled) {
+                    mailingListField.setAttribute('required', 'required');
+                  } else {
+                    mailingListField.removeAttribute('required');
+                    mailingListField.classList.remove('is-invalid', 'is-valid');
+                  }
+                }
+              };
+              
+              if (showFormYes) {
+                showFormYes.addEventListener("change", toggleLeadFields);
+              }
+              
+              // Instant leadback toggle
+              const leadbackYes = document.getElementById("enable_instant_leadback_yes");
+              const leadbackEmailContainer = document.getElementById("leadback_email_container");
+              const leadbackMessagingContainer = document.getElementById("leadback_messaging_container");
+              const leadbackEmailYes = document.getElementById("leadback_send_email_yes");
+              const leadbackMessagingYes = document.getElementById("leadback_enable_messaging_yes");
+              const messagingChannelsContainer = document.getElementById("messaging_channels_container");
+              
+              if (leadbackYes) {
+                leadbackYes.addEventListener("change", function() {
+                  const isEnabled = this.checked;
+                  
+                  // Show/hide email and messaging containers
+                  if (leadbackEmailContainer) {
+                    leadbackEmailContainer.style.display = isEnabled ? 'block' : 'none';
+                  }
+                  if (leadbackMessagingContainer) {
+                    leadbackMessagingContainer.style.display = isEnabled ? 'block' : 'none';
+                  }
+                  
+                  // If disabled, uncheck the sub-options
+                  if (!isEnabled) {
+                    if (leadbackEmailYes) leadbackEmailYes.checked = false;
+                    if (leadbackMessagingYes) {
+                      leadbackMessagingYes.checked = false;
+                      if (messagingChannelsContainer) {
+                        messagingChannelsContainer.style.display = 'none';
+                      }
+                    }
+                  }
+                });
+              }
+              
+              // Messaging checkbox toggle
+              if (leadbackMessagingYes) {
+                leadbackMessagingYes.addEventListener("change", function() {
+                  if (messagingChannelsContainer) {
+                    messagingChannelsContainer.style.display = this.checked ? 'block' : 'none';
+                  }
+                });
+              }
+
+              // Websites functionality
+              const websitesContainer = document.getElementById("websites-container");
+              const addWebsiteBtn = document.getElementById("add-website");
+              
+              // Function to get current secondary color
+              const getSecondaryColor = function() {
+                return secondaryColorInput ? secondaryColorInput.value || '#4C75A3' : '#4C75A3';
+              };
+              
+              // Update existing website color inputs when secondary color changes
+              if (secondaryColorInput) {
+                secondaryColorInput.addEventListener('change', function() {
+                  // Update all website color inputs that haven't been manually changed
+                  const websiteColorInputs = document.querySelectorAll('input[name="website_color[]"]');
+                  const newSecondaryColor = this.value;
+                  websiteColorInputs.forEach(function(input) {
+                    // Only update if it's still the default or previous secondary color
+                    const currentValue = input.value.toLowerCase();
+                    const previousSecondary = input.getAttribute('data-default-color') || '#4C75A3';
+                    if (currentValue === previousSecondary.toLowerCase() || currentValue === '#007bff') {
+                      input.value = newSecondaryColor;
+                      input.setAttribute('data-default-color', newSecondaryColor);
+                    }
+                  });
+                });
+              }
+              
+              // Set initial default color on first website input
+              const firstWebsiteColor = document.getElementById('website_color_0');
+              if (firstWebsiteColor) {
+                const secondaryColor = getSecondaryColor();
+                firstWebsiteColor.value = secondaryColor;
+                firstWebsiteColor.setAttribute('data-default-color', secondaryColor);
+              }
+              
+              // Plan limits are set in a separate script tag above
+              // maxWebsites and maxVideos are available in global scope
+              
+              if (addWebsiteBtn && websitesContainer) {
+              addWebsiteBtn.addEventListener("click", function() {
+                  // Get current count of websites (including the initial one)
+                  const currentWebsiteCount = websitesContainer.querySelectorAll('.website-item').length;
+                  
+                  // Check limit (only if maxWebsites is not -1)
+                  if (maxWebsites !== -1 && currentWebsiteCount >= maxWebsites) {
+                      showLimitNotification('You have reached the maximum limit of ' + maxWebsites + ' website links for your plan. Please upgrade your subscription to add more websites.');
+                      return;
+                  }
+                  
+                  const secondaryColor = getSecondaryColor();
+                const websiteItem = document.createElement("div");
+                websiteItem.className = "website-item mb-3 p-3 border rounded";
+                  const websiteIndex = websitesContainer.querySelectorAll('.website-item').length;
+                websiteItem.innerHTML = 
+                  '<div class="row">' +
+                    '<div class="form-group col-md-4">' +
+                      '<label>Website URL</label>' +
+                      '<input type="url" name="website_url[]" class="form-control" placeholder="https://example.com"/>' +
+                    '</div>' +
+                    '<div class="form-group col-md-4">' +
+                      '<label>Website Name/Label</label>' +
+                      '<input type="text" name="website_name[]" class="form-control" placeholder="My Portfolio"/>' +
+                    '</div>' +
+                    '<div class="form-group col-md-3">' +
+                      '<label>Button Color</label>' +
+                        '<input type="color" name="website_color[]" class="form-control form-control-color" id="website_color_' + websiteIndex + '" value="' + secondaryColor + '" data-default-color="' + secondaryColor + '"/>' +
+                        '<small class="form-text text-muted" style="font-size: 0.75rem;">Defaults to Secondary Color</small>' +
+                    '</div>' +
+                    '<div class="form-group col-md-1 d-flex align-items-end">' +
+                      '<button type="button" class="btn btn-danger btn-sm remove-website">' +
+                        '<i class="fa fa-trash"></i>' +
+                      '</button>' +
+                    '</div>' +
+                  '</div>';
+                websitesContainer.appendChild(websiteItem);
+                  if (typeof updateRemoveButtons === 'function') {
+                updateRemoveButtons();
+                  }
+              });
+              }
+
+              // Videos functionality
+              const videosContainer = document.getElementById("videos-container");
+              const addVideoBtn = document.getElementById("add-video");
+              
+              addVideoBtn.addEventListener("click", function() {
+                  // Get current count of videos (including the initial one)
+                  const currentVideoCount = videosContainer.querySelectorAll('.video-item').length;
+                  
+                  // Check limit (only if maxVideos is not -1)
+                  if (maxVideos !== -1 && currentVideoCount >= maxVideos) {
+                      showLimitNotification('You have reached the maximum limit of ' + maxVideos + ' video(s) for your plan. Please upgrade your subscription to add more videos.');
+                      return;
+                  }
+                  
+                const videoItem = document.createElement("div");
+                videoItem.className = "video-item mb-3 p-3 border rounded";
+                videoItem.innerHTML = 
+                  '<div class="row">' +
+                    '<div class="form-group col-md-6">' +
+                      '<label>Video URL</label>' +
+                      '<input type="url" name="video_url[]" class="form-control" placeholder="https://www.youtube.com/watch?v=..."/>' +
+                    '</div>' +
+                    '<div class="form-group col-md-5">' +
+                      '<label>Video Name/Label</label>' +
+                      '<input type="text" name="video_name[]" class="form-control" placeholder="My Introduction Video"/>' +
+                    '</div>' +
+                    '<div class="form-group col-md-1 d-flex align-items-end">' +
+                      '<button type="button" class="btn btn-danger btn-sm remove-video">' +
+                        '<i class="fa fa-trash"></i>' +
+                      '</button>' +
+                    '</div>' +
+                  '</div>';
+                videosContainer.appendChild(videoItem);
+                updateRemoveButtons();
+              });
+
+              // Remove buttons functionality
+              function updateRemoveButtons() {
+                // Update website remove buttons
+                const websiteItems = websitesContainer.querySelectorAll(".website-item");
+                websiteItems.forEach((item, index) => {
+                  const removeBtn = item.querySelector(".remove-website");
+                  if (websiteItems.length > 1) {
+                    removeBtn.style.display = "block";
+                  } else {
+                    removeBtn.style.display = "none";
+                  }
+                });
+
+                // Update video remove buttons
+                const videoItems = videosContainer.querySelectorAll(".video-item");
+                videoItems.forEach((item, index) => {
+                  const removeBtn = item.querySelector(".remove-video");
+                  if (videoItems.length > 1) {
+                    removeBtn.style.display = "block";
+                  } else {
+                    removeBtn.style.display = "none";
+                  }
+                });
+              }
+
+              // Event delegation for remove buttons
+              websitesContainer.addEventListener("click", function(e) {
+                if (e.target.closest(".remove-website")) {
+                  e.target.closest(".website-item").remove();
+                  updateRemoveButtons();
+                }
+              });
+
+              videosContainer.addEventListener("click", function(e) {
+                if (e.target.closest(".remove-video")) {
+                  e.target.closest(".video-item").remove();
+                  updateRemoveButtons();
+                }
+              });
+
+              // Initialize remove buttons
+              updateRemoveButtons();
+              
+              // Step navigation functions
+              function showStep(step) {
+                document.querySelectorAll('.form-section').forEach(section => {
+                  section.classList.remove('active');
+                });
+                document.querySelector('[data-step="' + step + '"]').classList.add('active');
+                currentStep = step;
+                updateProgress();
+                updateStepIndicators();
+                
+                // Show/hide preview column
+                const previewColumn = document.getElementById('preview-column');
+                if (previewColumn) {
+                  if (step === 8 || step === 1) {
+                    previewColumn.classList.remove('d-none');
+                    // Update preview when step 1 or 8 is shown
+                    const templateInput = document.getElementById('selected_template');
+                    const selectedTemplate = templateInput ? templateInput.value || 'modern' : 'modern';
+                    if (typeof updateTemplatePreview === 'function') {
+                      // Small delay to ensure form is ready
+                      setTimeout(function() {
+                        updateTemplatePreview(selectedTemplate);
+                      }, 300);
+                    }
+                  } else {
+                    previewColumn.classList.add('d-none');
+                  }
+                }
+              }
+              
+              function updateStepIndicators() {
+                // Add completed class to previous steps
+                for (let i = 1; i < currentStep; i++) {
+                  const stepSection = document.querySelector('[data-step="' + i + '"]');
+                  if (stepSection) {
+                    stepSection.classList.add('completed');
+                  }
+                }
+                
+                // Remove completed class from current and future steps
+                for (let i = currentStep; i <= totalSteps; i++) {
+                  const stepSection = document.querySelector('[data-step="' + i + '"]');
+                  if (stepSection) {
+                    stepSection.classList.remove('completed');
+                  }
+                }
+              }
+              
+              function updateProgress() {
+                const progress = (currentStep / totalSteps) * 100;
+                progressBar.style.width = progress + '%';
+                progressBar.setAttribute('aria-valuenow', progress);
+              }
+              
+              function validateStep(step) {
+                const section = document.querySelector('[data-step="' + step + '"]');
+                const requiredFields = section.querySelectorAll('[required]');
+                let isValid = true;
+                let errorMessages = [];
+                
+                // Clear previous validation states
+                requiredFields.forEach(field => {
+                  field.classList.remove('is-invalid', 'is-valid');
+                });
+                
+                // Validate each required field
+                requiredFields.forEach(field => {
+                  if (!field.value.trim()) {
+                    field.classList.add('is-invalid');
+                    isValid = false;
+                    
+                    // Get field label for error message
+                    const label = field.closest('.form-group').querySelector('label');
+                    const fieldName = label ? label.textContent.replace('*', '').trim() : 'This field';
+                    errorMessages.push(fieldName + ' is required');
+                  } else {
+                    field.classList.add('is-valid');
+                  }
+                });
+                
+                // Special validation for email field
+                const emailField = section.querySelector('input[type="email"]');
+                if (emailField && emailField.value.trim()) {
+                  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                  if (!emailRegex.test(emailField.value.trim())) {
+                    emailField.classList.add('is-invalid');
+                    isValid = false;
+                    errorMessages.push('Please enter a valid email address');
+                  }
+                }
+                
+                // Special validation for website slug
+                const slugField = section.querySelector('input[name="website_slug"]');
+                if (slugField && slugField.value.trim()) {
+                  const slugRegex = /^[a-zA-Z0-9-]+$/;
+                  if (!slugRegex.test(slugField.value.trim())) {
+                    slugField.classList.add('is-invalid');
+                    isValid = false;
+                    errorMessages.push('vCard URL can only contain letters, numbers, and hyphens');
+                  }
+                }
+                
+                // Show error message if validation fails
+                if (!isValid) {
+                  showStepError(errorMessages.join(', '));
+                } else {
+                  hideStepError();
+                }
+                
+                return isValid;
+              }
+              
+              function showStepError(message) {
+                // Remove existing error alert
+                const existingAlert = document.querySelector('.step-error-alert');
+                if (existingAlert) {
+                  existingAlert.remove();
+                }
+                
+                // Create new error alert
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger step-error-alert mt-3';
+                alertDiv.innerHTML = 
+                  '<i class="fa fa-exclamation-triangle me-2"></i>' +
+                  '<strong>Please fix the following errors:</strong> ' + message;
+                
+                // Insert after the current step's card
+                const currentSection = document.querySelector('[data-step="' + currentStep + '"]');
+                const card = currentSection.querySelector('.card');
+                card.parentNode.insertBefore(alertDiv, card.nextSibling);
+                
+                // Scroll to the error
+                alertDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+              
+              function hideStepError() {
+                const existingAlert = document.querySelector('.step-error-alert');
+                if (existingAlert) {
+                  existingAlert.remove();
+                }
+              }
+              
+              // Save form data to localStorage
+              function saveFormData() {
+                const formData = new FormData(form);
+                const data = {};
+                for (let [key, value] of formData.entries()) {
+                  if (key !== 'csrf_token' && key !== 'image_url' && key !== 'qr_logo') {
+                    data[key] = value;
+                  }
+                }
+                localStorage.setItem('vcard_form_data', JSON.stringify(data));
+              }
+              
+              // Load form data from localStorage
+              function loadFormData() {
+                const savedData = localStorage.getItem('vcard_form_data');
+                if (savedData) {
+                  try {
+                    const data = JSON.parse(savedData);
+                    Object.keys(data).forEach(key => {
+                      const field = form.querySelector('[name="' + key + '"]');
+                      if (field && field.type !== 'file') {
+                        field.value = data[key];
+                        // Trigger validation styling
+                        if (field.hasAttribute('required') && field.value.trim()) {
+                          field.classList.add('is-valid');
+                        }
+                      }
+                    });
+                  } catch (e) {
+                    // Failed to load saved form data; ignore silently in production
+                  }
+                }
+              }
+              
+              // Clear saved form data
+              function clearFormData() {
+                localStorage.removeItem('vcard_form_data');
+              }
+              
+              // Auto-advance on field completion
+              document.querySelectorAll('input, select, textarea').forEach(field => {
+                field.addEventListener('blur', function() {
+                  if (this.hasAttribute('required') && this.value.trim()) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                  }
+                  saveFormData(); // Save data on blur
+                });
+                
+                field.addEventListener('input', function() {
+                  if (this.classList.contains('is-invalid') && this.value.trim()) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                  }
+                  saveFormData(); // Save data on input
+                });
+              });
+              
+              // Navigation functions
+              function nextStep() {
+                if (validateStep(currentStep)) {
+                  if (currentStep < totalSteps) {
+                    showStep(currentStep + 1);
+                  }
+                }
+              }
+              
+              function prevStep() {
+                if (currentStep > 1) {
+                  showStep(currentStep - 1);
+                }
+              }
+              
+              // Add navigation buttons to each step
+              function addNavigationButtons() {
+                document.querySelectorAll('.form-section').forEach((section, index) => {
+                  const stepNumber = index + 1;
+                  const cardBody = section.querySelector('.card-body');
+                  
+                  if (cardBody) {
+                    const navDiv = document.createElement('div');
+                    navDiv.className = 'd-flex justify-content-between mt-4';
+                    
+                    if (stepNumber > 1) {
+                      const prevBtn = document.createElement('button');
+                      prevBtn.type = 'button';
+                      prevBtn.className = 'btn btn-outline-secondary';
+                      const prevIcon = document.createElement('i');
+                      prevIcon.className = 'fa fa-arrow-left me-2';
+                      prevBtn.appendChild(prevIcon);
+                      prevBtn.appendChild(document.createTextNode('Previous'));
+                      prevBtn.onclick = prevStep;
+                      navDiv.appendChild(prevBtn);
+                    } else {
+                      navDiv.appendChild(document.createElement('div'));
+                    }
+                    
+                    if (stepNumber < totalSteps) {
+                      const nextBtn = document.createElement('button');
+                      nextBtn.type = 'button';
+                      nextBtn.className = 'btn btn-primary';
+                      nextBtn.appendChild(document.createTextNode('Next'));
+                      const nextIcon = document.createElement('i');
+                      nextIcon.className = 'fa fa-arrow-right ms-2';
+                      nextBtn.appendChild(nextIcon);
+                      nextBtn.onclick = nextStep;
+                      navDiv.appendChild(nextBtn);
+                    } else {
+                      // On last step, show a button that triggers form submission
+                      const submitBtn = document.createElement('button');
+                      submitBtn.type = 'button';
+                      submitBtn.className = 'btn btn-success btn-lg';
+                      const submitIcon = document.createElement('i');
+                      submitIcon.className = 'fa fa-rocket me-2';
+                      submitBtn.appendChild(submitIcon);
+                      submitBtn.appendChild(document.createTextNode('Create Card'));
+                      submitBtn.onclick = function() {
+                        // Trigger form submission
+                        form.dispatchEvent(new Event('submit'));
+                      };
+                      navDiv.appendChild(submitBtn);
+                    }
+                    
+                    cardBody.appendChild(navDiv);
+                  }
+                });
+              }
+              
+              // Initialize navigation buttons
+              addNavigationButtons();
+              
+              // Template selection functionality
+              const templateOptions = document.querySelectorAll('.template-option');
+              const selectedTemplateInput = document.getElementById('selected_template');
+              
+              // Function to update template preview by generating actual website
+              let previewTimeout = null;
+              function updateTemplatePreview(template) {
+                const previewIframe = document.getElementById('vcard-preview-iframe');
+                const loadingIndicator = document.getElementById('preview-loading');
+                if (!previewIframe) return;
+                
+                // Show loading indicator
+                if (loadingIndicator) {
+                  loadingIndicator.style.display = 'block';
+                }
+                
+                // Debounce preview updates (wait 500ms after last change)
+                if (previewTimeout) {
+                  clearTimeout(previewTimeout);
+                }
+                
+                previewTimeout = setTimeout(function() {
+                  // Get form data
+                  const formData = new FormData(form);
+                  const data = {};
+                  
+                  // Collect all form fields
+                  for (let [key, value] of formData.entries()) {
+                    if (key !== 'csrf_token' && key !== 'image_url' && key !== 'banner_image' && key !== 'qr_logo') {
+                      // Handle array fields
+                      if (key.endsWith('[]')) {
+                        const fieldName = key.slice(0, -2);
+                        if (!data[fieldName]) {
+                          data[fieldName] = [];
+                        }
+                        data[fieldName].push(value);
+                      } else {
+                        data[key] = value;
+                      }
+                    }
+                  }
+                  
+                  // Get checkbox values directly
+                  const showFormCheckbox = document.getElementById('show_form_yes');
+                  if (showFormCheckbox) {
+                    data.show_form = showFormCheckbox.checked;
+                  }
+                  
+                  const notifyCheckbox = document.getElementById('notify_on_new_lead_yes');
+                  if (notifyCheckbox) {
+                    data.notify_on_new_lead = notifyCheckbox.checked;
+                  }
+                  
+                  const introEmailCheckbox = document.getElementById('intro_email_enabled_yes');
+                  if (introEmailCheckbox) {
+                    data.intro_email_enabled = introEmailCheckbox.checked;
+                  }
+                  
+                  const leadbackCheckbox = document.getElementById('enable_instant_leadback_yes');
+                  if (leadbackCheckbox) {
+                    data.enable_instant_leadback = leadbackCheckbox.checked;
+                  }
+                  
+                  const leadbackEmailCheckbox = document.getElementById('leadback_send_email_yes');
+                  if (leadbackEmailCheckbox) {
+                    data.leadback_send_email = leadbackEmailCheckbox.checked;
+                  }
+                  
+                  const leadbackMessagingCheckbox = document.getElementById('leadback_enable_messaging_yes');
+                  if (leadbackMessagingCheckbox) {
+                    data.leadback_enable_messaging = leadbackMessagingCheckbox.checked;
+                  }
+                  
+                  const showReviewsCheckbox = document.getElementById('show_reviews_yes');
+                  if (showReviewsCheckbox) {
+                    data.show_reviews = showReviewsCheckbox.checked;
+                  }
+                  
+                  // Collect leadback channels
+                  const leadbackChannels = [];
+                  document.querySelectorAll('input[name="leadback_channels[]"]:checked').forEach(function(checkbox) {
+                    leadbackChannels.push(checkbox.value);
+                  });
+                  if (leadbackChannels.length > 0) {
+                    data.leadback_channels = leadbackChannels;
+                  }
+                  
+                  // Ensure template is set
+                  data.website_template = template || data.website_template || 'modern';
+                  
+                  // Handle image files if present
+                  const imageFile = form.querySelector('input[name="image_url"]').files[0];
+                  const bannerFile = form.querySelector('input[name="banner_image"]').files[0];
+                  
+                  let filesToProcess = 0;
+                  let filesProcessed = 0;
+                  
+                  if (imageFile) filesToProcess++;
+                  if (bannerFile) filesToProcess++;
+                  
+                  const processFiles = function() {
+                    filesProcessed++;
+                    if (filesProcessed >= filesToProcess) {
+                      sendPreviewRequest(data, previewIframe, loadingIndicator);
+                    }
+                  };
+                  
+                  if (imageFile) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                      data.image_base64 = e.target.result.split(',')[1];
+                      processFiles();
+                    };
+                    reader.readAsDataURL(imageFile);
+                  } else {
+                    processFiles();
+                  }
+                  
+                  if (bannerFile) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                      data.banner_image_base64 = e.target.result.split(',')[1];
+                      processFiles();
+                    };
+                    reader.readAsDataURL(bannerFile);
+                  } else {
+                    processFiles();
+                  }
+                  
+                  // If no files, send immediately
+                  if (filesToProcess === 0) {
+                    sendPreviewRequest(data, previewIframe, loadingIndicator);
+                  }
+                }, 500);
+              }
+              
+              function sendPreviewRequest(data, previewIframe, loadingIndicator) {
+                // Prevent any default form submission behavior
+                try {
+                  // Send AJAX request to generate preview
+                  fetch('/vcard/preview', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                  })
+                  .then(response => {
+                    if (!response.ok) {
+                      throw new Error('HTTP error! status: ' + response.status);
+                    }
+                    return response.json();
+                  })
+                .then(response => {
+                  console.log('Preview response:', response);
+                  // Handle JSON-RPC response format (Odoo wraps responses)
+                  let result = response;
+                  if (response.result) {
+                    result = response.result;
+                  }
+                  console.log('Preview result:', result);
+                  if (result && (result.success === true || result.success === 'true')) {
+                    // Load preview URL in iframe
+                    // Add a delay to ensure website is fully generated and caches are cleared
+                    setTimeout(function() {
+                      const previewUrl = result.preview_url;
+                      console.log('Loading preview URL:', previewUrl);
+                      
+                      // Set up load handlers before setting src
+                      let loadTimeout = setTimeout(function() {
+                        console.warn('Preview iframe load timeout');
+                        if (loadingIndicator) {
+                          loadingIndicator.innerHTML = '';
+                          const spinnerIcon = document.createElement('i');
+                          spinnerIcon.className = 'fa fa-spinner fa-spin';
+                          spinnerIcon.style.fontSize = '24px';
+                          spinnerIcon.style.marginBottom = '10px';
+                          loadingIndicator.appendChild(spinnerIcon);
+                          const loadingText = document.createElement('p');
+                          loadingText.style.fontSize = '12px';
+                          loadingText.style.margin = '0';
+                          loadingText.textContent = 'Loading preview...';
+                          loadingIndicator.appendChild(loadingText);
+                        }
+                      }, 3000);
+                      
+                      previewIframe.onload = function() {
+                        clearTimeout(loadTimeout);
+                        console.log('Preview iframe loaded successfully');
+                        if (loadingIndicator) {
+                          loadingIndicator.style.display = 'none';
+                        }
+                      };
+                      
+                      // Handle iframe load errors
+                      previewIframe.onerror = function() {
+                        clearTimeout(loadTimeout);
+                        console.error('Iframe load error');
+                        if (loadingIndicator) {
+                          loadingIndicator.innerHTML = '';
+                          const errorIcon = document.createElement('i');
+                          errorIcon.className = 'fa fa-exclamation-triangle';
+                          errorIcon.style.fontSize = '24px';
+                          errorIcon.style.marginBottom = '10px';
+                          errorIcon.style.color = '#dc3545';
+                          loadingIndicator.appendChild(errorIcon);
+                          const errorText = document.createElement('p');
+                          errorText.style.fontSize = '12px';
+                          errorText.style.margin = '0';
+                          errorText.style.color = '#dc3545';
+                          errorText.textContent = 'Failed to load preview';
+                          loadingIndicator.appendChild(errorText);
+                        }
+                      };
+                      
+                      // Set the src to load the preview
+                      previewIframe.src = previewUrl;
+                    }, 1000); // Increased delay to 1 second
+                  } else {
+                    // Better error logging
+                    let errorDetails = '';
+                    if (result && result.error) {
+                      if (typeof result.error === 'string') {
+                        errorDetails = result.error;
+                      } else if (typeof result.error === 'object') {
+                        errorDetails = JSON.stringify(result.error, null, 2);
+                      }
+                    } else {
+                      errorDetails = JSON.stringify(result, null, 2);
+                    }
+                    console.error('Preview generation failed:', errorDetails);
+                    
+                    // Don't show error if it's just a validation issue - preview should still work
+                    // Only show critical errors
+                    if (loadingIndicator && result && result.error) {
+                      let errorMsg = 'Preview generation failed';
+                      if (typeof result.error === 'string') {
+                        errorMsg = result.error;
+                      } else if (result.error && typeof result.error === 'object') {
+                        if (result.error.message) {
+                          errorMsg = result.error.message;
+                        } else if (result.error.data && result.error.data.message) {
+                          errorMsg = result.error.data.message;
+                        } else {
+                          // Try to extract meaningful error message
+                          errorMsg = 'Preview generation failed. Please check your form inputs.';
+                        }
+                      }
+                      // Only show if it's a critical error, not just validation
+                      if (errorMsg.indexOf('validation') === -1 && errorMsg.indexOf('required') === -1) {
+                        loadingIndicator.innerHTML = '';
+                        const errorIcon2 = document.createElement('i');
+                        errorIcon2.className = 'fa fa-exclamation-triangle';
+                        errorIcon2.style.fontSize = '24px';
+                        errorIcon2.style.marginBottom = '10px';
+                        errorIcon2.style.color = '#dc3545';
+                        loadingIndicator.appendChild(errorIcon2);
+                        const errorText2 = document.createElement('p');
+                        errorText2.style.fontSize = '12px';
+                        errorText2.style.margin = '0';
+                        errorText2.style.color = '#dc3545';
+                        errorText2.textContent = errorMsg;
+                        loadingIndicator.appendChild(errorText2);
+                      } else {
+                        // For validation errors, just hide the loading indicator and let preview load
+                        loadingIndicator.style.display = 'none';
+                      }
+                    } else if (loadingIndicator) {
+                      // No error or success - hide loading indicator
+                      loadingIndicator.style.display = 'none';
+                    }
+                  }
+                })
+                .catch(error => {
+                  console.error('Error generating preview:', error);
+                  if (loadingIndicator) {
+                    const errorMsg = error.message || (typeof error === 'string' ? error : 'Unknown error');
+                    loadingIndicator.innerHTML = '';
+                    const errorIcon3 = document.createElement('i');
+                    errorIcon3.className = 'fa fa-exclamation-triangle';
+                    errorIcon3.style.fontSize = '24px';
+                    errorIcon3.style.marginBottom = '10px';
+                    errorIcon3.style.color = '#dc3545';
+                    loadingIndicator.appendChild(errorIcon3);
+                    const errorText3 = document.createElement('p');
+                    errorText3.style.fontSize = '12px';
+                    errorText3.style.margin = '0';
+                    errorText3.style.color = '#dc3545';
+                    errorText3.textContent = 'Error: ' + errorMsg;
+                    loadingIndicator.appendChild(errorText3);
+                  }
+                });
+                } catch (error) {
+                  console.error('Error in sendPreviewRequest:', error);
+                  if (loadingIndicator) {
+                    const errorMsg = error.message || (typeof error === 'string' ? error : 'Unknown error');
+                    loadingIndicator.innerHTML = '';
+                    const errorIcon3 = document.createElement('i');
+                    errorIcon3.className = 'fa fa-exclamation-triangle';
+                    errorIcon3.style.fontSize = '24px';
+                    errorIcon3.style.marginBottom = '10px';
+                    errorIcon3.style.color = '#dc3545';
+                    loadingIndicator.appendChild(errorIcon3);
+                    const errorText3 = document.createElement('p');
+                    errorText3.style.fontSize = '12px';
+                    errorText3.style.margin = '0';
+                    errorText3.style.color = '#dc3545';
+                    errorText3.textContent = 'Error: ' + errorMsg;
+                    loadingIndicator.appendChild(errorText3);
+                  }
+                }
+              }
+              
+              // Make updateTemplatePreview available globally
+              window.updateTemplatePreview = updateTemplatePreview;
+              
+              // Set up template selection event listeners
+              if (templateOptions.length > 0 && selectedTemplateInput) {
+                templateOptions.forEach(option => {
+                  option.addEventListener('click', function() {
+                    // Remove selected class from all options
+                    templateOptions.forEach(opt => {
+                      opt.style.border = '2px solid #e0e0e0';
+                      opt.style.transform = 'scale(1)';
+                    });
+                    
+                    // Add selected class to clicked option
+                    this.style.border = '2px solid #007bff';
+                    this.style.transform = 'scale(1.02)';
+                    
+                    // Update hidden input
+                    const template = this.getAttribute('data-template');
+                    selectedTemplateInput.value = template;
+                    
+                    // Update preview (will regenerate website)
+                    if (typeof updateTemplatePreview === 'function') {
+                      updateTemplatePreview(template);
+                    }
+                    
+                    // Save to localStorage
+                    saveFormData();
+                  });
+                });
+                
+                // Initialize template selection (default based on plan)
+                const defaultTemplate = selectedTemplateInput ? selectedTemplateInput.value : 'modern';
+                if (selectedTemplateInput) {
+                  selectedTemplateInput.value = defaultTemplate;
+                }
+                const defaultOption = document.querySelector('.template-option[data-template="' + defaultTemplate + '"]');
+                if (defaultOption) {
+                  defaultOption.click();
+                }
+              }
+              
+              // Update preview when form fields change
+              const previewFields = ['name', 'company_name', 'function', 'email', 'phone', 'mobile', 'primary_color', 'secondary_color', 'about', 'website', 'calendly_url', 'website_slug', 'linkedin_url', 'twitter_url', 'instagram_url', 'facebook_url', 'youtube_url', 'whatsapp_url'];
+              previewFields.forEach(fieldName => {
+                const field = form.querySelector(`[name="${fieldName}"]`);
+                if (field) {
+                  field.addEventListener('input', function() {
+                    const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'modern' : 'modern';
+                    if (typeof updateTemplatePreview === 'function') {
+                      updateTemplatePreview(selectedTemplate);
+                    }
+                  });
+                  field.addEventListener('change', function() {
+                    const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'modern' : 'modern';
+                    if (typeof updateTemplatePreview === 'function') {
+                      updateTemplatePreview(selectedTemplate);
+                    }
+                  });
+                }
+              });
+              
+              // Update preview when color inputs change
+              if (primaryColorInput) {
+                primaryColorInput.addEventListener('input', function() {
+                  const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'classic' : 'classic';
+                  if (typeof updateTemplatePreview === 'function') {
+                    updateTemplatePreview(selectedTemplate);
+                  }
+                });
+              }
+              
+              if (secondaryColorInput) {
+                secondaryColorInput.addEventListener('input', function() {
+                  const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'classic' : 'classic';
+                  if (typeof updateTemplatePreview === 'function') {
+                    updateTemplatePreview(selectedTemplate);
+                  }
+                });
+              }
+              
+              // Also update preview when images are selected
+              const imageField = form.querySelector('input[name="image_url"]');
+              if (imageField) {
+                imageField.addEventListener('change', function() {
+                  const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'classic' : 'classic';
+                  if (typeof updateTemplatePreview === 'function') {
+                    updateTemplatePreview(selectedTemplate);
+                  }
+                });
+              }
+              
+              const bannerField = form.querySelector('input[name="banner_image"]');
+              if (bannerField) {
+                bannerField.addEventListener('change', function() {
+                  const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'classic' : 'classic';
+                  if (typeof updateTemplatePreview === 'function') {
+                    updateTemplatePreview(selectedTemplate);
+                  }
+                });
+              }
+              
+              // Update preview when websites/videos are added/changed
+              const websiteInputs = form.querySelectorAll('input[name="website_url[]"]');
+              const videoInputs = form.querySelectorAll('input[name="video_url[]"]');
+              
+              websiteInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                  const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'classic' : 'classic';
+                  if (typeof updateTemplatePreview === 'function') {
+                    updateTemplatePreview(selectedTemplate);
+                  }
+                });
+              });
+              
+              videoInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                  const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'classic' : 'classic';
+                  if (typeof updateTemplatePreview === 'function') {
+                    updateTemplatePreview(selectedTemplate);
+                  }
+                });
+              });
+              
+              // Update preview when extra features change
+              const extraFeatureInputs = form.querySelectorAll('input[type="checkbox"][name="show_form"], input[type="checkbox"][name="notify_on_new_lead"], input[type="checkbox"][name="intro_email_enabled"], input[type="checkbox"][name="enable_instant_leadback"], input[type="checkbox"][name="leadback_send_email"], input[type="checkbox"][name="leadback_enable_messaging"], input[type="checkbox"][name="show_reviews"], input[type="checkbox"][name^="leadback_channels"]');
+              extraFeatureInputs.forEach(input => {
+                input.addEventListener('change', function(e) {
+                  // Prevent any default behavior
+                  e.preventDefault();
+                  e.stopPropagation();
+                  
+                  const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'classic' : 'classic';
+                  if (typeof updateTemplatePreview === 'function') {
+                    // Debounce the preview update to avoid too many requests
+                    setTimeout(function() {
+                      updateTemplatePreview(selectedTemplate);
+                    }, 500);
+                  }
+                });
+              });
+              
+              // Form submission with validation
+              form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Validate all required fields
+                let allValid = true;
+                for (let step = 1; step <= totalSteps; step++) {
+                  if (!validateStep(step)) {
+                    allValid = false;
+                    showStep(step);
+                    break;
+                  }
+                }
+                
+                if (allValid) {
+                  // Show loading state on the submit button
+                  const submitButton = document.querySelector('.btn-success');
+                  if (submitButton) {
+                    submitButton.innerHTML = '';
+                    const spinnerIcon2 = document.createElement('i');
+                    spinnerIcon2.className = 'fa fa-spinner fa-spin me-2';
+                    submitButton.appendChild(spinnerIcon2);
+                    submitButton.appendChild(document.createTextNode('Creating Your Card...'));
+                    submitButton.disabled = true;
+                  }
+                  
+                  // Submit the form
+                  this.submit();
+                } else {
+                  // Scroll to first invalid field
+                  const firstInvalid = document.querySelector('.is-invalid');
+                  if (firstInvalid) {
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstInvalid.focus();
+                  }
+                }
+              });
+              
+              // URL slug validation
+              const slugField = document.querySelector('input[name="website_slug"]');
+              if (slugField) {
+                slugField.addEventListener('input', function() {
+                  this.value = this.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                });
+              }
+              
+              // Country/State filtering functionality
+              const countrySelect = document.getElementById('vcard_country');
+              const stateSelect = document.getElementById('vcard_state');
+              
+              if (countrySelect && stateSelect) {
+                // Store all states for filtering
+                const allStates = Array.from(stateSelect.options).map(option => ({
+                  value: option.value,
+                  text: option.textContent,
+                  countryId: option.getAttribute('data-country-id')
+                }));
+                
+                // Filter states based on selected country
+                countrySelect.addEventListener('change', function() {
+                  const selectedCountryId = this.value;
+                  
+                  // Clear current state options except the first one
+                  stateSelect.innerHTML = '';
+                  const defaultOption = document.createElement('option');
+                  defaultOption.value = '';
+                  defaultOption.textContent = 'Select a state';
+                  stateSelect.appendChild(defaultOption);
+                  
+                  if (selectedCountryId) {
+                    // Filter states by country
+                    const countryStates = allStates.filter(state => {
+                      return state.countryId && String(state.countryId) === String(selectedCountryId) && state.value !== '';
+                    });
+                    
+                    // Add filtered states to dropdown
+                    countryStates.forEach(state => {
+                      const option = document.createElement('option');
+                      option.value = state.value;
+                      option.textContent = state.text;
+                      stateSelect.appendChild(option);
+                    });
+
+                    // Toggle state field visibility based on availability
+                    const stateGroup = document.getElementById('state_group');
+                    if (stateGroup) {
+                      stateGroup.style.display = countryStates.length > 0 ? 'block' : 'none';
+                    }
+                  } else {
+                    // If no country selected, hide state field
+                    const stateGroup = document.getElementById('state_group');
+                    if (stateGroup) {
+                      stateGroup.style.display = 'none';
+                    }
+                  }
+                });
+
+                // Initialize visibility on load
+                (function initStateVisibility() {
+                  const selectedCountryId = countrySelect.value;
+                  const stateGroup = document.getElementById('state_group');
+                  if (!selectedCountryId) {
+                    if (stateGroup) stateGroup.style.display = 'none';
+                    return;
+                  }
+                  const countryStates = allStates.filter(state => {
+                    return state.countryId && String(state.countryId) === String(selectedCountryId) && state.value !== '';
+                  });
+                  if (stateGroup) stateGroup.style.display = countryStates.length > 0 ? 'block' : 'none';
+                })();
+              }
+            });
+          ]]></script>
+    </t>
+  </template>
+</odoo>

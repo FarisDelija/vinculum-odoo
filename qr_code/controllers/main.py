@@ -1,0 +1,1708 @@
+# -*- coding: utf-8 -*-
+"""
+Vinculum - Digital Business Cards Module
+Copyright (C) 2024 Faris Delija. All Rights Reserved.
+Licensed under OPL-1 (Odoo Proprietary License v1.0)
+
+Unauthorized copying, modification, or distribution prohibited.
+"""
+from odoo import http
+from odoo.http import request
+import json
+import logging
+import base64
+import hashlib
+import re
+from datetime import datetime, timedelta
+
+_logger = logging.getLogger(__name__)
+
+
+def _build_browser_fingerprint(req):
+    """Build browser fingerprint hash from request headers"""
+    raw = json.dumps({
+        'ua': req.httprequest.headers.get('User-Agent', ''),
+        'accept': req.httprequest.headers.get('Accept', ''),
+        'lang': req.httprequest.headers.get('Accept-Language', ''),
+        'ip': req.httprequest.environ.get('REMOTE_ADDR', ''),
+    }, sort_keys=True)
+    return hashlib.sha256(raw.encode('utf-8')).hexdigest()
+
+
+def _get_ip_address(req):
+    """Extract IP address from request, handling proxies"""
+    # Check for forwarded IP headers (common in proxy/load balancer setups)
+    forwarded_for = req.httprequest.headers.get('X-Forwarded-For', '')
+    if forwarded_for:
+        # X-Forwarded-For can contain multiple IPs, take the first one
+        ip = forwarded_for.split(',')[0].strip()
+        if ip:
+            return ip
+    
+    real_ip = req.httprequest.headers.get('X-Real-IP', '')
+    if real_ip:
+        return real_ip.strip()
+    
+    # Fallback to REMOTE_ADDR
+    return req.httprequest.environ.get('REMOTE_ADDR', '')
+
+
+def _get_geolocation_from_ip(ip_address):
+    """
+    Get geolocation data from IP address using free services (no API key required).
+    Tries multiple free services as fallback.
+    Returns dict with country, city, timezone, or None if lookup fails.
+    """
+    if not ip_address or ip_address in ('127.0.0.1', 'localhost', '::1'):
+        return None
+    
+    import urllib.request
+    import urllib.error
+    
+    # List of free IP geolocation services to try (in order of preference)
+    services = [
+        {
+            'name': 'geojs.io',
+            'url': f'https://get.geojs.io/v1/ip/geo/{ip_address}.json',
+            'parser': lambda d: {
+                'country': d.get('country', ''),
+                'city': d.get('city', ''),
+                'timezone': d.get('timezone', ''),
+                'country_code': d.get('country_code', ''),
+                'region': d.get('region', ''),
+            }
+        },
+        {
+            'name': 'ip-api.com',
+            'url': f'http://ip-api.com/json/{ip_address}?fields=status,country,countryCode,city,timezone,regionName',
+            'parser': lambda d: {
+                'country': d.get('country', ''),
+                'city': d.get('city', ''),
+                'timezone': d.get('timezone', ''),
+                'country_code': d.get('countryCode', ''),
+                'region': d.get('regionName', ''),
+            } if d.get('status') == 'success' else None
+        },
+    ]
+    
+    # Try each service until one succeeds
+    for service in services:
+        try:
+            req = urllib.request.Request(
+                service['url'],
+                headers={'User-Agent': 'Odoo-LeadTracker/1.0'}
+            )
+            with urllib.request.urlopen(req, timeout=2) as response:
+                data = json.loads(response.read().decode())
+                result = service['parser'](data)
+                if result:
+                    _logger.debug(f"IP geolocation lookup succeeded using {service['name']} for {ip_address}")
+                    return result
+        except Exception as e:
+            _logger.debug(f"IP geolocation lookup failed using {service['name']} for {ip_address}: {e}")
+            continue
+    
+    # If all services fail, return None (graceful fallback)
+    _logger.debug(f"All IP geolocation services failed for {ip_address}, continuing without geolocation data")
+    return None
+
+
+def _parse_user_agent(user_agent):
+    """Parse user agent string to extract device type, browser, and OS"""
+    if not user_agent:
+        return {'device_type': '', 'browser': '', 'os': ''}
+    
+    ua_lower = user_agent.lower()
+    
+    # Device type detection
+    device_type = 'desktop'
+    if any(mobile in ua_lower for mobile in ['mobile', 'android', 'iphone', 'ipod']):
+        device_type = 'mobile'
+    elif 'tablet' in ua_lower or 'ipad' in ua_lower:
+        device_type = 'tablet'
+    
+    # Browser detection
+    browser = 'Unknown'
+    if 'chrome' in ua_lower and 'edg' not in ua_lower:
+        browser = 'Chrome'
+    elif 'firefox' in ua_lower:
+        browser = 'Firefox'
+    elif 'safari' in ua_lower and 'chrome' not in ua_lower:
+        browser = 'Safari'
+    elif 'edg' in ua_lower or 'edge' in ua_lower:
+        browser = 'Edge'
+    elif 'opera' in ua_lower or 'opr' in ua_lower:
+        browser = 'Opera'
+    
+    # OS detection
+    os_name = 'Unknown'
+    if 'windows' in ua_lower:
+        os_name = 'Windows'
+    elif 'mac' in ua_lower or 'darwin' in ua_lower:
+        os_name = 'macOS'
+    elif 'linux' in ua_lower:
+        os_name = 'Linux'
+    elif 'android' in ua_lower:
+        os_name = 'Android'
+    elif 'iphone' in ua_lower or 'ipad' in ua_lower:
+        os_name = 'iOS'
+    
+    return {
+        'device_type': device_type,
+        'browser': browser,
+        'os': os_name
+    }
+
+
+def _extract_tracking_data_from_request(req, data=None):
+    """
+    Extract all tracking data from the HTTP request and form data.
+    Similar to referral tracking but for lead form submissions.
+    
+    Returns dict with all tracking fields.
+    """
+    # Get IP address (handling proxies)
+    ip_address = _get_ip_address(req)
+    
+    # Get user agent
+    user_agent = req.httprequest.headers.get('User-Agent', '')
+    
+    # Build browser fingerprint
+    fingerprint_hash = _build_browser_fingerprint(req)
+    
+    # Get geolocation from IP
+    geolocation = _get_geolocation_from_ip(ip_address) if ip_address else None
+    
+    # Parse user agent
+    ua_info = _parse_user_agent(user_agent)
+    
+    # Get language
+    language = req.httprequest.headers.get('Accept-Language', '')
+    # Extract primary language (e.g., "en-US,en;q=0.9" -> "en-US")
+    if language:
+        language = language.split(',')[0].split(';')[0].strip()
+    
+    # Get referrer/source URL
+    source_url = req.httprequest.referrer or req.httprequest.url
+    
+    # Extract UTM parameters and referral code from URL or form data
+    utm_source = None
+    utm_medium = None
+    utm_campaign = None
+    referral_code = None
+    
+    # Check URL parameters first
+    url_params = req.httprequest.args
+    utm_source = url_params.get('utm_source') or None
+    utm_medium = url_params.get('utm_medium') or None
+    utm_campaign = url_params.get('utm_campaign') or None
+    referral_code = url_params.get('ref') or None
+    
+    # Check form data if provided
+    if data:
+        utm_source = utm_source or data.get('utm_source') or None
+        utm_medium = utm_medium or data.get('utm_medium') or None
+        utm_campaign = utm_campaign or data.get('utm_campaign') or None
+        referral_code = referral_code or data.get('ref') or data.get('referral_code') or None
+    
+    # Check session (for UTM params stored from previous page visit)
+    if hasattr(req, 'session'):
+        utm_source = utm_source or req.session.get('utm_source') or None
+        utm_medium = utm_medium or req.session.get('utm_medium') or None
+        utm_campaign = utm_campaign or req.session.get('utm_campaign') or None
+        referral_code = referral_code or req.session.get('referral_code') or None
+    
+    # Build tracking data dict
+    tracking_data = {
+        'submission_ip': ip_address,
+        'submission_user_agent': user_agent,
+        'submission_fingerprint_hash': fingerprint_hash,
+        'submission_language': language,
+        'submission_source_url': source_url,
+        'submission_utm_source': utm_source,
+        'submission_utm_medium': utm_medium,
+        'submission_utm_campaign': utm_campaign,
+        'submission_referral_code': referral_code,
+        'submission_device_type': ua_info.get('device_type', ''),
+        'submission_browser': ua_info.get('browser', ''),
+        'submission_os': ua_info.get('os', ''),
+    }
+    
+    # Add geolocation data if available
+    if geolocation:
+        tracking_data['submission_country'] = geolocation.get('country', '')
+        tracking_data['submission_city'] = geolocation.get('city', '')
+        tracking_data['submission_timezone'] = geolocation.get('timezone', '')
+    
+    return tracking_data
+
+class QRCodeController(http.Controller):
+
+    @http.route('/qr/<int:partner_id>', type='http', auth='public')
+    def redirect_to_dynamic_url(self, partner_id):
+        partner = request.env['partner.vcard'].sudo().browse(partner_id)
+    
+        if partner.exists():
+            # Increment the scan count
+            partner.sudo().write({'qr_code_scan_count': partner.qr_code_scan_count + 1})
+            _logger.info(f"QR code scanned for partner ID {partner_id}. Total scans: {partner.qr_code_scan_count}")
+
+            if partner.website_full_url:
+                return request.redirect(partner.website_full_url)
+            else:
+                return request.not_found()
+        else:
+            return request.not_found()
+
+    @http.route('/track_page_view/<string:slug>', type='json', auth='public', methods=['POST'], csrf=False)
+    def track_page_view(self, slug, **kwargs):
+        """Track page views for vCard pages via AJAX call from the page"""
+        try:
+            vcard = request.env['partner.vcard'].sudo().search([
+                ('website_slug', '=', slug)
+            ], limit=1)
+            
+            if vcard:
+                # Increment page view count
+                vcard.sudo().write({'page_view_count': vcard.page_view_count + 1})
+                _logger.info(f"Page view tracked for vCard slug '{slug}' (ID: {vcard.id}). Total views: {vcard.page_view_count}")
+                return {'success': True, 'views': vcard.page_view_count}
+            else:
+                _logger.warning(f"Page view tracking: vCard with slug '{slug}' not found")
+                return {'success': False, 'error': 'vCard not found'}
+        except Exception as e:
+            _logger.error(f"Error tracking page view for slug '{slug}': {str(e)}", exc_info=True)
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/vcard/qr_code/download/<int:partner_id>', type='http', auth='public')
+    def download_qr_code(self, partner_id):
+        """Serve the QR code image for download"""
+        partner = request.env['partner.vcard'].sudo().browse(partner_id)
+        
+        if not partner.exists() or not partner.qr_code:
+            return request.not_found()
+
+        # Prepare the QR code image for download
+        qr_code_data = base64.b64decode(partner.qr_code)
+        
+        # Return the image as a downloadable file
+        return request.make_response(
+            qr_code_data,
+            headers=[
+                ('Content-Type', 'image/png'),
+                ('Content-Disposition', f'attachment; filename={partner.name.replace(" ", "_")}_qr_code.png')
+            ]
+        )
+
+class PartnerController(http.Controller):
+
+    @http.route('/get_partner_name', type='json', auth="public", methods=['GET'], csrf=False)
+    def get_partner_name(self, partner_id=None):
+        if not partner_id:
+            return {'error': 'No partner ID provided'}
+
+        partner = request.env['partner.vcard'].sudo().search([('id', '=', int(partner_id))], limit=1)
+        if partner:
+            return {'partner_name': partner.name}
+        else:
+            return {'error': 'Partner not found'}
+
+
+
+class VCardController(http.Controller):
+    
+    @http.route('/<string:slug>', type='http', auth='public', website=True, methods=['GET'], priority=10)
+    def track_vcard_page_view(self, slug, **kwargs):
+        """Track page views for vCard pages - intercepts requests to vCard slugs"""
+        # Check if this is a preview slug (allow it through)
+        is_preview = slug.startswith('preview-')
+        
+        # Check if this is a vCard slug (not a system route)
+        excluded_prefixes = ('web', 'website', 'start', 'tap', 'saas', 'nfc', 'get-started', 'vcard', 
+                           'track_page_view', 'qr', 'create_lead', 'create_review', 'vinculum', 
+                           'odoo', 'mail', 'subscription')
+        excluded_extensions = ('.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', 
+                             '.woff', '.woff2', '.ttf', '.eot', '.map')
+        
+        # Skip if it's a system route or static file
+        if not is_preview and (slug.startswith(excluded_prefixes) or slug.endswith(excluded_extensions)):
+            # Let Odoo handle it normally by returning 404, which will let other routes try
+            return request.not_found()
+        
+        # Try to find a vCard with this slug
+        vcard = request.env['partner.vcard'].sudo().search([
+            ('website_slug', '=', slug)
+        ], limit=1)
+        
+        if vcard:
+            if not is_preview:
+                # Check if website page is published
+                website_page = request.env['website.page'].sudo().search([
+                    ('url', '=', f'/{slug}')
+                ], limit=1)
+                
+                if website_page and not website_page.is_published:
+                    _logger.warning(f"Blocked access to vCard slug '{slug}' (ID: {vcard.id}) - website page is unpublished")
+                    return request.not_found()
+                
+                # Also check via website_page_id if set
+                if vcard.website_page_id and not vcard.website_page_id.is_published:
+                    _logger.warning(f"Blocked access to vCard slug '{slug}' (ID: {vcard.id}) - website page via website_page_id is unpublished")
+                    return request.not_found()
+            
+            # Increment page view count
+            old_count = vcard.page_view_count
+            vcard.sudo().write({'page_view_count': vcard.page_view_count + 1})
+            _logger.info(f"Page view tracked for vCard slug '{slug}' (ID: {vcard.id}). Views: {old_count} -> {vcard.page_view_count}")
+            
+            # Referral URL is always /get-started
+            final_referral_url = '/get-started'
+            
+            # Render the page using the view key (same as how website pages are rendered)
+            # Pass the computed referral URL in context to ensure it's available
+            view_key = f'website.{slug}'
+            return request.render(view_key, {
+                'referral_url': final_referral_url,
+            })
+        
+        # Not a vCard slug, let Odoo handle it
+        return request.not_found()
+
+    @http.route('/website/vcard/download/<int:partner_id>', type='http', auth="public")
+    def download_vcard(self, partner_id):
+        """Endpoint to download vCard for the given partner."""
+        partner = request.env['partner.vcard'].sudo().browse(partner_id)
+        if not partner.exists():
+            return request.not_found()
+
+        # Extract tracking data from request (IP, user agent, geolocation, UTM params, etc.)
+        tracking_data = _extract_tracking_data_from_request(request)
+        _logger.info(f"=== VCARD DOWNLOAD TRACKING ===")
+        _logger.info(f"Partner ID: {partner_id}, IP: {tracking_data.get('submission_ip')}")
+        _logger.info(f"Country: {tracking_data.get('submission_country')}, City: {tracking_data.get('submission_city')}")
+        _logger.info(f"Device: {tracking_data.get('submission_device_type')}, Browser: {tracking_data.get('submission_browser')}")
+
+        # Create download tracking record
+        download_tracking_vals = {
+            'partner_vcard_id': partner.id,
+            'download_ip': tracking_data.get('submission_ip', ''),
+            'download_user_agent': tracking_data.get('submission_user_agent', ''),
+            'download_fingerprint_hash': tracking_data.get('submission_fingerprint_hash', ''),
+            'download_country': tracking_data.get('submission_country', ''),
+            'download_city': tracking_data.get('submission_city', ''),
+            'download_timezone': tracking_data.get('submission_timezone', ''),
+            'download_language': tracking_data.get('submission_language', ''),
+            'download_source_url': tracking_data.get('submission_source_url', ''),
+            'download_utm_source': tracking_data.get('submission_utm_source'),
+            'download_utm_medium': tracking_data.get('submission_utm_medium'),
+            'download_utm_campaign': tracking_data.get('submission_utm_campaign'),
+            'download_referral_code': tracking_data.get('submission_referral_code'),
+            'download_device_type': tracking_data.get('submission_device_type', ''),
+            'download_browser': tracking_data.get('submission_browser', ''),
+            'download_os': tracking_data.get('submission_os', ''),
+        }
+        
+        try:
+            request.env['vcard.download.tracking'].sudo().create(download_tracking_vals)
+            _logger.info(f"Download tracking record created for partner {partner_id}")
+        except Exception as e:
+            _logger.error(f"Error creating download tracking record: {e}", exc_info=True)
+            # Continue even if tracking fails
+
+        # Increment the download count
+        old_count = partner.vcard_download_count
+        partner.sudo().write({'vcard_download_count': partner.vcard_download_count + 1})
+        _logger.info(f"vCard downloaded for partner ID {partner_id}. Total downloads: {old_count} -> {partner.vcard_download_count}")
+
+        vcard_content = partner._generate_vcf()
+        vcard_filename = f"{partner.name.replace(' ', '_')}.vcf"
+
+        # Return the vCard as a downloadable file
+        return request.make_response(
+            vcard_content,
+            headers=[
+                ('Content-Type', 'text/vcard'),
+                ('Content-Disposition', f'attachment; filename={vcard_filename}')
+            ]
+        )
+
+class NFCOnboardingController(http.Controller):
+
+    @http.route('/nfc/setup/<int:partner_id>', type='http', auth='public', website=True)
+    def nfc_onboarding(self, partner_id):
+        """NFC Card Programming Onboarding Guide"""
+        partner = request.env['partner.vcard'].sudo().browse(partner_id)
+        
+        if not partner.exists():
+            return request.not_found()
+        
+        return request.render('qr_code_odoo.nfc_onboarding_page', {
+            'vcard_url': partner.website_full_url,
+            'partner': partner
+        })
+
+    @http.route('/vinculum/guide', type='http', auth='public', website=True)
+    def vinculum_guide(self):
+        """Vinculum User Guide - How to Use Vinculum"""
+        return request.render('qr_code_odoo.vinculum_user_guide')
+
+
+class ReviewController(http.Controller):
+
+    @http.route('/create_review', type='json', auth='public', methods=['POST'], csrf=False)
+    def create_review(self, **kwargs):
+        _logger.info("create_review route called")
+
+        try:
+            # Load and log incoming data
+            data = json.loads(request.httprequest.data)
+            _logger.info(f"Received review data: {data}")
+
+            # Extract data from the request
+            reviewer_name = data.get('reviewer_name')
+            rating = data.get('rating')
+            review_text = data.get('review_text')
+            partner_vcard_id = data.get('partner_id')
+
+            # Ensure partner_vcard_id is an integer
+            try:
+                partner_vcard_id = int(partner_vcard_id)
+                _logger.info(f"Converted partner_id to int: {partner_vcard_id}")
+            except (ValueError, TypeError):
+                _logger.error(f"Invalid partner_id: {partner_vcard_id}")
+                return {'status': 'error', 'message': 'Invalid partner ID'}
+
+            # Validate required fields
+            if not reviewer_name or not rating or not review_text:
+                _logger.error("Missing required fields: reviewer_name, rating, or review_text")
+                return {'status': 'error', 'message': 'Missing required fields'}
+
+            # Validate rating
+            if rating not in ['1', '2', '3', '4', '5']:
+                _logger.error(f"Invalid rating: {rating}")
+                return {'status': 'error', 'message': 'Invalid rating value'}
+
+            # Search for the partner by ID
+            partner = request.env['partner.vcard'].sudo().search([('id', '=', partner_vcard_id)], limit=1)
+            _logger.info(f"Searching for partner with ID {partner_vcard_id}")
+
+            # Check if the partner exists
+            if not partner:
+                _logger.error(f"Partner with ID {partner_vcard_id} not found")
+                return {'status': 'error', 'message': 'Partner not found'}
+
+            # Create the review (unpublished by default)
+            review = request.env['partner.vcard.reviews'].sudo().create({
+                'reviewer_name': reviewer_name,
+                'rating': rating,
+                'review_text': review_text,
+                'partner_id': partner.id,
+                'is_published': False,  # Unpublished by default
+            })
+
+            _logger.info(f"Review created successfully with ID: {review.id}")
+
+            # Retrieve the custom thank you message from the partner
+            custom_message = partner.review_thank_you_message or 'Thank you for your review! We appreciate your feedback.'
+
+            # Return success response in the format expected by JavaScript
+            return {'status': 'success', 'message': custom_message, 'review_id': review.id}
+
+        except Exception as e:
+            _logger.exception("Error in create_review")
+            return {'status': 'error', 'message': f'Error processing request: {str(e)}'}
+
+class LeadController(http.Controller):
+
+    @http.route('/create_lead', type='json', auth='public', methods=['POST'], csrf=False)
+    def create_lead(self, **kwargs):
+        _logger.info("create_lead route called")
+
+        try:
+            # Load and log incoming data
+            data = json.loads(request.httprequest.data)
+            _logger.info(f"Received data: {data}")
+
+            # Extract tracking data from request (IP, user agent, geolocation, UTM params, etc.)
+            tracking_data = _extract_tracking_data_from_request(request, data)
+            _logger.info(f"=== LEAD TRACKING DATA ===")
+            _logger.info(f"IP Address: {tracking_data.get('submission_ip')}")
+            _logger.info(f"User Agent: {tracking_data.get('submission_user_agent')}")
+            _logger.info(f"Country: {tracking_data.get('submission_country')}")
+            _logger.info(f"City: {tracking_data.get('submission_city')}")
+            _logger.info(f"Timezone: {tracking_data.get('submission_timezone')}")
+            _logger.info(f"UTM Source: {tracking_data.get('submission_utm_source')}")
+            _logger.info(f"UTM Medium: {tracking_data.get('submission_utm_medium')}")
+            _logger.info(f"UTM Campaign: {tracking_data.get('submission_utm_campaign')}")
+            _logger.info(f"Referral Code: {tracking_data.get('submission_referral_code')}")
+            _logger.info(f"Device: {tracking_data.get('submission_device_type')} | Browser: {tracking_data.get('submission_browser')} | OS: {tracking_data.get('submission_os')}")
+
+            # Extract data from the request
+            contact_name = data.get('contact_name')
+            email_from = data.get('email_from')
+            phone = data.get('phone')
+            partner_vcard_id = data.get('partner_id')
+            description = data.get('description')
+            lead_tag_ids = data.get('lead_tag_ids', [])
+
+            _logger.info(f"=== LEAD FORM SUBMISSION ===")
+            _logger.info(f"Received partner_id: {partner_vcard_id}")
+
+            # Ensure partner_vcard_id is an integer
+            try:
+                partner_vcard_id = int(partner_vcard_id)
+                _logger.info(f"Converted partner_id to int: {partner_vcard_id}")
+            except (ValueError, TypeError):
+                _logger.error(f"Invalid partner_id: {partner_vcard_id}")
+                return {'status': 'error', 'message': 'Invalid partner ID'}
+
+            # Validate required fields
+            if not contact_name or not email_from:
+                _logger.error("Missing required fields: contact_name or email_from")
+                return {'status': 'error', 'message': 'Missing required fields'}
+
+            # Search for the partner by ID
+            partner = request.env['partner.vcard'].sudo().search([('id', '=', partner_vcard_id)], limit=1)
+            _logger.info(f"Searching for partner with ID {partner_vcard_id}")
+            _logger.info(f"Partner found: {partner.exists()}")
+
+            # Check if the partner exists
+            if not partner:
+                _logger.error(f"Partner with ID {partner_vcard_id} not found")
+                return {'status': 'error', 'message': 'Partner not found'}
+
+            # Validate and filter lead_tag_ids to ensure they belong to the partner
+            valid_tag_ids = []
+            if lead_tag_ids and hasattr(partner, 'lead_tag_ids') and partner.lead_tag_ids:
+                try:
+                    # Convert to integers and filter out any invalid IDs
+                    lead_tag_ids = [int(tag_id) for tag_id in lead_tag_ids if tag_id]
+                    valid_tag_ids = partner.lead_tag_ids.filtered(lambda tag: tag.id in lead_tag_ids).ids
+                    if not valid_tag_ids:
+                        _logger.warning("No valid lead_tag_ids found for the partner")
+                except Exception as e:
+                    _logger.warning(f"Error processing lead tags: {e}")
+                    valid_tag_ids = []
+            else:
+                _logger.info("Lead tags not available or not configured")
+
+            _logger.info(f"Valid tag IDs to be assigned: {valid_tag_ids}")
+            
+            # Create the opportunity and associate it with the partner and tags
+            # Include all tracking data
+            opportunity_vals = {
+                'contact_name': contact_name,
+                'email_from': email_from,
+                'phone': phone,
+                'partner_vcard_id': partner.id,
+                'type': 'opportunity',  # This makes it an opportunity instead of a lead
+                'description': description,
+                'name': f'New vCard form submission for {partner.name}',
+                'tag_ids': [(6, 0, valid_tag_ids)] if valid_tag_ids else False
+            }
+            
+            # Add all tracking data to opportunity
+            opportunity_vals.update(tracking_data)
+            
+            opportunity = request.env['crm.lead'].sudo().create(opportunity_vals)
+            
+            _logger.info(f"Opportunity created with tracking data: IP={tracking_data.get('submission_ip')}, Country={tracking_data.get('submission_country')}, UTM={tracking_data.get('submission_utm_source')}")
+            _logger.info(f"Opportunity created with ID: {opportunity.id}")
+            
+            # Get the CRM tags that were applied to the lead
+            applied_tags = partner.lead_tag_ids if partner.lead_tag_ids else None
+            _logger.info(f"Partner lead_tag_ids: {partner.lead_tag_ids}")
+            _logger.info(f"Applied tags to pass: {applied_tags}")
+            
+            # Add contact to email marketing with tags
+            self._add_to_mailing_list(contact_name, email_from, partner, applied_tags)
+            
+            # Send notification email to vCard owner if enabled
+            if partner.notify_on_new_lead and partner.email:
+                try:
+                    self._send_lead_notification_email(partner, opportunity, contact_name, email_from, phone, description)
+                except Exception as e:
+                    _logger.error(f"Error sending lead notification email: {str(e)}", exc_info=True)
+
+            # Send introduction email to lead if enabled
+            if partner.intro_email_enabled and email_from:
+                try:
+                    self._send_intro_email(partner, contact_name, email_from, opportunity)
+                except Exception as e:
+                    _logger.error(f"Error sending intro email: {str(e)}", exc_info=True)
+
+            # Send instant lead-back message if enabled (within 10 seconds requirement)
+            # Works with email only, phone only, or both
+            if partner.enable_instant_leadback and (email_from or phone):
+                try:
+                    # Send message asynchronously to avoid blocking the response
+                    # Using sudo() to ensure proper access
+                    partner.sudo()._send_instant_leadback_message(
+                        contact_name=contact_name,
+                        contact_phone=phone or '',
+                        contact_email=email_from,
+                        opportunity=opportunity
+                    )
+                    _logger.info(f"Instant lead-back sent for opportunity {opportunity.id} (email: {bool(email_from)}, phone: {bool(phone)})")
+                except Exception as e:
+                    _logger.exception(f"Error sending instant lead-back message: {e}")
+                    # Don't fail the lead creation if messaging fails
+                    # Error is already logged to the lead timeline
+
+            # Schedule follow-up reminder activities if enabled
+            if partner.followup_reminders_enabled:
+                try:
+                    activities_created, reminders_queued = partner.sudo()._schedule_followup_reminders(opportunity, contact_name)
+                    total = activities_created + reminders_queued
+                    if total > 0:
+                        _logger.info(
+                            f"Follow-up reminders scheduled for opportunity {opportunity.id}: "
+                            f"{activities_created} activity/ies created immediately, "
+                            f"{reminders_queued} reminder(s) queued for cron processing"
+                        )
+                except Exception as e:
+                    _logger.exception(f"Error scheduling follow-up reminders: {e}")
+                    # Don't fail the lead creation if reminder scheduling fails
+
+            # Retrieve the custom thank you message from the partner
+            custom_message = partner.form_thank_you_message or 'Thank you! I look forward to talking to you soon!'
+
+            # Return success response in the format expected by JavaScript
+            return {'status': 'success', 'message': custom_message, 'opportunity_id': opportunity.id}
+
+        except Exception as e:
+            _logger.exception("Error in create_lead")
+            return {'status': 'error', 'message': f'Error processing request: {str(e)}'}
+    
+    def _add_to_mailing_list(self, name, email, partner, lead_tags=None):
+        """Add contact to email marketing mailing list with tags"""
+        try:
+            # Check if contact already exists
+            existing_contact = request.env['mailing.contact'].sudo().search([
+                ('email', '=', email)
+            ], limit=1)
+            
+            if existing_contact:
+                _logger.info(f"Contact {email} already exists in mailing list")
+                # Update tags if provided
+                if lead_tags:
+                    tag_ids = self._sync_tags_to_mailing_tags(lead_tags)
+                    if tag_ids:
+                        existing_contact.tag_ids = [(4, tag_id) for tag_id in tag_ids]
+                        _logger.info(f"Updated existing contact with {len(tag_ids)} tags")
+                return existing_contact
+            
+            # Use the vCard's specified mailing list
+            mailing_list = partner.mailing_list_id
+            
+            if not mailing_list:
+                _logger.warning(f"No mailing list configured for vCard {partner.id}")
+                # Fallback: Find or create "All Contacts" mailing list
+                mailing_list = request.env['mailing.list'].sudo().search([
+                    ('name', '=', 'All Contacts')
+                ], limit=1)
+                
+                if not mailing_list:
+                    mailing_list = request.env['mailing.list'].sudo().create({
+                        'name': 'All Contacts'
+                    })
+                    _logger.info(f"Created 'All Contacts' mailing list")
+            
+            _logger.info(f"Using mailing list: {mailing_list.name} (ID: {mailing_list.id})")
+            
+            # Sync CRM tags to mailing contact tags
+            tag_ids = []
+            if lead_tags:
+                _logger.info(f"Syncing {len(lead_tags)} tags to mailing tags")
+                tag_ids = self._sync_tags_to_mailing_tags(lead_tags)
+                _logger.info(f"Tag IDs created: {tag_ids}")
+            
+            # Create mailing contact with tags
+            contact_vals = {
+                'name': name,
+                'email': email,
+                'list_ids': [(6, 0, [mailing_list.id])]
+            }
+            
+            if tag_ids:
+                contact_vals['tag_ids'] = [(6, 0, tag_ids)]
+            
+            mailing_contact = request.env['mailing.contact'].sudo().create(contact_vals)
+            
+            _logger.info(f"Added {email} to mailing list {mailing_list.name} with {len(tag_ids)} tags")
+            _logger.info(f"Mailing contact tag_ids: {mailing_contact.tag_ids}")
+            return mailing_contact
+            
+        except Exception as e:
+            _logger.error(f"Error adding contact to mailing list: {str(e)}")
+            # Don't fail the lead creation if mailing list addition fails
+            return False
+    
+    def _sync_tags_to_mailing_tags(self, crm_tags):
+        """Convert CRM tags to partner categories (used by mailing.contact.tag_ids)"""
+        tag_ids = []
+        try:
+            for tag in crm_tags:
+                _logger.info(f"Processing CRM tag: {tag.name}")
+                # Find or create matching res.partner.category
+                partner_category = request.env['res.partner.category'].sudo().search([
+                    ('name', '=', tag.name)
+                ], limit=1)
+                
+                if not partner_category:
+                    partner_category = request.env['res.partner.category'].sudo().create({
+                        'name': tag.name
+                    })
+                    _logger.info(f"Created partner category: {tag.name} (ID: {partner_category.id})")
+                else:
+                    _logger.info(f"Found existing partner category: {tag.name} (ID: {partner_category.id})")
+                
+                tag_ids.append(partner_category.id)
+            
+            _logger.info(f"Total tag IDs to assign: {tag_ids}")
+            return tag_ids
+        except Exception as e:
+            _logger.exception(f"Error syncing tags to partner categories: {str(e)}")
+            return []
+    
+    def _send_lead_notification_email(self, partner, opportunity, contact_name, email_from, phone, description):
+        """Send notification email to vCard owner when a new lead is submitted"""
+        try:
+            # Build email HTML body
+            phone_display = phone or 'Not provided'
+            description_display = description or 'No message provided'
+            vcard_url = partner.website_full_url or '#'
+            lead_url = f"{request.httprequest.host_url}web#id={opportunity.id}&model=crm.lead&view_type=form"
+            
+            email_body = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+                <div style="background-color: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h2 style="color: #333; margin-top: 0; border-bottom: 2px solid #457eb8; padding-bottom: 10px;">
+                        🎉 New Lead Received!
+                    </h2>
+                    
+                    <p style="color: #666; font-size: 16px; line-height: 1.6;">
+                        You've received a new lead submission on your Vinculum Card:
+                    </p>
+                    
+                    <div style="background-color: #f8f9fa; border-left: 4px solid #457eb8; padding: 20px; margin: 20px 0; border-radius: 4px;">
+                        <p style="margin: 8px 0;"><strong style="color: #333;">Name:</strong> <span style="color: #666;">{contact_name}</span></p>
+                        <p style="margin: 8px 0;"><strong style="color: #333;">Email:</strong> <span style="color: #666;">{email_from}</span></p>
+                        <p style="margin: 8px 0;"><strong style="color: #333;">Phone:</strong> <span style="color: #666;">{phone_display}</span></p>
+                        <p style="margin: 8px 0;"><strong style="color: #333;">Message:</strong></p>
+                        <p style="margin: 8px 0; color: #666; white-space: pre-wrap;">{description_display}</p>
+                    </div>
+                    
+                    <div style="margin: 30px 0; text-align: center;">
+                        <a href="{lead_url}" 
+                           style="display: inline-block; background-color: #457eb8; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                            View Lead in CRM
+                        </a>
+                    </div>
+                    
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 14px; color: #999;">
+                        <p style="margin: 5px 0;">This lead was submitted through your Vinculum Card: <a href="{vcard_url}" style="color: #457eb8;">{vcard_url}</a></p>
+                        <p style="margin: 5px 0;">You can manage lead notifications in your Vinculum Card settings.</p>
+                    </div>
+                </div>
+            </div>
+            """
+            
+            # Create mail message
+            mail_values = {
+                'subject': f'New Lead: {contact_name} submitted a form on your Vinculum Card',
+                'body_html': email_body,
+                'email_from': 'notifications@vinculumapp.com',
+                'email_to': partner.email,
+                'auto_delete': True,
+            }
+            
+            # Send the email
+            mail = request.env['mail.mail'].sudo().create(mail_values)
+            mail.send()
+            _logger.info(f"Lead notification email sent to {partner.email} for new lead from {contact_name} ({email_from})")
+            
+        except Exception as e:
+            _logger.error(f"Error sending lead notification email: {str(e)}", exc_info=True)
+    
+    def _send_intro_email(self, partner, contact_name, contact_email, opportunity):
+        """Send introduction email to new lead with card owner CC'd and as Reply-To"""
+        try:
+            if not partner.intro_email_enabled or not contact_email:
+                return
+            
+            # Prepare template variables (same pattern as leadback)
+            base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url')
+            vcard_url = partner.website_full_url or f"{base_url}/{partner.website_slug}" if partner.website_slug else base_url
+            booking_url = partner.calendly_url or vcard_url
+            
+            # Extract first name from contact name
+            first_name = contact_name.split()[0] if contact_name and ' ' in contact_name else (contact_name or 'there')
+            
+            template_vars = {
+                'contact_name': contact_name or 'there',
+                'first_name': first_name,
+                'vcard_url': vcard_url,
+                'booking_url': booking_url,
+                'owner_name': partner.name or 'me',
+                'owner_phone': partner.phone or partner.mobile or '',
+                'owner_email': partner.email or '',
+                'company_name': partner.company_name or '',
+                'owner_title': partner.function or '',
+            }
+            
+            # Get email template and process it
+            email_template = partner.intro_email_template or "<p>Hi {contact_name},</p><p>Great meeting you today. I'm {owner_name} (cc'd), here's my info and how to reach me:</p><p><strong>Email:</strong> {owner_email}<br/><strong>Phone:</strong> {owner_phone}<br/><strong>My vCard:</strong> <a href='{vcard_url}'>{vcard_url}</a></p><p>Looking forward to connecting!<br/>{owner_name}</p>"
+            
+            # Process template with fallbacks and conditionals
+            email_body_html = partner._process_template(email_template, template_vars)
+            
+            # Import Markup to ensure HTML is properly rendered
+            from markupsafe import Markup
+            
+            # Get the email template
+            template = request.env.ref('qr_code_odoo.email_template_intro_email', raise_if_not_found=False)
+            if not template:
+                _logger.warning("Intro email template not found, skipping email")
+                return
+            
+            # Prepare email subject
+            email_subject = f'Great meeting you today - {partner.name}'
+            
+            # Send email using template (same pattern as referral email)
+            # Pass Markup object to ensure HTML is not escaped
+            # Override subject in email_values to ensure it renders correctly
+            mail_id = template.sudo().with_context(
+                contact_email=contact_email,
+                owner_email=partner.email or '',
+                email_body_html=Markup(email_body_html),
+            ).send_mail(opportunity.id, force_send=True, email_values={
+                'email_to': contact_email,
+                'subject': email_subject,
+            })
+            
+            # Update mail record to add CC and Reply-To headers
+            if mail_id and partner.email:
+                mail = request.env['mail.mail'].sudo().browse(mail_id)
+                if mail.exists():
+                    update_vals = {}
+                    # Set email_cc if the field exists
+                    if 'email_cc' in mail._fields:
+                        update_vals['email_cc'] = partner.email
+                    # Set reply_to if the field exists  
+                    if 'reply_to' in mail._fields:
+                        update_vals['reply_to'] = partner.email
+                    # Update the mail record if we have fields to update
+                    if update_vals:
+                        mail.write(update_vals)
+            
+            # Log to opportunity if exists
+            if opportunity:
+                from markupsafe import Markup
+                opportunity.message_post(
+                    body=Markup(f"<p><strong>✓ Introduction Email Sent</strong><br/>To: {contact_email}<br/>CC: {partner.email or 'N/A'}</p>"),
+                    subject="Introduction Email Sent"
+                )
+            
+            _logger.info(f"Intro email sent to {contact_email} (CC: {partner.email}) for lead from {contact_name}. Mail ID: {mail_id}")
+            
+        except Exception as e:
+            _logger.error(f"Error sending intro email: {str(e)}", exc_info=True)
+    
+    @http.route('/create_service_request', type='json', auth='public', methods=['POST'], csrf=False)
+    def create_service_request(self, **kwargs):
+        """Handle service request submissions"""
+        _logger.info("create_service_request route called")
+
+        try:
+            # Load and log incoming data
+            data = json.loads(request.httprequest.data)
+            _logger.info(f"Received service request data: {data}")
+
+            # Extract tracking data from request (IP, user agent, geolocation, UTM params, etc.)
+            tracking_data = _extract_tracking_data_from_request(request, data)
+            _logger.info(f"=== SERVICE REQUEST TRACKING DATA ===")
+            _logger.info(f"IP Address: {tracking_data.get('submission_ip')}")
+            _logger.info(f"User Agent: {tracking_data.get('submission_user_agent')}")
+            _logger.info(f"Country: {tracking_data.get('submission_country')}")
+            _logger.info(f"City: {tracking_data.get('submission_city')}")
+            _logger.info(f"UTM Source: {tracking_data.get('submission_utm_source')}")
+            _logger.info(f"Referral Code: {tracking_data.get('submission_referral_code')}")
+
+            # Extract data from the request
+            contact_name = data.get('contact_name')
+            email_from = data.get('email_from')
+            phone = data.get('phone', '')
+            partner_vcard_id = data.get('partner_id')
+            service_id = data.get('service_id')
+            service_name = data.get('service_name', '')
+            service_description = data.get('service_description', '')
+            notes = data.get('notes', '')
+            custom_answers = data.get('custom_answers') or []
+
+            _logger.info(f"=== SERVICE REQUEST SUBMISSION ===")
+            _logger.info(f"Received partner_id: {partner_vcard_id}")
+
+            # Validate required fields
+            if not contact_name or not email_from or not partner_vcard_id or not service_id:
+                _logger.error("Missing required fields in service request")
+                return {'status': 'error', 'message': 'Missing required fields'}
+
+            # Search for the partner by ID
+            partner = request.env['partner.vcard'].sudo().search([('id', '=', partner_vcard_id)], limit=1)
+            
+            if not partner:
+                _logger.error(f"Partner with ID {partner_vcard_id} not found")
+                return {'status': 'error', 'message': 'Partner not found'}
+            
+            _logger.info(f"Partner found: {partner.exists()}")
+
+            # Get the service
+            service = request.env['partner.vcard.service'].sudo().search([
+                ('id', '=', service_id),
+                ('partner_id', '=', partner_vcard_id)
+            ], limit=1)
+            
+            if not service:
+                _logger.error(f"Service with ID {service_id} not found for partner {partner_vcard_id}")
+                return {'status': 'error', 'message': 'Service not found'}
+
+            # Build description for CRM lead
+            lead_description = f"New lead for service: {service_name}\n\n"
+            if notes:
+                lead_description += f"Additional Details:\n{notes}\n"
+
+            # Append custom question/answer summary if provided
+            answers_summary_lines = []
+            if isinstance(custom_answers, list):
+                for qa in custom_answers:
+                    label = qa.get('label') or qa.get('name') or ''
+                    value = qa.get('value')
+                    if isinstance(value, bool):
+                        value = 'Yes' if value else 'No'
+                    if label and (value or value == 0):
+                        answers_summary_lines.append(f"{label}: {value}")
+
+            answers_summary_text = ""
+            if answers_summary_lines:
+                answers_summary_text = "Custom Questions:\n" + "\n".join(f"- {line}" for line in answers_summary_lines)
+                lead_description += "\n" + answers_summary_text + "\n"
+            
+            # Create CRM opportunity
+            opportunity_vals = {
+                'contact_name': contact_name,
+                'email_from': email_from,
+                'phone': phone,
+                'partner_vcard_id': partner.id,
+                'name': f"Service Request: {service_name}",
+                'description': lead_description,
+                'type': 'opportunity',
+            }
+
+            # Store structured summary of custom answers on the lead if available
+            if answers_summary_text:
+                opportunity_vals['service_request_answers'] = answers_summary_text
+            
+            # Add all tracking data to opportunity
+            opportunity_vals.update(tracking_data)
+
+            opportunity = request.env['crm.lead'].sudo().create(opportunity_vals)
+            
+            _logger.info(f"Service request opportunity created with tracking data: IP={tracking_data.get('submission_ip')}, Country={tracking_data.get('submission_country')}, UTM={tracking_data.get('submission_utm_source')}")
+
+            _logger.info(f"Service request opportunity created with ID: {opportunity.id}")
+
+            # Schedule follow-up reminder activities if enabled
+            if partner.followup_reminders_enabled:
+                try:
+                    activities_created, reminders_queued = partner.sudo()._schedule_followup_reminders(opportunity, contact_name)
+                    total = activities_created + reminders_queued
+                    if total > 0:
+                        _logger.info(
+                            f"Follow-up reminders scheduled for service request opportunity {opportunity.id}: "
+                            f"{activities_created} activity/ies created immediately, "
+                            f"{reminders_queued} reminder(s) queued for cron processing"
+                        )
+                except Exception as e:
+                    _logger.exception(f"Error scheduling follow-up reminders: {e}")
+                    # Don't fail the service request creation if reminder scheduling fails
+            
+            # Final result
+            _logger.info(f"=== FINAL SERVICE REQUEST RESULT ===")
+            _logger.info(f"Opportunity ID: {opportunity.id}")
+
+            # Add contact to email marketing if mailing list is configured
+            if partner.mailing_list_id:
+                try:
+                    self._add_to_mailing_list(contact_name, email_from, partner, partner.lead_tag_ids)
+                except Exception as e:
+                    _logger.error(f"Error adding to mailing list: {str(e)}", exc_info=True)
+
+            # Send notification email to vCard owner if enabled
+            if partner.notify_on_new_lead and partner.email:
+                try:
+                    self._send_service_request_notification_email(
+                        partner, opportunity, service, contact_name, email_from, phone, notes
+                    )
+                except Exception as e:
+                    _logger.error(f"Error sending service request notification email: {str(e)}", exc_info=True)
+
+            # Retrieve the custom thank you message from the service
+            custom_message = service.thank_you_message or 'Thank you! Your service request has been sent. We\'ll be in touch shortly.'
+
+            # Return success response
+            return {
+                'status': 'success',
+                'message': custom_message,
+                'opportunity_id': opportunity.id
+            }
+
+        except Exception as e:
+            _logger.exception("Error in create_service_request")
+            return {'status': 'error', 'message': f'Error processing request: {str(e)}'}
+
+    @http.route('/service/questions', type='json', auth='public', methods=['POST'], csrf=False)
+    def get_service_questions(self, **kwargs):
+        """Return custom questions for a given service."""
+        try:
+            data = json.loads(request.httprequest.data or '{}')
+            service_id = data.get('service_id')
+            if not service_id:
+                return {'status': 'error', 'message': 'Missing service_id'}
+
+            service = request.env['partner.vcard.service'].sudo().browse(int(service_id))
+            if not service or not service.exists():
+                return {'status': 'error', 'message': 'Service not found'}
+
+            questions = []
+            for q in service.question_ids:
+                questions.append({
+                    'id': q.id,
+                    'name': q.name,
+                    'field_type': q.field_type,
+                    'is_required': bool(q.is_required),
+                    'options': q.options or '',
+                })
+
+            return {'status': 'ok', 'questions': questions}
+        except Exception as e:
+            _logger.exception("Error fetching service questions")
+            return {'status': 'error', 'message': f'Error fetching questions: {str(e)}'}
+    
+    def _send_service_request_notification_email(self, partner, opportunity, service, contact_name, email_from, phone, notes):
+        """Send notification email to vCard owner when a service request is submitted"""
+        try:
+            # Build email HTML body
+            phone_display = phone or 'Not provided'
+            notes_display = notes or 'No additional details provided'
+            vcard_url = partner.website_full_url or '#'
+            lead_url = f"{request.httprequest.host_url}web#id={opportunity.id}&model=crm.lead&view_type=form"
+            
+            email_body = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+                <div style="background-color: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h2 style="color: #333; margin-top: 0; border-bottom: 2px solid #457eb8; padding-bottom: 10px;">
+                        🎯 New Service Request!
+                    </h2>
+                    
+                    <p style="color: #666; font-size: 16px; line-height: 1.6;">
+                        You've received a new service request on your Vinculum Card:
+                    </p>
+                    
+                    <div style="background-color: #f8f9fa; border-left: 4px solid #457eb8; padding: 20px; margin: 20px 0; border-radius: 4px;">
+                        <p style="margin: 8px 0;"><strong style="color: #333;">Service:</strong> <span style="color: #666;">{service.name}</span></p>
+                        <p style="margin: 8px 0;"><strong style="color: #333;">Service Description:</strong></p>
+                        <p style="margin: 8px 0; color: #666; white-space: pre-wrap;">{service.description}</p>
+                        <p style="margin: 20px 0 8px 0; border-top: 1px solid #ddd; padding-top: 12px;"><strong style="color: #333;">Contact Information:</strong></p>
+                        <p style="margin: 8px 0;"><strong style="color: #333;">Name:</strong> <span style="color: #666;">{contact_name}</span></p>
+                        <p style="margin: 8px 0;"><strong style="color: #333;">Email:</strong> <span style="color: #666;">{email_from}</span></p>
+                        <p style="margin: 8px 0;"><strong style="color: #333;">Phone:</strong> <span style="color: #666;">{phone_display}</span></p>
+                        <p style="margin: 8px 0;"><strong style="color: #333;">Additional Details:</strong></p>
+                        <p style="margin: 8px 0; color: #666; white-space: pre-wrap;">{notes_display}</p>
+                    </div>
+                    
+                    <div style="margin: 30px 0; text-align: center;">
+                        <a href="{lead_url}" 
+                           style="display: inline-block; background-color: #457eb8; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                            View Lead in CRM
+                        </a>
+                    </div>
+                    
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 14px; color: #999;">
+                        <p style="margin: 5px 0;">This service request was submitted through your Vinculum Card: <a href="{vcard_url}" style="color: #457eb8;">{vcard_url}</a></p>
+                        <p style="margin: 5px 0;">You can manage service request notifications in your Vinculum Card settings.</p>
+                    </div>
+                </div>
+            </div>
+            """
+            
+            # Create mail message
+            mail_values = {
+                'subject': f'New Service Request: {service.name} - {contact_name}',
+                'body_html': email_body,
+                'email_from': 'notifications@vinculumapp.com',
+                'email_to': partner.email,
+                'auto_delete': True,
+            }
+            
+            # Send the email
+            mail = request.env['mail.mail'].sudo().create(mail_values)
+            mail.send()
+            _logger.info(f"Service request notification email sent to {partner.email} for service '{service.name}' from {contact_name} ({email_from})")
+            
+        except Exception as e:
+            _logger.error(f"Error sending service request notification email: {str(e)}", exc_info=True)
+
+class VCardFormController(http.Controller):
+
+    @http.route(['/get-started/translate-view'], type='http', auth='public', website=True)
+    def get_started_translate_view(self, **kwargs):
+        """Special route for translating the form - shows all steps for easy translation"""
+        # Check if user is logged in
+        if request.env.user._is_public():
+            return request.redirect('/web/login?redirect=/get-started/translate-view')
+        
+        # Render the actual form template with all steps visible
+        countries = request.env['res.country'].sudo().search([], order='name')
+        states = request.env['res.country.state'].sudo().search([], order='name')
+        
+        return request.render('qr_code_odoo.vcard_form_page', {
+            'countries': countries,
+            'states': states,
+            'default_name': 'John Doe',
+            'default_email': 'john@example.com',
+            'default_company': 'Example Company',
+            'show_all_steps': True,
+        })
+
+    @http.route(['/get-started'], type='http', auth='public', website=True)
+    def get_started_form_page(self, **kwargs):
+        # Check if user is authenticated by checking session UID
+        if not request.session.uid or request.session.uid == 1:  # 1 is public user
+            return request.redirect('/web/login')
+        
+        # Get the actual user from the session
+        user = request.env['res.users'].sudo().browse(request.session.uid)
+        if not user.exists():
+            return request.redirect('/web/login')
+        
+        # Users can have multiple vCards, so no need to check for existing ones
+        
+        countries = request.env['res.country'].sudo().search([], order='name')
+        states = request.env['res.country.state'].sudo().search([], order='name')
+
+        # Prefill defaults from user
+        default_name = ''
+        default_email = ''
+        default_company = ''
+        
+        try:
+            default_name = user.name or ''
+            default_email = getattr(user, 'email', None) or getattr(user, 'login', '') or ''
+            
+            if hasattr(user, 'company_id') and user.company_id:
+                company = request.env['res.company'].sudo().browse(user.company_id.id)
+                if company.exists() and company.name:
+                    default_company = company.name
+        except Exception as e:
+            _logger.warning(f"Error accessing user fields: {e}")
+        
+        # Get base URL for vCard URL prefix
+        base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+        # Remove protocol and trailing slash for display
+        base_url_display = base_url.replace('http://', '').replace('https://', '').rstrip('/')
+        
+        # No limits - all features enabled
+        return request.render('qr_code_odoo.vcard_form_page', {
+            'countries': countries,
+            'states': states,
+            'default_name': default_name,
+            'default_email': default_email,
+            'default_company': default_company,
+            'base_url_display': base_url_display,
+            'max_websites': 999999,  # Unlimited
+            'max_videos': 999999,  # Unlimited
+        })
+
+    @http.route(['/vcard/preview'], type='json', auth='user', methods=['POST'], csrf=False)
+    def generate_preview(self, **kwargs):
+        """Generate a live preview of the vCard website based on form data"""
+        try:
+            # Get form data from request
+            data = json.loads(request.httprequest.data) if request.httprequest.data else kwargs
+            
+            # Get or create a preview vCard for this user
+            user = request.env.user
+            
+            # Look for existing preview vCard (marked with a special slug)
+            preview_slug = f'preview-{user.id}'
+            preview_vcard = request.env['partner.vcard'].sudo().search([
+                ('website_slug', '=', preview_slug)
+            ], limit=1)
+            
+            # Prepare values from form data
+            vals = {
+                'name': data.get('name') or 'Your Name',
+                'company_name': data.get('company_name') or 'Your Company',
+                'street': data.get('street', ''),
+                'street2': data.get('street2', ''),
+                'city': data.get('city', ''),
+                'zip': data.get('zip', ''),
+                'function': data.get('function', ''),
+                'phone': data.get('phone', ''),
+                'mobile': data.get('mobile', ''),
+                'email': data.get('email') or 'email@example.com',
+                'website': data.get('website', ''),
+                'calendly_url': data.get('calendly_url', ''),
+                'website_slug': preview_slug,
+                'about': data.get('about') or 'Tell people about yourself...',
+                'primary_color': data.get('primary_color') or '#ffffff',
+                'secondary_color': data.get('secondary_color') or '#000000',
+                'website_template': data.get('website_template', 'modern'),
+                'whatsapp_url': data.get('whatsapp_url', ''),
+                'linkedin_url': data.get('linkedin_url', ''),
+                'linkedin_url_company': data.get('linkedin_url_company', ''),
+                'youtube_url': data.get('youtube_url', ''),
+                'facebook_url': data.get('facebook_url', ''),
+                'facebook_url_company': data.get('facebook_url_company', ''),
+                'lead_button_label': data.get('lead_button_label', ''),
+                'form_thank_you_message': data.get('form_thank_you_message', ''),
+                'show_form': data.get('show_form', False),
+            }
+            
+            # Handle mailing list if show_form is enabled
+            if vals.get('show_form'):
+                mailing_list_name = (data.get('mailing_list_name') or '').strip()
+                if mailing_list_name:
+                    # Find or create mailing list
+                    MailingList = request.env['mailing.list'].sudo()
+                    mailing_list = MailingList.search([
+                        ('name', '=ilike', mailing_list_name)
+                    ], limit=1)
+                    
+                    if not mailing_list:
+                        mailing_list = MailingList.create({
+                            'name': mailing_list_name,
+                            'is_public': True
+                        })
+                        _logger.info(f"Created preview mailing list '{mailing_list_name}' (ID: {mailing_list.id})")
+                    else:
+                        _logger.info(f"Using existing mailing list '{mailing_list.name}' (ID: {mailing_list.id})")
+                    
+                    # Assign to vals to satisfy model constraint
+                    vals['mailing_list_id'] = mailing_list.id
+                else:
+                    # If show_form is enabled but no mailing list name, disable show_form for preview
+                    # Don't fail - just disable the form for preview purposes
+                    vals['show_form'] = False
+                    _logger.info(f"show_form enabled but no mailing_list_name provided, disabling show_form for preview (non-blocking)")
+            
+            # Handle image if provided (base64 encoded)
+            if data.get('image_base64'):
+                import base64
+                vals['image_url'] = data.get('image_base64')
+            
+            # Handle banner image if provided (base64 encoded)
+            if data.get('banner_image_base64'):
+                import base64
+                vals['banner_image'] = data.get('banner_image_base64')
+            
+            # Handle extra features (checkboxes return boolean or 'yes' string)
+            vals['notify_on_new_lead'] = data.get('notify_on_new_lead') == 'yes' or data.get('notify_on_new_lead') == True or data.get('notify_on_new_lead') is True
+            vals['intro_email_enabled'] = data.get('intro_email_enabled') == 'yes' or data.get('intro_email_enabled') == True or data.get('intro_email_enabled') is True
+            vals['enable_instant_leadback'] = data.get('enable_instant_leadback') == 'yes' or data.get('enable_instant_leadback') == True or data.get('enable_instant_leadback') is True
+            vals['leadback_send_email'] = data.get('leadback_send_email') == 'yes' or data.get('leadback_send_email') == True or data.get('leadback_send_email') is True
+            vals['leadback_enable_messaging'] = data.get('leadback_enable_messaging') == 'yes' or data.get('leadback_enable_messaging') == True or data.get('leadback_enable_messaging') is True
+            vals['show_reviews'] = data.get('show_reviews') == 'yes' or data.get('show_reviews') == True or data.get('show_reviews') is True
+            
+            # Handle leadback channels
+            if data.get('leadback_channels'):
+                channel_ids = []
+                channel_codes = data.get('leadback_channels') if isinstance(data.get('leadback_channels'), list) else [data.get('leadback_channels')]
+                for code in channel_codes:
+                    channel = request.env['leadback.messaging.channel'].sudo().search([('code', '=', code)], limit=1)
+                    if channel:
+                        channel_ids.append(channel.id)
+                if channel_ids:
+                    vals['leadback_channels'] = [(6, 0, channel_ids)]
+            
+            # Handle websites and videos for preview
+            website_urls = data.get('website_url', []) if isinstance(data.get('website_url'), list) else (data.get('website_url') and [data.get('website_url')] or [])
+            website_names = data.get('website_name', []) if isinstance(data.get('website_name'), list) else (data.get('website_name') and [data.get('website_name')] or [])
+            website_colors = data.get('website_color', []) if isinstance(data.get('website_color'), list) else (data.get('website_color') and [data.get('website_color')] or [])
+            
+            video_urls = data.get('video_url', []) if isinstance(data.get('video_url'), list) else (data.get('video_url') and [data.get('video_url')] or [])
+            video_names = data.get('video_name', []) if isinstance(data.get('video_name'), list) else (data.get('video_name') and [data.get('video_name')] or [])
+            
+            # Create or update preview vCard
+            if preview_vcard:
+                preview_vcard.sudo().write(vals)
+                vcard = preview_vcard
+            else:
+                vcard = request.env['partner.vcard'].sudo().with_context(skip_vcard_limit_check=True).create(vals)
+            
+            # Handle websites data for preview
+            if website_urls and website_urls[0]:
+                # Delete existing websites for this preview vCard
+                request.env['partner.vcard.website'].sudo().search([
+                    ('partner_id', '=', vcard.id)
+                ]).unlink()
+                
+                # Get secondary color as default
+                secondary_color = vcard.secondary_color or '#000000'
+                
+                # Create new websites
+                website_data = []
+                for i, url in enumerate(website_urls):
+                    if url and url.strip():
+                        # Use provided color, or default to secondary color
+                        button_color = website_colors[i] if i < len(website_colors) and website_colors[i] and website_colors[i].strip() else secondary_color
+                        website_data.append({
+                            'partner_id': vcard.id,
+                            'website_url': url.strip(),
+                            'name': website_names[i] if i < len(website_names) and website_names[i] else 'Website',
+                            'button_color': button_color
+                        })
+                
+                if website_data:
+                    request.env['partner.vcard.website'].sudo().create(website_data)
+                    request.env.cr.commit()
+            
+            # Handle videos data for preview
+            if video_urls and video_urls[0]:
+                # Delete existing videos for this preview vCard
+                request.env['partner.vcard.videos'].sudo().search([
+                    ('partner_id', '=', vcard.id)
+                ]).unlink()
+                
+                # Create new videos
+                video_data = []
+                for i, url in enumerate(video_urls):
+                    if url and url.strip():
+                        video_data.append({
+                            'partner_id': vcard.id,
+                            'video_url': url.strip(),
+                            'name': video_names[i] if i < len(video_names) and video_names[i] else 'Video'
+                        })
+                
+                if video_data:
+                    request.env['partner.vcard.videos'].sudo().create(video_data)
+                    request.env.cr.commit()
+            
+            # Generate the website page
+            if hasattr(vcard, 'action_generate_website_page'):
+                try:
+                    vcard.action_generate_website_page()
+                    # Commit to ensure the website page is saved
+                    request.env.cr.commit()
+                    _logger.info(f"Preview website generated successfully for vCard {vcard.id} (slug: {preview_slug})")
+                except Exception as e:
+                    _logger.error(f"Error generating preview website: {str(e)}", exc_info=True)
+                    return {'success': False, 'error': f'Failed to generate website: {str(e)}'}
+            
+            # Verify the website page exists and is published
+            website_page = request.env['website.page'].sudo().search([
+                ('url', '=', f'/{preview_slug}')
+            ], limit=1)
+            
+            if not website_page:
+                _logger.warning(f"Website page not found for preview slug: {preview_slug}")
+                return {'success': False, 'error': 'Website page not created'}
+            
+            if not website_page.is_published:
+                _logger.warning(f"Website page not published for preview slug: {preview_slug}, publishing now...")
+                website_page.sudo().write({'is_published': True})
+                request.env.cr.commit()
+            
+            # Return the preview URL (use full URL to avoid iframe issues)
+            base_url = request.httprequest.host_url.rstrip('/')
+            preview_url = f'{base_url}/{preview_slug}?preview=1'
+            
+            _logger.info(f"Preview URL generated: {preview_url}")
+            return {
+                'success': True,
+                'preview_url': preview_url,
+                'vcard_id': vcard.id,
+                'website_page_id': website_page.id
+            }
+            
+        except Exception as e:
+            _logger.error(f"Error generating preview: {str(e)}", exc_info=True)
+            return {'success': False, 'error': str(e)}
+    
+    @http.route(['/vcard/submit'], type='http', auth='public', website=True, csrf=True)
+    def handle_form_submission(self, **post):
+        # Check if user is authenticated
+        if not request.env.user or request.env.user._is_public():
+            return request.redirect('/web/login')
+        
+        
+        # Validate required fields
+        required_fields = {
+            'name': 'Full Name',
+            'email': 'Email Address', 
+            'website_slug': 'vCard URL',
+            'about': 'About You',
+            'primary_color': 'Primary Brand Color',
+            'secondary_color': 'Secondary Brand Color'
+        }
+        
+        # Check for required file upload (profile photo)
+        image_file = request.httprequest.files.get('image_url')
+        if not image_file or not image_file.filename:
+            error_message = "Please upload a profile photo"
+            _logger.warning("Profile photo validation failed: No image uploaded")
+            return request.render('qr_code_odoo.vcard_form_page', {
+                'error': error_message,
+                'countries': request.env['res.country'].sudo().search([]),
+                'states': request.env['res.country.state'].sudo().search([]),
+            })
+        
+        # Validate image file type
+        allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'}
+        import os
+        file_extension = os.path.splitext(image_file.filename.lower())[1]
+        if file_extension not in allowed_extensions:
+            error_message = f"Please upload a valid image file (JPG, PNG, GIF, BMP, or WebP). Uploaded file: {image_file.filename}"
+            _logger.warning(f"Profile photo validation failed: Invalid file type - {file_extension}")
+            return request.render('qr_code_odoo.vcard_form_page', {
+                'error': error_message,
+                'countries': request.env['res.country'].sudo().search([]),
+                'states': request.env['res.country.state'].sudo().search([]),
+            })
+        
+        # Validate file size (max 5MB)
+        image_file.seek(0, 2)  # Seek to end
+        file_size = image_file.tell()
+        image_file.seek(0)  # Reset to beginning
+        max_size = 5 * 1024 * 1024  # 5MB in bytes
+        if file_size > max_size:
+            error_message = f"Image file is too large. Maximum size is 5MB. Your file is {file_size / (1024*1024):.1f}MB"
+            _logger.warning(f"Profile photo validation failed: File too large - {file_size} bytes")
+            return request.render('qr_code_odoo.vcard_form_page', {
+                'error': error_message,
+                'countries': request.env['res.country'].sudo().search([]),
+                'states': request.env['res.country.state'].sudo().search([]),
+            })
+        
+        missing_fields = []
+        for field, label in required_fields.items():
+            if not post.get(field) or not post.get(field).strip():
+                missing_fields.append(label)
+        
+        if missing_fields:
+            error_message = f"Please fill in the following required fields: {', '.join(missing_fields)}"
+            _logger.warning(f"Form validation failed: {error_message}")
+            return request.render('qr_code_odoo.vcard_form_page', {
+                'error': error_message,
+                'countries': request.env['res.country'].sudo().search([]),
+                'states': request.env['res.country.state'].sudo().search([]),
+            })
+        
+        # Additional validation for email format
+        import re
+        email = post.get('email', '').strip()
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            error_message = "Please enter a valid email address"
+            _logger.warning(f"Email validation failed: {email}")
+            return request.render('qr_code_odoo.vcard_form_page', {
+                'error': error_message,
+                'countries': request.env['res.country'].sudo().search([]),
+                'states': request.env['res.country.state'].sudo().search([]),
+            })
+        
+        # Additional validation for website_slug format (alphanumeric and hyphens only)
+        website_slug = post.get('website_slug', '').strip()
+        if not re.match(r'^[a-zA-Z0-9-]+$', website_slug):
+            error_message = "vCard URL can only contain letters, numbers, and hyphens"
+            _logger.warning(f"Website slug validation failed: {website_slug}")
+            return request.render('qr_code_odoo.vcard_form_page', {
+                'error': error_message,
+                'countries': request.env['res.country'].sudo().search([]),
+                'states': request.env['res.country.state'].sudo().search([]),
+            })
+        
+        # Check if website_slug is already taken
+        existing_partner = request.env['partner.vcard'].sudo().search([
+            ('website_slug', '=', website_slug)
+        ], limit=1)
+        if existing_partner:
+            error_message = f"The vCard URL '{website_slug}' is already taken. Please choose a different one."
+            _logger.warning(f"Website slug already exists: {website_slug}")
+            return request.render('qr_code_odoo.vcard_form_page', {
+                'error': error_message,
+                'countries': request.env['res.country'].sudo().search([]),
+                'states': request.env['res.country.state'].sudo().search([]),
+            })
+        
+        vals = {
+            'name': post.get('name'),
+            'company_name': post.get('company_name', ''),  # Optional now
+            'street': post.get('street'),
+            'street2': post.get('street2'),
+            'city': post.get('city'),
+            'zip': post.get('zip'),
+            'function': post.get('function'),
+            'phone': post.get('phone'),
+            'mobile': post.get('mobile'),
+            'email': post.get('email'),
+            'website': post.get('website'),
+            'calendly_url': post.get('calendly_url'),
+            'website_slug': post.get('website_slug'),
+            'about': post.get('about'),
+            'primary_color': post.get('primary_color'),
+            'secondary_color': post.get('secondary_color'),
+            'website_template': post.get('website_template', 'classic'),  # Default to classic if not provided
+            'whatsapp_url': post.get('whatsapp_url'),
+            'linkedin_url': post.get('linkedin_url'),
+            'linkedin_url_company': post.get('linkedin_url_company'),
+            'youtube_url': post.get('youtube_url'),
+            'facebook_url': post.get('facebook_url'),
+            'facebook_url_company': post.get('facebook_url_company'),
+            'lead_button_label': post.get('lead_button_label'),
+            'form_thank_you_message': post.get('form_thank_you_message'),
+            'show_form': post.get('show_form') == 'yes',
+            'notify_on_new_lead': post.get('notify_on_new_lead') == 'yes',
+            'intro_email_enabled': post.get('intro_email_enabled') == 'yes',
+            'enable_instant_leadback': post.get('enable_instant_leadback') == 'yes',
+            'leadback_send_email': post.get('leadback_send_email') == 'yes',
+            'leadback_enable_messaging': post.get('leadback_enable_messaging') == 'yes',
+            'show_reviews': post.get('show_reviews') == 'yes',
+        }
+        
+        # Handle leadback channels
+        # In Odoo, form data comes as a dict, not a request object
+        leadback_channels = post.get('leadback_channels[]')
+        if isinstance(leadback_channels, list):
+            pass  # Already a list
+        elif leadback_channels:
+            leadback_channels = [leadback_channels]  # Convert single value to list
+        else:
+            leadback_channels = []
+        
+        if leadback_channels:
+            channel_ids = []
+            for code in leadback_channels:
+                channel = request.env['leadback.messaging.channel'].sudo().search([('code', '=', code)], limit=1)
+                if channel:
+                    channel_ids.append(channel.id)
+            if channel_ids:
+                vals['leadback_channels'] = [(6, 0, channel_ids)]
+        
+        # When lead form is enabled, ensure a mailing list exists and assign it
+        try:
+            if vals.get('show_form'):
+                mailing_list_name = (post.get('mailing_list_name') or '').strip()
+                if not mailing_list_name:
+                    error_message = "Please provide a Mailing List Name when lead collection is enabled."
+                    _logger.warning("Lead form enabled but no mailing_list_name provided")
+                    return request.render('qr_code_odoo.vcard_form_page', {
+                        'error': error_message,
+                        'countries': request.env['res.country'].sudo().search([]),
+                        'states': request.env['res.country.state'].sudo().search([]),
+                    })
+
+                # Find or create mailing list
+                MailingList = request.env['mailing.list'].sudo()
+                mailing_list = MailingList.search([
+                    ('name', '=ilike', mailing_list_name)
+                ], limit=1)
+
+                if not mailing_list:
+                    mailing_list = MailingList.create({
+                        'name': mailing_list_name,
+                        'is_public': True
+                    })
+                    _logger.info(f"Created mailing list '{mailing_list_name}' (ID: {mailing_list.id})")
+                else:
+                    _logger.info(f"Using existing mailing list '{mailing_list.name}' (ID: {mailing_list.id})")
+
+                # Assign to vals to satisfy model constraint
+                vals['mailing_list_id'] = mailing_list.id
+        except Exception as e:
+            _logger.error(f"Error preparing mailing list: {e}")
+            # Fail gracefully with message on the form rather than 500
+            return request.render('qr_code_odoo.vcard_form_page', {
+                'error': f'Error preparing mailing list: {str(e)}',
+                'countries': request.env['res.country'].sudo().search([]),
+                'states': request.env['res.country.state'].sudo().search([]),
+            })
+
+
+        # Handle image upload
+        file = request.httprequest.files.get('image_url')
+        if file:
+            vals['image_url'] = base64.b64encode(file.read())
+        
+        # Handle banner image upload
+        banner_file = request.httprequest.files.get('banner_image')
+        if banner_file:
+            vals['banner_image'] = base64.b64encode(banner_file.read())
+
+        # Handle QR Code Logo upload
+        qr_file = request.httprequest.files.get('qr_logo')
+        if qr_file:
+            vals['qr_logo'] = base64.b64encode(qr_file.read())
+
+        # Delete any preview vCard for this user before creating the real one
+        # This prevents the preview from counting against the vCard limit
+        user = request.env.user
+        preview_slug = f'preview-{user.id}'
+        preview_vcard = request.env['partner.vcard'].sudo().search([
+            ('website_slug', '=', preview_slug)
+        ], limit=1)
+        if preview_vcard:
+            # Delete the preview vCard and its related records
+            preview_vcard.sudo().unlink()
+            _logger.info(f"Deleted preview vCard {preview_vcard.id} before creating real vCard")
+
+        # Create the partner vCard record
+        partner = request.env['partner.vcard'].sudo().with_context(skip_vcard_limit_check=True).create(vals)
+        
+        # Handle websites data
+        website_urls = request.httprequest.form.getlist('website_url[]')
+        website_names = request.httprequest.form.getlist('website_name[]')
+        website_colors = request.httprequest.form.getlist('website_color[]')
+        
+        if website_urls and website_urls[0]:  # Check if at least one website URL is provided
+            website_data = []
+            # Get secondary color as default
+            secondary_color = partner.secondary_color or '#764ba2'
+            for i, url in enumerate(website_urls):
+                if url.strip():  # Only add non-empty URLs
+                    # Use provided color, or default to secondary color
+                    button_color = website_colors[i] if i < len(website_colors) and website_colors[i] and website_colors[i].strip() else secondary_color
+                    website_data.append({
+                        'partner_id': partner.id,
+                        'website_url': url.strip(),
+                        'name': website_names[i] if i < len(website_names) and website_names[i].strip() else 'Website',
+                        'button_color': button_color
+                    })
+            
+            if website_data:
+                request.env['partner.vcard.website'].sudo().create(website_data)
+        
+        # Handle videos data
+        video_urls = request.httprequest.form.getlist('video_url[]')
+        video_names = request.httprequest.form.getlist('video_name[]')
+        
+        if video_urls and video_urls[0]:  # Check if at least one video URL is provided
+            video_data = []
+            for i, url in enumerate(video_urls):
+                if url.strip():  # Only add non-empty URLs
+                    video_data.append({
+                        'partner_id': partner.id,
+                        'video_url': url.strip(),
+                        'name': video_names[i] if i < len(video_names) and video_names[i].strip() else 'Video'
+                    })
+            
+            if video_data:
+                request.env['partner.vcard.videos'].sudo().create(video_data)
+        
+        # Generate website page and commit changes
+        if hasattr(partner, 'action_generate_website_page'):
+            partner.action_generate_website_page()
+        
+        # Redirect authenticated users to their vCard list
+        # Public users will be redirected to login anyway
+        return request.redirect('/web#action=qr_code_odoo.action_partner_vcard')

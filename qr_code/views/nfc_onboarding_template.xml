@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- NFC Card Programming Onboarding Template -->
+    <template id="nfc_onboarding_page" name="NFC Card Programming Guide">
+        <t t-call="website.layout">
+            <div id="wrap" class="oe_structure">
+                <div class="container mt-5 mb-5">
+                    <div class="row justify-content-center">
+                        <div class="col-md-8">
+                            <h1 class="text-center mb-4">Program Your Vinculum Card</h1>
+                            <p class="text-center text-muted mb-5">Follow these simple steps to program your Vinculum card with your vCard</p>
+
+                            <!-- Progress Steps -->
+                            <div class="progress mb-5" style="height: 3px;">
+                                <div class="progress-bar" id="progressBar" role="progressbar" style="width: 20%"></div>
+                            </div>
+
+                            <!-- Step 1: Copy URL -->
+                            <div class="card mb-4 step-card" id="step1" style="display: block;">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <span class="badge badge-primary badge-pill mr-3" style="font-size: 20px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">1</span>
+                                        <h3 class="mb-0">Copy Your Vinculum URL</h3>
+                                    </div>
+                                    <p>This is the URL that will be written to your Vinculum card:</p>
+                                    <div class="input-group mb-3">
+                                        <input type="text" class="form-control form-control-lg" id="vcardUrl" t-att-value="vcard_url" readonly="readonly" style="font-size: 16px;"/>
+                                        <div class="input-group-append">
+                                            <button class="btn btn-primary" type="button" id="copyUrlBtn">
+                                                <i class="fa fa-copy"></i> Copy
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="alert alert-success" id="copySuccess" style="display: none;">
+                                        <i class="fa fa-check"></i> URL copied to clipboard!
+                                    </div>
+                                    <div class="text-right">
+                                        <button class="btn btn-success btn-lg" onclick="goToStep(2)">
+                                            Next <i class="fa fa-arrow-right"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 2: Install App -->
+                            <div class="card mb-4 step-card" id="step2" style="display: none;">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <span class="badge badge-primary badge-pill mr-3" style="font-size: 20px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">2</span>
+                                        <h3 class="mb-0">Install NFC Tools App</h3>
+                                    </div>
+                                    <p>Download the free NFC Tools app on your phone:</p>
+                                    
+                                    <div class="row mb-4">
+                                        <div class="col-md-6 mb-3">
+                                            <a href="https://apps.apple.com/us/app/nfc-tools/id1252962749" target="_blank" class="btn btn-dark btn-block btn-lg" style="padding: 20px;">
+                                                <i class="fa fa-apple fa-2x"></i>
+                                                <div>Download for iOS</div>
+                                                <small>iPhone 7 or newer</small>
+                                            </a>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <a href="https://play.google.com/store/apps/details?id=com.wakdev.wdnfc" target="_blank" class="btn btn-success btn-block btn-lg" style="padding: 20px;">
+                                                <i class="fa fa-android fa-2x"></i>
+                                                <div>Download for Android</div>
+                                                <small>Most Android devices</small>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="alert alert-info">
+                                        <i class="fa fa-info-circle"></i> <strong>Note:</strong> Make sure NFC is enabled in your phone settings
+                                    </div>
+
+                                    <div class="d-flex justify-content-between">
+                                        <button class="btn btn-secondary btn-lg" onclick="goToStep(1)">
+                                            <i class="fa fa-arrow-left"></i> Back
+                                        </button>
+                                        <button class="btn btn-success btn-lg" onclick="goToStep(3)">
+                                            Next <i class="fa fa-arrow-right"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 3: Write to Card -->
+                            <div class="card mb-4 step-card" id="step3" style="display: none;">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <span class="badge badge-primary badge-pill mr-3" style="font-size: 20px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">3</span>
+                                        <h3 class="mb-0">Program Your Vinculum Card</h3>
+                                    </div>
+                                    
+                                    <p class="lead mb-4">Follow these steps in the NFC Tools app to program your Vinculum card:</p>
+
+                                    <div class="list-group mb-4">
+                                        <div class="list-group-item">
+                                            <div class="d-flex align-items-start">
+                                                <span class="badge badge-info mr-3" style="font-size: 16px;">1</span>
+                                                <div>
+                                                    <h5 class="mb-1">Open NFC Tools</h5>
+                                                    <p class="mb-0 text-muted">Launch the app on your phone</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="list-group-item">
+                                            <div class="d-flex align-items-start">
+                                                <span class="badge badge-info mr-3" style="font-size: 16px;">2</span>
+                                                <div>
+                                                    <h5 class="mb-1">Tap "Write"</h5>
+                                                    <p class="mb-0 text-muted">Select the Write tab at the bottom</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="list-group-item">
+                                            <div class="d-flex align-items-start">
+                                                <span class="badge badge-info mr-3" style="font-size: 16px;">3</span>
+                                                <div>
+                                                    <h5 class="mb-1">Tap "Add a record"</h5>
+                                                    <p class="mb-0 text-muted">Choose what type of data to write</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="list-group-item">
+                                            <div class="d-flex align-items-start">
+                                                <span class="badge badge-info mr-3" style="font-size: 16px;">4</span>
+                                                <div>
+                                                    <h5 class="mb-1">Select "URL/URI"</h5>
+                                                    <p class="mb-0 text-muted">Choose the URL option</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="list-group-item bg-light">
+                                            <div class="d-flex align-items-start">
+                                                <span class="badge badge-warning mr-3" style="font-size: 16px;">5</span>
+                                                <div>
+                                                    <h5 class="mb-1">Paste Your URL</h5>
+                                                    <div class="input-group mt-2">
+                                                        <input type="text" class="form-control" t-att-value="vcard_url" readonly="readonly"/>
+                                                        <div class="input-group-append">
+                                                            <button class="btn btn-sm btn-primary" type="button" onclick="copyUrl()">
+                                                                <i class="fa fa-copy"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="list-group-item">
+                                            <div class="d-flex align-items-start">
+                                                <span class="badge badge-info mr-3" style="font-size: 16px;">6</span>
+                                                <div>
+                                                    <h5 class="mb-1">Tap "Write"</h5>
+                                                    <p class="mb-0 text-muted">Confirm and prepare to write</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="list-group-item">
+                                            <div class="d-flex align-items-start">
+                                                <span class="badge badge-success mr-3" style="font-size: 16px;">7</span>
+                                                <div>
+                                                    <h5 class="mb-1">Hold Vinculum Card to Phone</h5>
+                                                    <p class="mb-0 text-muted">Place your Vinculum card on the back of your phone until you see "Write successful"</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between">
+                                        <button class="btn btn-secondary btn-lg" onclick="goToStep(2)">
+                                            <i class="fa fa-arrow-left"></i> Back
+                                        </button>
+                                        <button class="btn btn-success btn-lg" onclick="goToStep(4)">
+                                            Next <i class="fa fa-arrow-right"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 4: Test Card -->
+                            <div class="card mb-4 step-card" id="step4" style="display: none;">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <span class="badge badge-primary badge-pill mr-3" style="font-size: 20px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">4</span>
+                                        <h3 class="mb-0">Test Your Vinculum Card</h3>
+                                    </div>
+                                    
+                                    <div class="text-center mb-4">
+                                        <i class="fa fa-check-circle text-success" style="font-size: 80px;"></i>
+                                    </div>
+
+                                    <h4 class="text-center mb-4">Almost Done!</h4>
+                                    
+                                    <p class="lead text-center mb-4">Test your Vinculum card by tapping it to any NFC-enabled phone. It should open your vCard page automatically!</p>
+
+                                    <div class="alert alert-success">
+                                        <h5><i class="fa fa-lightbulb-o"></i> Pro Tips:</h5>
+                                        <ul class="mb-0">
+                                            <li>Your Vinculum card works best when you tap it to the back center of the phone</li>
+                                            <li>You can program multiple Vinculum cards with the same URL</li>
+                                            <li>Your Vinculum card works on both iPhone and Android devices</li>
+                                            <li>No app is needed for someone to scan your Vinculum card - it opens in their browser</li>
+                                        </ul>
+                                    </div>
+
+                                    <div class="text-center mt-4">
+                                        <button class="btn btn-secondary btn-lg mr-2" onclick="goToStep(3)">
+                                            <i class="fa fa-arrow-left"></i> Back
+                                        </button>
+                                        <button class="btn btn-success btn-lg" onclick="completeTutorial()">
+                                            <i class="fa fa-check"></i> Finish Tutorial
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Need Help Section -->
+                            <div class="card mt-4 bg-light">
+                                <div class="card-body text-center">
+                                    <h5><i class="fa fa-question-circle"></i> Need Help?</h5>
+                                    <p>Having trouble programming your Vinculum card?</p>
+                                    <a href="/contactus" class="btn btn-primary">Contact Vinculum Support</a>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- JavaScript for interactivity -->
+            <script>
+                function goToStep(step) {
+                    // Hide all steps
+                    $('.step-card').hide();
+                    
+                    // Show selected step
+                    $('#step' + step).show();
+                    
+                    // Update progress bar
+                    var progress = (step / 4) * 100;
+                    $('#progressBar').css('width', progress + '%');
+                    
+                    // Scroll to top
+                    $('html, body').animate({ scrollTop: 0 }, 300);
+                }
+
+                function copyUrl() {
+                    var urlInput = document.getElementById('vcardUrl');
+                    urlInput.select();
+                    urlInput.setSelectionRange(0, 99999); // For mobile
+                    
+                    navigator.clipboard.writeText(urlInput.value).then(function() {
+                        $('#copySuccess').fadeIn().delay(2000).fadeOut();
+                    });
+                }
+
+                function completeTutorial() {
+                    alert('Tutorial completed! Your Vinculum card is ready to use.');
+                    window.location.href = '/web';
+                }
+
+                // Copy button functionality
+                $(document).ready(function() {
+                    $('#copyUrlBtn').click(function() {
+                        copyUrl();
+                    });
+                });
+            </script>
+
+            <style>
+                .step-card {
+                    border-left: 4px solid #007bff;
+                }
+                .list-group-item {
+                    border-left: none;
+                    border-right: none;
+                }
+                .badge-pill {
+                    font-weight: normal;
+                }
+            </style>
+        </t>
+    </template>
+</odoo>
+
