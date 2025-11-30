@@ -38,7 +38,6 @@ This module is designed for companies that want Vinculum-style digital cards and
         'data/intro_email_template.xml',
         'views/user_dashboard.xml',
         'views/partner_view.xml',
-        'views/vcard_dashboard.xml',
         'views/leadback_preview.xml',
         'views/vcard_layout.xml',
         'views/vcard_form_template.xml',
