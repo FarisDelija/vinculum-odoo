@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<odoo>
-    <!-- Model Definition for vCard Download Tracking -->
-    <record id="model_vcard_download_tracking" model="ir.model">
-        <field name="name">vCard Download Tracking</field>
-        <field name="model">vcard.download.tracking</field>
-    </record>
-</odoo>

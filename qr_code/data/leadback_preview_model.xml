@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<odoo>
-    <!-- Model Definition for Leadback Preview -->
-    <record id="model_leadback_preview" model="ir.model">
-        <field name="name">Lead-Back Preview</field>
-        <field name="model">leadback.preview</field>
-    </record>
-</odoo>
