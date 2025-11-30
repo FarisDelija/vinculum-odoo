@@ -1,0 +1,64 @@
+{
+    'name': 'Vinculum',
+    'version': '17.0.1.0.18',
+    'category': 'Tools',
+    'summary': 'Digital business cards, lead capture & analytics inside Odoo',
+    'description': """
+Vinculum brings digital business cards and lead capture directly into your Odoo database.
+
+Each user gets a smart vCard page with QR / NFC links that you can print on cards, badges, email signatures, or marketing materials. When someone scans the code, they land on a branded contact page that lives in your Odoo environment.
+
+Key features:
+- Create and manage per-user digital business cards (vCards) in Odoo
+- Generate QR / URL links for cards (ideal for NFC cards, bands, badges, email signatures)
+- Capture leads directly from the vCard page into Odoo CRM
+- Track card views, scans, and form submissions with built-in analytics
+- Configure services, reviews, and custom sections on each card
+- Use Odoo's pipeline and activities for follow-up on captured leads
+- All data stored in your Odoo database (no external data storage)
+
+This module is designed for companies that want Vinculum-style digital cards and lead capture, but prefer to keep everything self-hosted in their own Odoo instance.
+""",
+    'author': 'Faris Delija',
+    'license': 'OPL-1',
+    'price': 399,
+    'currency': 'USD',
+    'support': 'admin@vinculumapp.com',
+    'images': ['static/description/cover.png'],
+    'depends': ['base', 'web', 'crm', 'website', 'utm', 'mass_mailing'],
+    'data': [
+        'security/ir.model.access.csv',
+        'data/leadback_preview_model.xml',
+        'data/followup_scheduled_reminder_model.xml',
+        'data/vcard_download_tracking_model.xml',
+        'data/cron_actions.xml',
+        'data/leadback_channels.xml',
+        'data/digest_email_template.xml',
+        'data/lead_notification_email_template.xml',
+        'data/intro_email_template.xml',
+        'views/user_dashboard.xml',
+        'views/partner_view.xml',
+        'views/vcard_dashboard.xml',
+        'views/leadback_preview.xml',
+        'views/vcard_layout.xml',
+        'views/vcard_form_template.xml',
+        'views/vcard_templates.xml',
+        'views/success_page.xml',
+        'views/crm_lead_view.xml',
+        'views/partner_reviews_view.xml',
+        'views/nfc_onboarding_template.xml',
+        'views/vinculum_guide_template.xml',
+    ],
+    'assets': {
+        'web.assets_frontend': [
+            '/qr_code_odoo/static/src/js/widget.js',
+        ],
+        'web.assets_backend': [
+            '/qr_code_odoo/static/src/css/reviews_backend.css',
+            '/qr_code_odoo/static/src/css/mobile_tables.css',
+        ],
+    },
+    'installable': True,
+    'application': True,
+    'auto_install': False,
+}

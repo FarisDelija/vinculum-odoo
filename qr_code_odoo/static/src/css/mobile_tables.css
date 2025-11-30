@@ -1,0 +1,127 @@
+/* Mobile responsive fixes for tables */
+@media (max-width: 768px) {
+    /* Constrain all form groups and containers */
+    .o_form_view .o_group,
+    .o_form_view group {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Ensure list views don't overflow and are scrollable */
+    .o_list_view {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        width: 100% !important;
+        max-width: 100% !important;
+        display: block;
+        box-sizing: border-box;
+    }
+    
+    /* Fix for embedded lists in forms - target all parent containers */
+    .o_form_view .o_list_view,
+    .o_form_view .o_field_one2many,
+    .o_form_view .o_field_one2many .o_list_view,
+    .o_field_one2many .o_list_view,
+    .o_field_one2many > div,
+    .o_field_one2many > div > div {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto !important;
+        display: block;
+        box-sizing: border-box;
+    }
+    
+    /* Target the specific wrapper for one2many fields */
+    .o_field_one2many {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto !important;
+    }
+    
+    /* Make tables fit within container */
+    .o_list_view table,
+    .o_list_table {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        table-layout: auto;
+        box-sizing: border-box;
+    }
+    
+    /* Ensure table container doesn't overflow */
+    .o_list_view .table-responsive,
+    .o_field_one2many .o_list_view {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto !important;
+    }
+    
+    /* Make text fields wrap on mobile */
+    .o_list_view td[data-name="review_text"] {
+        white-space: normal !important;
+        word-break: break-word !important;
+        max-width: 150px;
+        min-width: 100px;
+    }
+    
+    .o_list_view td[data-name="website_url"] {
+        white-space: normal !important;
+        word-break: break-all !important;
+        max-width: 120px !important;
+        min-width: 80px !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* Reduce minimum widths for other columns on mobile */
+    .o_list_view th[data-name="reviewer_name"],
+    .o_list_view td[data-name="reviewer_name"] {
+        min-width: 100px !important;
+        width: auto !important;
+    }
+    
+    .o_list_view th[data-name="rating"],
+    .o_list_view td[data-name="rating"] {
+        min-width: 60px !important;
+        width: auto !important;
+    }
+    
+    .o_list_view th[data-name="is_published"],
+    .o_list_view td[data-name="is_published"] {
+        min-width: 60px !important;
+        width: auto !important;
+    }
+    
+    /* Fix for website table columns - more aggressive */
+    .o_list_view th[data-name="name"],
+    .o_list_view td[data-name="name"] {
+        min-width: 80px !important;
+        max-width: 120px !important;
+        width: auto !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+    }
+    
+    .o_list_view th[data-name="button_color"],
+    .o_list_view td[data-name="button_color"] {
+        min-width: 60px !important;
+        max-width: 80px !important;
+        width: auto !important;
+    }
+    
+    /* Ensure all table cells don't overflow */
+    .o_list_view td,
+    .o_list_view th {
+        box-sizing: border-box;
+        max-width: 200px;
+    }
+    
+    /* Prevent any element from causing horizontal overflow */
+    .o_form_view .o_form_sheet,
+    .o_form_view .o_form_sheet_bg {
+        overflow-x: hidden !important;
+        max-width: 100% !important;
+    }
+}
+
