@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Cron job to send scheduled lead-back emails -->
+    <record id="ir_cron_send_scheduled_leadback_emails" model="ir.cron">
+        <field name="name">Send Scheduled Lead-Back Emails</field>
+        <field name="model_id" ref="model_leadback_scheduled_email"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_send_scheduled_emails()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">minutes</field>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- Scheduled action to send digest emails -->
+    <record id="ir_cron_send_digest_emails" model="ir.cron">
+        <field name="name">Send vCard Digest Emails</field>
+        <field name="model_id" ref="model_partner_vcard"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_send_digest_emails()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="active">True</field>
+    </record>
+
+
+    <!-- Scheduled action to process follow-up reminder queue -->
+    <record id="ir_cron_process_followup_reminders" model="ir.cron">
+        <field name="name">Process Follow-up Reminder Queue</field>
+        <field name="model_id" ref="model_followup_scheduled_reminder"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_process_scheduled_reminders()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">minutes</field>
+        <field name="active" eval="True"/>
+    </record>
+
+</odoo>

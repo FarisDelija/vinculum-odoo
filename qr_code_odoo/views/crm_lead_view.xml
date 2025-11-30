@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Hide the Schedule Meeting button in CRM Lead form -->
+        <record id="crm_lead_form_view_inherit" model="ir.ui.view">
+            <field name="name">crm.lead.form.inherit.hide_meeting_button</field>
+            <field name="model">crm.lead</field>
+            <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+            <field name="arch" type="xml">
+                <button name="action_schedule_meeting" position="attributes">
+                    <attribute name="invisible">True</attribute>
+                </button>
+                
+                <!-- Add Submission Tracking Information Tab -->
+                <xpath expr="//notebook" position="inside">
+                    <page string="Submission Tracking" name="submission_tracking" invisible="not submission_ip">
+                        <group string="Location &amp; Device Information">
+                            <group>
+                                <field name="submission_ip" readonly="1"/>
+                                <field name="submission_country" readonly="1"/>
+                                <field name="submission_city" readonly="1"/>
+                                <field name="submission_timezone" readonly="1"/>
+                            </group>
+                            <group>
+                                <field name="submission_device_type" readonly="1"/>
+                                <field name="submission_browser" readonly="1"/>
+                                <field name="submission_os" readonly="1"/>
+                                <field name="submission_language" readonly="1"/>
+                            </group>
+                        </group>
+                        
+                        <group string="Source &amp; Campaign Tracking">
+                            <group>
+                                <field name="submission_source_url" readonly="1" widget="url"/>
+                                <field name="submission_referral_code" readonly="1"/>
+                            </group>
+                            <group>
+                                <field name="submission_utm_source" readonly="1"/>
+                                <field name="submission_utm_medium" readonly="1"/>
+                                <field name="submission_utm_campaign" readonly="1"/>
+                            </group>
+                        </group>
+                        
+                        <group string="Technical Details" invisible="not submission_user_agent">
+                            <field name="submission_user_agent" readonly="1" widget="text"/>
+                            <field name="submission_fingerprint_hash" readonly="1" widget="text"/>
+                        </group>
+                    </page>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>
