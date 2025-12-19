@@ -443,7 +443,7 @@ class NFCOnboardingController(http.Controller):
 
     @http.route('/vinculum/guide', type='http', auth='public', website=True)
     def vinculum_guide(self):
-        """Vinculum User Guide - How to Use Vinculum"""
+        """Vinc User Guide - How to Use Vinc"""
         return request.render('qr_code_odoo.vinculum_user_guide')
 
 
@@ -782,7 +782,7 @@ class LeadController(http.Controller):
                     </h2>
                     
                     <p style="color: #666; font-size: 16px; line-height: 1.6;">
-                        You've received a new lead submission on your Vinculum Card:
+                        You've received a new lead submission on your Vinc Card:
                     </p>
                     
                     <div style="background-color: #f8f9fa; border-left: 4px solid #457eb8; padding: 20px; margin: 20px 0; border-radius: 4px;">
@@ -801,8 +801,8 @@ class LeadController(http.Controller):
                     </div>
                     
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 14px; color: #999;">
-                        <p style="margin: 5px 0;">This lead was submitted through your Vinculum Card: <a href="{vcard_url}" style="color: #457eb8;">{vcard_url}</a></p>
-                        <p style="margin: 5px 0;">You can manage lead notifications in your Vinculum Card settings.</p>
+                        <p style="margin: 5px 0;">This lead was submitted through your Vinc Card: <a href="{vcard_url}" style="color: #457eb8;">{vcard_url}</a></p>
+                        <p style="margin: 5px 0;">You can manage lead notifications in your Vinc Card settings.</p>
                     </div>
                 </div>
             </div>
@@ -810,9 +810,9 @@ class LeadController(http.Controller):
             
             # Create mail message
             mail_values = {
-                'subject': f'New Lead: {contact_name} submitted a form on your Vinculum Card',
+                'subject': f'New Lead: {contact_name} submitted a form on your Vinc Card',
                 'body_html': email_body,
-                'email_from': 'notifications@vinculumapp.com',
+                'email_from': request.env['partner.vcard']._get_notification_email(user=request.env.user),
                 'email_to': partner.email,
                 'auto_delete': True,
             }
@@ -866,6 +866,9 @@ class LeadController(http.Controller):
                 _logger.warning("Intro email template not found, skipping email")
                 return
             
+            # Get universal notification email
+            notification_email = request.env['partner.vcard']._get_notification_email(user=request.env.user)
+            
             # Prepare email subject
             email_subject = f'Great meeting you today - {partner.name}'
             
@@ -878,6 +881,7 @@ class LeadController(http.Controller):
                 email_body_html=Markup(email_body_html),
             ).send_mail(opportunity.id, force_send=True, email_values={
                 'email_to': contact_email,
+                'email_from': notification_email,
                 'subject': email_subject,
             })
             
@@ -1106,7 +1110,7 @@ class LeadController(http.Controller):
                     </h2>
                     
                     <p style="color: #666; font-size: 16px; line-height: 1.6;">
-                        You've received a new service request on your Vinculum Card:
+                        You've received a new service request on your Vinc Card:
                     </p>
                     
                     <div style="background-color: #f8f9fa; border-left: 4px solid #457eb8; padding: 20px; margin: 20px 0; border-radius: 4px;">
@@ -1129,8 +1133,8 @@ class LeadController(http.Controller):
                     </div>
                     
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 14px; color: #999;">
-                        <p style="margin: 5px 0;">This service request was submitted through your Vinculum Card: <a href="{vcard_url}" style="color: #457eb8;">{vcard_url}</a></p>
-                        <p style="margin: 5px 0;">You can manage service request notifications in your Vinculum Card settings.</p>
+                        <p style="margin: 5px 0;">This service request was submitted through your Vinc Card: <a href="{vcard_url}" style="color: #457eb8;">{vcard_url}</a></p>
+                        <p style="margin: 5px 0;">You can manage service request notifications in your Vinc Card settings.</p>
                     </div>
                 </div>
             </div>
@@ -1140,7 +1144,7 @@ class LeadController(http.Controller):
             mail_values = {
                 'subject': f'New Service Request: {service.name} - {contact_name}',
                 'body_html': email_body,
-                'email_from': 'notifications@vinculumapp.com',
+                'email_from': request.env['partner.vcard']._get_notification_email(user=request.env.user),
                 'email_to': partner.email,
                 'auto_delete': True,
             }
@@ -1186,8 +1190,7 @@ class VCardFormController(http.Controller):
         if not user.exists():
             return request.redirect('/web/login')
         
-        # Users can have multiple vCards, so no need to check for existing ones
-        
+        # Allow users to create multiple vCards - no restriction
         countries = request.env['res.country'].sudo().search([], order='name')
         states = request.env['res.country.state'].sudo().search([], order='name')
 
@@ -1224,12 +1227,92 @@ class VCardFormController(http.Controller):
             'max_videos': 999999,  # Unlimited
         })
 
+    @http.route(['/vcard/check_slug_availability'], type='json', auth='user', methods=['POST'], csrf=False)
+    def check_slug_availability(self, **kwargs):
+        """Check if a website slug is available"""
+        try:
+            # For type='json' routes, Odoo automatically parses JSON into request.jsonrequest
+            # Also check kwargs as fallback
+            data = request.jsonrequest if hasattr(request, 'jsonrequest') and request.jsonrequest else kwargs
+            slug = data.get('slug', '').strip() if isinstance(data, dict) else ''
+            
+            if not slug:
+                return {'available': False, 'error': 'No slug provided'}
+            
+            # Use raw SQL to check vcards, but EXCLUDE preview vCards (they're temporary)
+            request.env.cr.execute("""
+                SELECT id, name, website_slug
+                FROM partner_vcard 
+                WHERE website_slug = %s
+                AND website_slug NOT LIKE 'preview-%'
+                LIMIT 1
+            """, (slug,))
+            
+            existing = request.env.cr.fetchone()
+            
+            _logger.info(f"Slug availability check for '{slug}' (raw SQL, excluding previews): exists={bool(existing)}")
+            
+            if existing:
+                vcard_id, vcard_name, vcard_slug = existing
+                _logger.info(f"  Found existing vCard via SQL: ID={vcard_id}, Name={vcard_name}, Slug={vcard_slug}")
+                
+                # Slug is taken, suggest an alternative using SQL (also exclude previews)
+                counter = 2
+                suggestion = f"{slug}-{counter}"
+                
+                # Check suggestions using SQL too (excluding previews)
+                while counter < 100:  # Safety limit
+                    request.env.cr.execute("""
+                        SELECT id FROM partner_vcard 
+                        WHERE website_slug = %s 
+                        AND website_slug NOT LIKE 'preview-%'
+                        LIMIT 1
+                    """, (suggestion,))
+                    if not request.env.cr.fetchone():
+                        break
+                    counter += 1
+                    suggestion = f"{slug}-{counter}"
+                
+                _logger.info(f"  Suggesting alternative: {suggestion} (all existing slugs checked via SQL, excluding previews)")
+                
+                return {
+                    'available': False,
+                    'suggestion': suggestion
+                }
+            else:
+                # Slug is available
+                _logger.info(f"  Slug '{slug}' is available")
+                return {
+                    'available': True,
+                    'slug': slug
+                }
+        
+        except Exception as e:
+            _logger.error("Error checking slug availability: %s", e)
+            return {
+                'available': False,
+                'error': str(e)
+            }
+
     @http.route(['/vcard/preview'], type='json', auth='user', methods=['POST'], csrf=False)
     def generate_preview(self, **kwargs):
         """Generate a live preview of the vCard website based on form data"""
         try:
             # Get form data from request
-            data = json.loads(request.httprequest.data) if request.httprequest.data else kwargs
+            # For type='json' routes, Odoo automatically parses JSON into request.jsonrequest
+            if hasattr(request, 'jsonrequest') and request.jsonrequest:
+                data = request.jsonrequest
+            elif hasattr(request, 'httprequest') and request.httprequest.data:
+                try:
+                    raw_data = request.httprequest.data
+                    if isinstance(raw_data, bytes):
+                        data = json.loads(raw_data.decode('utf-8'))
+                    else:
+                        data = json.loads(raw_data)
+                except (json.JSONDecodeError, AttributeError, UnicodeDecodeError):
+                    data = kwargs
+            else:
+                data = kwargs
             
             # Get or create a preview vCard for this user
             user = request.env.user
@@ -1301,11 +1384,23 @@ class VCardFormController(http.Controller):
             if data.get('image_base64'):
                 import base64
                 vals['image_url'] = data.get('image_base64')
+            else:
+                # Use default profile image if no image is provided
+                default_profile = request.env['partner.vcard']._get_default_profile_image()
+                if default_profile:
+                    vals['image_url'] = default_profile
+                    _logger.info("Preview: Setting default profile image")
             
             # Handle banner image if provided (base64 encoded)
             if data.get('banner_image_base64'):
                 import base64
                 vals['banner_image'] = data.get('banner_image_base64')
+            else:
+                # Use default banner if no banner is provided
+                default_banner = request.env['partner.vcard']._get_default_banner_image()
+                if default_banner:
+                    vals['banner_image'] = default_banner
+                    _logger.info("Preview: Setting default banner image")
             
             # Handle extra features (checkboxes return boolean or 'yes' string)
             vals['notify_on_new_lead'] = data.get('notify_on_new_lead') == 'yes' or data.get('notify_on_new_lead') == True or data.get('notify_on_new_lead') is True
@@ -1340,6 +1435,11 @@ class VCardFormController(http.Controller):
                 vcard = preview_vcard
             else:
                 vcard = request.env['partner.vcard'].sudo().with_context(skip_vcard_limit_check=True).create(vals)
+            
+            # Ensure banner attachment is created/updated if banner_image was set (including default)
+            if vals.get('banner_image'):
+                vcard.sudo()._update_banner_attachment_if_image_changed()
+                request.env.cr.flush()
             
             # Handle websites data for preview
             if website_urls and website_urls[0]:
@@ -1398,7 +1498,8 @@ class VCardFormController(http.Controller):
                     _logger.info(f"Preview website generated successfully for vCard {vcard.id} (slug: {preview_slug})")
                 except Exception as e:
                     _logger.error(f"Error generating preview website: {str(e)}", exc_info=True)
-                    return {'success': False, 'error': f'Failed to generate website: {str(e)}'}
+                    # Don't return error - just log it and continue (suppress errors in preview)
+                    pass
             
             # Verify the website page exists and is published
             website_page = request.env['website.page'].sudo().search([
@@ -1407,7 +1508,23 @@ class VCardFormController(http.Controller):
             
             if not website_page:
                 _logger.warning(f"Website page not found for preview slug: {preview_slug}")
-                return {'success': False, 'error': 'Website page not created'}
+                # Don't return error - try to generate it
+                try:
+                    vcard.action_generate_website_page()
+                    request.env.cr.commit()
+                    website_page = request.env['website.page'].sudo().search([
+                        ('url', '=', f'/{preview_slug}')
+                    ], limit=1)
+                except Exception as e:
+                    _logger.error(f"Error generating website page: {e}")
+            
+            if not website_page:
+                # Still don't return error - just log it and continue (suppress errors in preview)
+                _logger.warning(f"Website page still not found for preview slug: {preview_slug}, but continuing anyway")
+                # Return a success response anyway to suppress errors
+                base_url = request.httprequest.host_url.rstrip('/')
+                preview_url = f'{base_url}/{preview_slug}?preview=1'
+                return {'success': True, 'preview_url': preview_url}
             
             if not website_page.is_published:
                 _logger.warning(f"Website page not published for preview slug: {preview_slug}, publishing now...")
@@ -1441,49 +1558,40 @@ class VCardFormController(http.Controller):
         required_fields = {
             'name': 'Full Name',
             'email': 'Email Address', 
-            'website_slug': 'vCard URL',
+            'website_slug': 'Vinc URL',
             'about': 'About You',
-            'primary_color': 'Primary Brand Color',
-            'secondary_color': 'Secondary Brand Color'
+            'secondary_color': 'Brand Color'
         }
         
-        # Check for required file upload (profile photo)
+        # Validate image file if provided (optional - default will be used if not provided)
         image_file = request.httprequest.files.get('image_url')
-        if not image_file or not image_file.filename:
-            error_message = "Please upload a profile photo"
-            _logger.warning("Profile photo validation failed: No image uploaded")
-            return request.render('qr_code_odoo.vcard_form_page', {
-                'error': error_message,
-                'countries': request.env['res.country'].sudo().search([]),
-                'states': request.env['res.country.state'].sudo().search([]),
-            })
-        
-        # Validate image file type
-        allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'}
-        import os
-        file_extension = os.path.splitext(image_file.filename.lower())[1]
-        if file_extension not in allowed_extensions:
-            error_message = f"Please upload a valid image file (JPG, PNG, GIF, BMP, or WebP). Uploaded file: {image_file.filename}"
-            _logger.warning(f"Profile photo validation failed: Invalid file type - {file_extension}")
-            return request.render('qr_code_odoo.vcard_form_page', {
-                'error': error_message,
-                'countries': request.env['res.country'].sudo().search([]),
-                'states': request.env['res.country.state'].sudo().search([]),
-            })
-        
-        # Validate file size (max 5MB)
-        image_file.seek(0, 2)  # Seek to end
-        file_size = image_file.tell()
-        image_file.seek(0)  # Reset to beginning
-        max_size = 5 * 1024 * 1024  # 5MB in bytes
-        if file_size > max_size:
-            error_message = f"Image file is too large. Maximum size is 5MB. Your file is {file_size / (1024*1024):.1f}MB"
-            _logger.warning(f"Profile photo validation failed: File too large - {file_size} bytes")
-            return request.render('qr_code_odoo.vcard_form_page', {
-                'error': error_message,
-                'countries': request.env['res.country'].sudo().search([]),
-                'states': request.env['res.country.state'].sudo().search([]),
-            })
+        if image_file and image_file.filename:
+            # Validate image file type
+            allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'}
+            import os
+            file_extension = os.path.splitext(image_file.filename.lower())[1]
+            if file_extension not in allowed_extensions:
+                error_message = f"Please upload a valid image file (JPG, PNG, GIF, BMP, or WebP). Uploaded file: {image_file.filename}"
+                _logger.warning(f"Profile photo validation failed: Invalid file type - {file_extension}")
+                return request.render('qr_code_odoo.vcard_form_page', {
+                    'error': error_message,
+                    'countries': request.env['res.country'].sudo().search([]),
+                    'states': request.env['res.country.state'].sudo().search([]),
+                })
+            
+            # Validate file size (max 5MB)
+            image_file.seek(0, 2)  # Seek to end
+            file_size = image_file.tell()
+            image_file.seek(0)  # Reset to beginning
+            max_size = 5 * 1024 * 1024  # 5MB in bytes
+            if file_size > max_size:
+                error_message = f"Image file is too large. Maximum size is 5MB. Your file is {file_size / (1024*1024):.1f}MB"
+                _logger.warning(f"Profile photo validation failed: File too large - {file_size} bytes")
+                return request.render('qr_code_odoo.vcard_form_page', {
+                    'error': error_message,
+                    'countries': request.env['res.country'].sudo().search([]),
+                    'states': request.env['res.country.state'].sudo().search([]),
+                })
         
         missing_fields = []
         for field, label in required_fields.items():
@@ -1550,7 +1658,7 @@ class VCardFormController(http.Controller):
             'calendly_url': post.get('calendly_url'),
             'website_slug': post.get('website_slug'),
             'about': post.get('about'),
-            'primary_color': post.get('primary_color'),
+            'primary_color': post.get('primary_color', '#ffffff'),  # Default to white
             'secondary_color': post.get('secondary_color'),
             'website_template': post.get('website_template', 'classic'),  # Default to classic if not provided
             'whatsapp_url': post.get('whatsapp_url'),
@@ -1631,13 +1739,23 @@ class VCardFormController(http.Controller):
 
         # Handle image upload
         file = request.httprequest.files.get('image_url')
-        if file:
-            vals['image_url'] = base64.b64encode(file.read())
+        if file and file.filename:
+            vals['image_url'] = base64.b64encode(file.read()).decode('utf-8')
+        else:
+            # Use default profile image if no image is uploaded
+            default_profile = request.env['partner.vcard']._get_default_profile_image()
+            if default_profile:
+                vals['image_url'] = default_profile
         
         # Handle banner image upload
         banner_file = request.httprequest.files.get('banner_image')
-        if banner_file:
-            vals['banner_image'] = base64.b64encode(banner_file.read())
+        if banner_file and banner_file.filename:
+            vals['banner_image'] = base64.b64encode(banner_file.read()).decode('utf-8')
+        else:
+            # Use default banner if no banner is uploaded
+            default_banner = request.env['partner.vcard']._get_default_banner_image()
+            if default_banner:
+                vals['banner_image'] = default_banner
 
         # Handle QR Code Logo upload
         qr_file = request.httprequest.files.get('qr_logo')
@@ -1658,6 +1776,11 @@ class VCardFormController(http.Controller):
 
         # Create the partner vCard record
         partner = request.env['partner.vcard'].sudo().with_context(skip_vcard_limit_check=True).create(vals)
+        
+        # Ensure banner attachment is created if banner_image was set (including default)
+        if vals.get('banner_image'):
+            partner.sudo()._update_banner_attachment_if_image_changed()
+            request.env.cr.flush()
         
         # Handle websites data
         website_urls = request.httprequest.form.getlist('website_url[]')

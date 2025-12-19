@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="model_bulk_onboarding_batch" model="ir.model">
+        <field name="name">bulk.onboarding.batch</field>
+        <field name="model">bulk.onboarding.batch</field>
+        <field name="info">Bulk Onboarding Batch</field>
+    </record>
+    
+    <record id="model_bulk_onboarding_rep" model="ir.model">
+        <field name="name">bulk.onboarding.rep</field>
+        <field name="model">bulk.onboarding.rep</field>
+        <field name="info">Bulk Onboarding Rep</field>
+    </record>
+    
+    <record id="model_bulk_onboarding_token" model="ir.model">
+        <field name="name">bulk.onboarding.token</field>
+        <field name="model">bulk.onboarding.token</field>
+        <field name="info">Bulk Onboarding Token</field>
+    </record>
+</odoo>

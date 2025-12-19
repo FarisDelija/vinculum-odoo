@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Access Rules for Bulk Onboarding -->
+    <!-- Note: No tenant isolation rules needed for qr_code_odoo variant -->
+    <!-- Standard Odoo access control applies via ir.model.access.csv -->
+</odoo>

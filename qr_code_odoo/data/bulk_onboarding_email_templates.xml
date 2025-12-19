@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Bulk Onboarding Invitation Email Template -->
+    <record id="bulk_onboarding_invitation_email" model="mail.template">
+        <field name="name">Bulk Onboarding Invitation</field>
+        <field name="model_id" ref="base.model_res_users"/>
+        <field name="subject">Welcome to ${ctx.get('company_name', 'Your Company')} - Complete Your Vinc Card</field>
+        <field name="email_from">${user.email or 'noreply@localhost'}</field>
+        <field name="email_to">${object.login}</field>
+        <field name="body_html" type="html">
+            <t t-set="magic_link" t-value="ctx.get('magic_link', '/bulk-onboard/activate')"/>
+            <t t-set="current_year" t-value="ctx.get('current_year', '2025')"/>
+            <t t-set="user_name" t-value="object.name or 'User'"/>
+            <t t-set="company_name" t-value="ctx.get('company_name', 'your company')"/>
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: #4C75A3; padding: 30px; text-align: center; color: white;">
+                    <h1 style="margin: 0; font-size: 28px; color: white;">Welcome to Vinc!</h1>
+                </div>
+                
+                <div style="padding: 30px; background: #f9f9f9;">
+                    <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+                        Hi <t t-out="user_name"/>,
+                    </p>
+                    
+                    <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+                        You've been invited to join <strong><t t-out="company_name"/></strong> on Vinc!
+                    </p>
+                    
+                    <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+                        Vinc helps you create a professional digital business card that you can share with a simple QR code scan. Perfect for networking at events, meetings, and more.
+                    </p>
+                    
+                    <p style="font-size: 14px; color: #666; margin-bottom: 20px; padding: 15px; background: #f0f7ff; border-left: 4px solid #4C75A3; border-radius: 4px;">
+                        <strong>📧 Your Login:</strong> <t t-out="object.login"/><br/>
+                        <strong>🔐 Password:</strong> You'll set your password when you click the activation link below (no password needed to activate).
+                    </p>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a t-att-href="magic_link" 
+                           style="background: #4C75A3; color: white; padding: 15px 30px; text-decoration: none; border-radius: 12px; display: inline-block; font-size: 16px; font-weight: 700; box-shadow: 0 4px 12px rgba(76, 117, 163, 0.3);">
+                            Activate Your Account &amp; Set Password
+                        </a>
+                    </div>
+                    
+                    <p style="font-size: 14px; color: #666; margin-top: 30px;">
+                        <strong>This link expires in 7 days.</strong> When you click it, you'll be asked to create a password for your account.
+                    </p>
+                    
+                    <p style="font-size: 14px; color: #666;">
+                        Once activated, you'll be able to:
+                    </p>
+                    <ul style="font-size: 14px; color: #666;">
+                        <li>Create your digital business card</li>
+                        <li>Generate a QR code to share your contact info</li>
+                        <li>Collect leads automatically when people visit your Vinc Card</li>
+                        <li>Track who views your card and when</li>
+                    </ul>
+                    
+                    <p style="font-size: 14px; color: #666; margin-top: 30px;">
+                        If you have any questions, please contact your administrator or reach out to support.
+                    </p>
+                </div>
+                
+                <div style="background: #333; padding: 20px; text-align: center; color: #999; font-size: 12px;">
+                    <p style="margin: 0;">This email was sent from Vinc</p>
+                    <p style="margin: 5px 0 0 0;">© <t t-out="current_year"/> Vinc. All rights reserved.</p>
+                </div>
+            </div>
+        </field>
+    </record>
+    
+    <!-- Bulk Onboarding Completion Email Template -->
+    <record id="bulk_onboarding_completion_email" model="mail.template">
+        <field name="name">Bulk Onboarding Completion</field>
+        <field name="model_id" ref="model_bulk_onboarding_batch"/>
+        <field name="subject">Bulk Onboarding Batch Completed</field>
+        <field name="email_from">${user.email or 'noreply@localhost'}</field>
+        <field name="email_to">${object.created_by.email or object.created_by.login}</field>
+        <field name="body_html" type="html">
+            <t t-set="batch_url" t-value="ctx.get('batch_url', '/web')"/>
+            <t t-set="current_year" t-value="ctx.get('current_year', '2025')"/>
+            <t t-set="created_by_name" t-value="object.created_by.name if object.created_by else 'Admin'"/>
+            <t t-set="batch_name" t-value="object.name or 'Batch'"/>
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: #4C75A3; padding: 30px; text-align: center; color: white;">
+                    <h1 style="margin: 0; font-size: 28px; color: white;">Batch Processing Complete</h1>
+                </div>
+                
+                <div style="padding: 30px; background: #f9f9f9;">
+                    <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+                        Hi <t t-out="created_by_name"/>,
+                    </p>
+                    
+                    <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+                        Your bulk onboarding batch <strong>"<t t-out="batch_name"/>"</strong> has been processed.
+                    </p>
+                    
+                    <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h3 style="margin-top: 0; color: #333;">Summary</h3>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;"><strong>Total Users:</strong></td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;"><t t-out="object.total_reps or 0"/></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;"><strong>Successfully Invited:</strong></td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right; color: #28a745;"><t t-out="object.invited_reps or 0"/></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;"><strong>Activated:</strong></td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right; color: #28a745;"><t t-out="object.activated_reps or 0"/></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;"><strong>Completed:</strong></td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right; color: #28a745;"><t t-out="object.completed_reps or 0"/></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px;"><strong>Failed:</strong></td>
+                                <td style="padding: 10px; text-align: right; color: #dc3545;"><t t-out="object.failed_reps or 0"/></td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a t-att-href="batch_url" 
+                           style="background-color: #4C75A3; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-size: 16px; font-weight: bold;">
+                            View Batch Details
+                        </a>
+                    </div>
+                    
+                    <p style="font-size: 14px; color: #666; margin-top: 30px;">
+                        You can view the batch details, resend invitations, and track completion status in your dashboard.
+                    </p>
+                </div>
+                
+                <div style="background: #333; padding: 20px; text-align: center; color: #999; font-size: 12px;">
+                    <p style="margin: 0;">This email was sent from Vinc</p>
+                    <p style="margin: 5px 0 0 0;">© <t t-out="current_year"/> Vinc. All rights reserved.</p>
+                </div>
+            </div>
+        </field>
+    </record>
+</odoo>

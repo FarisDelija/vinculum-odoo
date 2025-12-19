@@ -2,10 +2,10 @@
   <template id="vcard_form_page" name="Get Started Form Page">
     <t t-call="website.layout">
       <!-- Welcome Banner -->
-      <section style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 0; text-align: center;">
+      <section style="background: #4C75A3; color: white; padding: 40px 0; text-align: center;">
         <div class="container">
           <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem;">
-            Let's Create Your Digital Business Card
+            Let's Create Your Vinc Digital Business Card
           </h1>
           <p style="font-size: 1.2rem; opacity: 0.95; margin-bottom: 1rem;">
             You're just a few minutes away from transforming how you network
@@ -25,7 +25,7 @@
           <div class="col-lg-8" id="form-column">
             <div class="text-center mb-4">
               <h2 class="text-primary" style="font-size: 2rem; font-weight: 600;">Complete Your Profile</h2>
-              <p class="lead text-muted">Fill in your details below to create your personalized vCard</p>
+              <p class="lead text-muted">Fill in your details below to create your personalized Vinc Card</p>
             </div>
             
             <!-- Error Alert -->
@@ -48,14 +48,14 @@
               <!-- Step 1: Basic Information -->
               <div class="form-section" data-step="1">
                 <div class="card mb-4">
-                  <div class="card-header bg-primary text-white">
+                  <div class="card-header" style="background: #4C75A3; color: white;">
                     <h4 class="mb-0"><i class="fa fa-user me-2"></i>Step 1: Basic Information</h4>
                   </div>
                   <div class="card-body">
                     <div class="row">
                       <div class="form-group col-md-6 mb-3">
                         <label class="form-label fw-bold">Full Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control form-control-lg" required="required" placeholder="John Doe" t-att-value="default_name or ''"/>
+                        <input type="text" name="name" id="name_input" class="form-control form-control-lg" required="required" placeholder="John Doe" t-att-value="default_name or ''"/>
                         <div class="invalid-feedback">Please enter your full name.</div>
                       </div>
                       <div class="form-group col-md-6 mb-3">
@@ -79,9 +79,9 @@
                         <small class="form-text text-muted">Your current position or role</small>
                       </div>
                       <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Profile Photo <span class="text-danger">*</span></label>
-                        <input type="file" name="image_url" class="form-control" accept="image/*" required="required" id="profile_photo_input"/>
-                        <small class="form-text text-muted">Upload a professional headshot (JPG, PNG, max 5MB)</small>
+                        <label class="form-label fw-bold">Profile Photo</label>
+                        <input type="file" name="image_url" class="form-control" accept="image/*" id="profile_photo_input"/>
+                        <small class="form-text text-muted">Upload a professional headshot (optional - a default photo will be used if not provided) (JPG, PNG, max 5MB)</small>
                         <div class="invalid-feedback">Please upload a valid image file.</div>
             </div>
                       <div class="form-group col-md-6 mb-3">
@@ -97,7 +97,7 @@
               <!-- Step 2: Company & Branding -->
               <div class="form-section" data-step="2">
                 <div class="card mb-4">
-                  <div class="card-header bg-success text-white">
+                  <div class="card-header" style="background: #4C75A3; color: white;">
                     <h4 class="mb-0"><i class="fa fa-building me-2"></i>Step 2: Company &amp; Branding</h4>
                   </div>
                   <div class="card-body">
@@ -113,12 +113,12 @@
                         <small class="form-text text-muted">Your company's main website</small>
                       </div>
                       <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Your vCard URL <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">Your Vinc URL <span class="text-danger">*</span></label>
                         <div class="input-group">
                           <span class="input-group-text"><t t-esc="base_url_display or 'your-domain.com'"/>/</span>
-                          <input type="text" name="website_slug" class="form-control" required="required" placeholder="john-doe"/>
+                          <input type="text" name="website_slug" class="form-control" required="required" placeholder="john-doe" id="website_slug_input"/>
                         </div>
-                        <small class="form-text text-muted">Choose a unique URL for your vCard (letters, numbers, and hyphens only)</small>
+                        <small class="form-text text-muted">Choose a unique URL for your Vinc Card (letters, numbers, and hyphens only)</small>
                         <div class="invalid-feedback">Please enter a valid URL slug.</div>
                       </div>
                       <div class="form-group col-md-6 mb-3">
@@ -126,15 +126,12 @@
                         <input type="url" name="calendly_url" class="form-control" placeholder="https://calendly.com/your-link"/>
                         <small class="form-text text-muted">Link to your booking page (Calendly, Google Calendar, etc.)</small>
                       </div>
+                      <!-- Primary color is always white, removed from UI -->
+                      <input type="hidden" name="primary_color" value="#ffffff"/>
                       <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Primary Brand Color <span class="text-danger">*</span></label>
-                        <input type="color" name="primary_color" id="primary_color" required="required" class="form-control form-control-color" value="#ffffff" style="width: 100%; height: 50px; cursor: pointer;"/>
-                        <small class="form-text text-muted">Main color for your Vinculum Card design, primarily background</small>
-                      </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Secondary Brand Color <span class="text-danger">*</span></label>
-                        <input type="color" name="secondary_color" id="secondary_color" required="required" class="form-control form-control-color" value="#000000" style="width: 100%; height: 50px; cursor: pointer;"/>
-                        <small class="form-text text-muted">Accent color for your Vinculum Card design, used for buttons, borders, sections</small>
+                        <label class="form-label fw-bold">Brand Color <span class="text-danger">*</span></label>
+                        <input type="color" name="secondary_color" id="secondary_color" required="required" class="form-control form-control-color" value="#4C75A3" style="width: 100%; height: 50px; cursor: pointer;"/>
+                        <small class="form-text text-muted">Accent color for your Vinc Card design, used for buttons, borders, sections</small>
                       </div>
                       <div class="form-group col-12 mb-3">
                         <label class="form-label fw-bold">About You <span class="text-danger">*</span></label>
@@ -353,7 +350,7 @@
                         <input type="checkbox" name="show_form" class="form-check-input" id="show_form_yes" value="yes"/>
                         <label for="show_form_yes" class="form-check-label fw-bold">Lead Collection Form</label>
                     </div>
-                      <p class="text-muted small ms-4 mb-3">Allow visitors to submit their contact information through your Vinculum Card</p>
+                      <p class="text-muted small ms-4 mb-3">Allow visitors to submit their contact information through your Vinc Card</p>
                       <div class="row ms-4" id="lead_extra_fields" style="display: none;">
                       <div class="form-group col-md-6 mb-3">
                         <label class="form-label fw-bold">
@@ -1253,7 +1250,34 @@
               function nextStep() {
                 if (validateStep(currentStep)) {
                   if (currentStep < totalSteps) {
-                    showStep(currentStep + 1);
+                    const nextStepNum = currentStep + 1;
+                    showStep(nextStepNum);
+                    // Auto-fill slug when moving to step 2 if name is filled and slug is empty
+                    if (nextStepNum === 2) {
+                      setTimeout(() => {
+                        // Look up elements dynamically to avoid scope issues
+                        const nameField = document.getElementById('name_input');
+                        const slugFieldEl = document.querySelector('input[name="website_slug"]');
+                        if (nameField && slugFieldEl) {
+                          const currentName = nameField.value.trim();
+                          if (currentName && !slugFieldEl.value) {
+                            // Check if slug was manually edited by checking if it has a value that doesn't match the name
+                            const nameSlug = currentName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                            const currentSlug = slugFieldEl.value.toLowerCase();
+                            // Only auto-fill if slug is empty or matches the name pattern (not manually edited)
+                            if (!currentSlug || currentSlug === nameSlug || currentSlug.startsWith(nameSlug + '-')) {
+                              // Trigger auto-fill by calling the function if it exists, or dispatch input event
+                              if (typeof autoFillSlugFromName === 'function') {
+                                autoFillSlugFromName();
+                              } else {
+                                // Fallback: trigger input event on name field to trigger auto-fill
+                                nameField.dispatchEvent(new Event('input', { bubbles: true }));
+                              }
+                            }
+                          }
+                        }
+                      }, 300);
+                    }
                   }
                 }
               }
@@ -1459,6 +1483,12 @@
               }
               
               function sendPreviewRequest(data, previewIframe, loadingIndicator) {
+                // Skip preview update if slug check is in progress to avoid breaking images
+                if (window.isUpdatingPreview === true) {
+                  console.log('Skipping preview update during slug check');
+                  return;
+                }
+                
                 // Prevent any default form submission behavior
                 try {
                   // Send AJAX request to generate preview
@@ -1570,25 +1600,9 @@
                           errorMsg = 'Preview generation failed. Please check your form inputs.';
                         }
                       }
-                      // Only show if it's a critical error, not just validation
-                      if (errorMsg.indexOf('validation') === -1 && errorMsg.indexOf('required') === -1) {
-                        loadingIndicator.innerHTML = '';
-                        const errorIcon2 = document.createElement('i');
-                        errorIcon2.className = 'fa fa-exclamation-triangle';
-                        errorIcon2.style.fontSize = '24px';
-                        errorIcon2.style.marginBottom = '10px';
-                        errorIcon2.style.color = '#dc3545';
-                        loadingIndicator.appendChild(errorIcon2);
-                        const errorText2 = document.createElement('p');
-                        errorText2.style.fontSize = '12px';
-                        errorText2.style.margin = '0';
-                        errorText2.style.color = '#dc3545';
-                        errorText2.textContent = errorMsg;
-                        loadingIndicator.appendChild(errorText2);
-                      } else {
-                        // For validation errors, just hide the loading indicator and let preview load
-                        loadingIndicator.style.display = 'none';
-                      }
+                      // Suppress all error messages in preview - just hide the loading indicator
+                      // Preview should load even if there are minor errors
+                      loadingIndicator.style.display = 'none';
                     } else if (loadingIndicator) {
                       // No error or success - hide loading indicator
                       loadingIndicator.style.display = 'none';
@@ -1597,21 +1611,9 @@
                 })
                 .catch(error => {
                   console.error('Error generating preview:', error);
+                  // Suppress error messages - just hide loading indicator
                   if (loadingIndicator) {
-                    const errorMsg = error.message || (typeof error === 'string' ? error : 'Unknown error');
-                    loadingIndicator.innerHTML = '';
-                    const errorIcon3 = document.createElement('i');
-                    errorIcon3.className = 'fa fa-exclamation-triangle';
-                    errorIcon3.style.fontSize = '24px';
-                    errorIcon3.style.marginBottom = '10px';
-                    errorIcon3.style.color = '#dc3545';
-                    loadingIndicator.appendChild(errorIcon3);
-                    const errorText3 = document.createElement('p');
-                    errorText3.style.fontSize = '12px';
-                    errorText3.style.margin = '0';
-                    errorText3.style.color = '#dc3545';
-                    errorText3.textContent = 'Error: ' + errorMsg;
-                    loadingIndicator.appendChild(errorText3);
+                    loadingIndicator.style.display = 'none';
                   }
                 });
                 } catch (error) {
@@ -1815,11 +1817,216 @@
                 }
               });
               
-              // URL slug validation
+              // URL slug validation and auto-generation
               const slugField = document.querySelector('input[name="website_slug"]');
+              const nameInput = document.getElementById('name_input');
+              let slugManuallyEdited = false;
+              let lastGeneratedName = '';
+              
               if (slugField) {
                 slugField.addEventListener('input', function() {
                   this.value = this.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                  slugManuallyEdited = true;
+                  // Don't trigger preview update when slug changes manually to avoid breaking images
+                  // The preview will update when other fields change
+                });
+              }
+              
+              // Auto-generate slug from name
+              function generateSlugFromName(name) {
+                return name.toLowerCase()
+                  .trim()
+                  .replace(/\s+/g, '-')
+                  .replace(/[^a-z0-9-]/g, '')
+                  .replace(/-+/g, '-')
+                  .replace(/^-|-$/g, '');
+              }
+              
+              async function checkSlugAvailability(slug) {
+                try {
+                  // Get CSRF token from form
+                  const csrfToken = document.querySelector('input[name="csrf_token"]');
+                  const headers = {
+                    'Content-Type': 'application/json',
+                  };
+                  if (csrfToken) {
+                    headers['X-CSRFToken'] = csrfToken.value;
+                  }
+                  
+                  const response = await fetch('/vcard/check_slug_availability', {
+                    method: 'POST',
+                    headers: headers,
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ slug: slug })
+                  });
+                  
+                  if (!response.ok) {
+                    console.error('Slug availability check failed:', response.status, response.statusText);
+                    return { available: false, error: 'Could not check availability' };
+                  }
+                  
+                  const data = await response.json();
+                  
+                  // Handle Odoo JSON-RPC response format (wrapped in 'result')
+                  if (data.result) {
+                    return data.result;
+                  }
+                  return data;
+                } catch (error) {
+                  console.error('Error checking slug availability:', error);
+                  return { available: false, error: 'Could not check availability' };
+                }
+              }
+              
+              async function generateUniqueSlug(baseSlug) {
+                if (!baseSlug) {
+                  return '';
+                }
+                
+                console.log('generateUniqueSlug: Checking base slug:', baseSlug);
+                
+                // First check if the base slug is available
+                const result = await checkSlugAvailability(baseSlug);
+                console.log('generateUniqueSlug: Base slug check result:', result);
+                
+                if (result && result.available === true) {
+                  console.log('generateUniqueSlug: Base slug is available, returning:', baseSlug);
+                  return baseSlug;
+                }
+                
+                // If not available and we have a suggestion, use it
+                if (result && result.suggestion) {
+                  console.log('generateUniqueSlug: Using backend suggestion:', result.suggestion);
+                  return result.suggestion;
+                }
+                
+                // Fallback: try appending numbers manually (but limit to reasonable number)
+                // This should rarely happen if backend is working correctly
+                console.warn('generateUniqueSlug: No suggestion from backend, trying sequential numbers');
+                let counter = 2;
+                let uniqueSlug = `${baseSlug}-${counter}`;
+                
+                while (counter < 20) {  // Limit to 20 attempts instead of 100
+                  const checkResult = await checkSlugAvailability(uniqueSlug);
+                  console.log(`generateUniqueSlug: Checking ${uniqueSlug}, result:`, checkResult);
+                  if (checkResult && checkResult.available === true) {
+                    console.log('generateUniqueSlug: Found available slug:', uniqueSlug);
+                    return uniqueSlug;
+                  }
+                  // If we get a suggestion, use it
+                  if (checkResult && checkResult.suggestion) {
+                    console.log('generateUniqueSlug: Using suggestion from sequential check:', checkResult.suggestion);
+                    return checkResult.suggestion;
+                  }
+                  counter++;
+                  uniqueSlug = `${baseSlug}-${counter}`;
+                }
+                
+                // If we couldn't find a unique slug, return the last attempt
+                console.warn('generateUniqueSlug: Reached limit, returning last attempt:', uniqueSlug);
+                return uniqueSlug;
+              }
+              
+              async function autoFillSlugFromName() {
+                if (!nameInput || !slugField) {
+                  return;
+                }
+                
+                const currentName = nameInput.value.trim();
+                
+                // Don't auto-fill if name is empty or slug was manually edited
+                if (!currentName || slugManuallyEdited) {
+                  return;
+                }
+                
+                // Don't regenerate if name hasn't changed and slug is already set
+                if (currentName === lastGeneratedName && slugField.value && slugField.value.trim()) {
+                  return;
+                }
+                
+                // Generate slug from name
+                const baseSlug = generateSlugFromName(currentName);
+                if (!baseSlug) {
+                  console.warn('Generated empty slug from name:', currentName);
+                  return;
+                }
+                
+                console.log('Auto-generating slug from name:', currentName, '-> baseSlug:', baseSlug);
+                
+                // Show loading state
+                const originalPlaceholder = slugField.placeholder;
+                slugField.placeholder = 'Checking availability...';
+                slugField.disabled = true;
+                
+                // Prevent preview updates during slug check to avoid breaking images
+                const wasUpdatingPreview = window.isUpdatingPreview;
+                window.isUpdatingPreview = true;
+                
+                try {
+                  // Get unique slug
+                  const uniqueSlug = await generateUniqueSlug(baseSlug);
+                  console.log('Generated unique slug:', uniqueSlug, 'from base:', baseSlug);
+                  if (uniqueSlug && uniqueSlug !== baseSlug + '-20') {
+                    // Only set if it's not the fallback "-20" value
+                    slugField.value = uniqueSlug;
+                    lastGeneratedName = currentName;
+                    slugField.classList.add('is-valid');
+                    slugField.classList.remove('is-invalid');
+                  } else if (uniqueSlug === baseSlug) {
+                    // Base slug is available - use it
+                    slugField.value = uniqueSlug;
+                    lastGeneratedName = currentName;
+                    slugField.classList.add('is-valid');
+                    slugField.classList.remove('is-invalid');
+                  } else {
+                    console.warn('Slug generation returned unexpected value:', uniqueSlug);
+                    // Set the base slug anyway if we got a weird result
+                    slugField.value = baseSlug;
+                    lastGeneratedName = currentName;
+                  }
+                } catch (error) {
+                  console.error('Error generating slug:', error);
+                  // On error, still re-enable the field
+                  slugField.classList.remove('is-valid', 'is-invalid');
+                } finally {
+                  // Always re-enable the field and restore placeholder
+                  slugField.placeholder = originalPlaceholder;
+                  slugField.disabled = false;
+                  // Clear the "checking" state
+                  slugField.style.backgroundImage = '';
+                  
+                  // Restore preview update state
+                  window.isUpdatingPreview = wasUpdatingPreview;
+                }
+              }
+              
+              if (nameInput && slugField) {
+                // Trigger on input
+                nameInput.addEventListener('input', autoFillSlugFromName);
+                
+                // Also trigger on page load if name is pre-filled (with multiple attempts to catch late-loading values)
+                function tryAutoFillOnLoad() {
+                  const nameVal = nameInput.value.trim();
+                  if (nameVal && !slugField.value && !slugManuallyEdited) {
+                    autoFillSlugFromName();
+                  } else if (nameVal && !slugField.value) {
+                    // Try again after a delay in case value was set late
+                    setTimeout(tryAutoFillOnLoad, 500);
+                  }
+                }
+                
+                // Try immediately
+                tryAutoFillOnLoad();
+                
+                // Also try after delays to catch late-loading default values
+                setTimeout(tryAutoFillOnLoad, 500);
+                setTimeout(tryAutoFillOnLoad, 1500);
+                
+                // Also trigger when name field gets focus (in case user clicks on it)
+                nameInput.addEventListener('focus', function() {
+                  if (this.value.trim() && !slugField.value && !slugManuallyEdited) {
+                    setTimeout(autoFillSlugFromName, 100);
+                  }
                 });
               }
               

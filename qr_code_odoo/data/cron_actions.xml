@@ -34,4 +34,15 @@
         <field name="active" eval="True"/>
     </record>
 
+    <!-- Scheduled action to process bulk onboarding batches -->
+    <record id="ir_cron_process_bulk_onboarding" model="ir.cron">
+        <field name="name">Process Bulk Onboarding Batches</field>
+        <field name="model_id" ref="model_bulk_onboarding_batch"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_process_pending_batches()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">minutes</field>
+        <field name="active" eval="True"/>
+    </record>
+
 </odoo>

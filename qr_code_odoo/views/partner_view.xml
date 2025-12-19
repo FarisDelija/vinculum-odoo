@@ -33,7 +33,7 @@
                     <!-- NFC Setup Guide button -->
                     <button name="action_open_nfc_guide" type="object" class="oe_stat_button" icon="fa-mobile" string="NFC Setup Guide"/>
                     <!-- Vinculum User Guide button -->
-                    <button name="action_open_vinculum_guide" type="object" class="oe_stat_button" icon="fa-question-circle" string="How to Use Vinculum"/>
+                    <button name="action_open_vinculum_guide" type="object" class="oe_stat_button" icon="fa-question-circle" string="How to Use Vinc"/>
                 </header>
                 <sheet>
                     <field name="is_launch_plan" invisible="1"/>
@@ -108,7 +108,7 @@
                                   <div invisible="subscription_plan != 'grow'" style="margin-top: 8px; padding: 8px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;">
                                       <i class="fa fa-info-circle"/> <strong>Grow Plan:</strong> You can use Modern, Minimal, or Creative templates. Upgrade to Scale to access Classic and Corporate templates.
                                   </div>
-                                  <field name="website_full_url" readonly="1" string="Vinculum URL"/>
+                                  <field name="website_full_url" readonly="1" string="Vinc URL"/>
                                   <button name="action_generate_website_page" string="Generate Website" type="object" class="oe_highlight"/>
                               </group>
                               
@@ -340,7 +340,7 @@
                                     </tree>
                                     <form>
                                         <group>
-                                            <field name="name" string="Button Label" placeholder="e.g., Vinculum, Nedax, Resume" help="Label text for the button. If a logo is uploaded, the logo will be shown instead."/>
+                                            <field name="name" string="Button Label" placeholder="e.g., Vinc, Nedax, Resume" help="Label text for the button. If a logo is uploaded, the logo will be shown instead."/>
                                             <field name="website_url"/>
                                             <field name="button_color" widget="color" placeholder="Defaults to Secondary Color"/>
                                             <field name="button_logo" widget="image" options="{'size': (125, 125)}"/>
@@ -683,7 +683,7 @@
         <field name="name">partner.vcard.tree.view</field>
         <field name="model">partner.vcard</field>
         <field name="arch" type="xml">
-            <tree string="Vinculum">
+            <tree string="Vinc">
                 <field name="name"/>
                 <field name="company_name" string="Company Name" placeholder="Optional - for freelancers, leave blank"/>
                 <field name="function" placeholder="e.g. Sales Director"/>
@@ -697,7 +697,7 @@
 
     <!-- Action to open the dashboard (list and form views) -->
     <record id="action_partner_vcard" model="ir.actions.act_window">
-        <field name="name">Vinculum Dashboard</field>
+        <field name="name">Vinc Dashboard</field>
         <field name="res_model">partner.vcard</field>
         <field name="view_mode">tree,form</field>
         <field name="help" type="html">
@@ -789,9 +789,9 @@
       </field>
   </record>
 
-    <!-- Parent menu for Vinculum -->
+    <!-- Parent menu for Vinc -->
     <record id="partner_vcard_menu" model="ir.ui.menu">
-        <field name="name">Vinculum</field>
+        <field name="name">Vinc</field>
         <field name="web_icon">qr_code_odoo,static/description/icon.png</field>
         <field name="sequence">20</field>
     </record>

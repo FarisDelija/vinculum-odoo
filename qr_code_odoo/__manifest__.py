@@ -1,10 +1,10 @@
 {
-    'name': 'Vinculum',
+    'name': 'Vinc',
     'version': '17.0.1.0.18',
     'category': 'Tools',
     'summary': 'Digital business cards, lead capture & analytics inside Odoo',
     'description': """
-Vinculum brings digital business cards and lead capture directly into your Odoo database.
+Vinc brings digital business cards and lead capture directly into your Odoo database.
 
 Each user gets a smart vCard page with QR / NFC links that you can print on cards, badges, email signatures, or marketing materials. When someone scans the code, they land on a branded contact page that lives in your Odoo environment.
 
@@ -17,17 +17,18 @@ Key features:
 - Use Odoo's pipeline and activities for follow-up on captured leads
 - All data stored in your Odoo database (no external data storage)
 
-This module is designed for companies that want Vinculum-style digital cards and lead capture, but prefer to keep everything self-hosted in their own Odoo instance.
+This module is designed for companies that want Vinc-style digital cards and lead capture, but prefer to keep everything self-hosted in their own Odoo instance.
 """,
     'author': 'Faris Delija',
     'license': 'OPL-1',
     'price': 399,
     'currency': 'USD',
-    'support': 'admin@vinculumapp.com',
-    'images': ['static/description/cover.png'],
+    'support': 'support@getvinc.com',
+    'images': ['static/description/Banner.png'],
     'depends': ['base', 'web', 'crm', 'website', 'utm', 'mass_mailing'],
     'data': [
         'security/ir.model.access.csv',
+        'security/bulk_onboarding_rules.xml',
         'data/leadback_preview_model.xml',
         'data/followup_scheduled_reminder_model.xml',
         'data/vcard_download_tracking_model.xml',
@@ -36,6 +37,8 @@ This module is designed for companies that want Vinculum-style digital cards and
         'data/digest_email_template.xml',
         'data/lead_notification_email_template.xml',
         'data/intro_email_template.xml',
+        'data/bulk_onboarding_models.xml',
+        'data/bulk_onboarding_email_templates.xml',
         'views/user_dashboard.xml',
         'views/partner_view.xml',
         'views/vcard_dashboard.xml',
@@ -48,6 +51,8 @@ This module is designed for companies that want Vinculum-style digital cards and
         'views/partner_reviews_view.xml',
         'views/nfc_onboarding_template.xml',
         'views/vinculum_guide_template.xml',
+        'views/bulk_onboarding_templates.xml',
+        'views/magic_link_templates.xml',
     ],
     'assets': {
         'web.assets_frontend': [

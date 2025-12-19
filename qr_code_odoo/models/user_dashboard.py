@@ -224,12 +224,21 @@ class UserDashboard(models.TransientModel):
         }
     
     def action_open_vinculum_guide(self):
-        """Open Vinculum guide"""
+        """Open Vinc guide"""
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
         return {
             'type': 'ir.actions.act_url',
             'url': f"{base_url}/vinculum/guide",
             'target': 'new',
+        }
+    
+    def action_view_bulk_onboarding(self):
+        """Open bulk onboarding website interface"""
+        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f"{base_url}/bulk-onboard",
+            'target': 'self',
         }
     
     @api.model

@@ -483,7 +483,7 @@ class LeadbackScheduledEmail(models.Model):
                 'subject': self.email_subject,
                 'body_html': self.email_body_html,
                 'email_to': self.contact_email,
-                'email_from': self.partner_vcard_id.email or self.env.user.email or self.env['ir.config_parameter'].sudo().get_param('mail.catchall.alias', 'noreply@example.com'),
+                'email_from': self.env['partner.vcard']._get_notification_email(user=self.env.user),
                 'auto_delete': False,
             }
             
@@ -1022,7 +1022,7 @@ class PartnerVCard(models.Model):
     digest_enabled = fields.Boolean(
         string="Enable Digest Emails",
         default=True,
-        help="Receive weekly digest emails with your Vinculum Card statistics"
+        help="Receive weekly digest emails with your Vinc Card statistics"
     )
     digest_frequency = fields.Selection(
         [
@@ -1132,6 +1132,90 @@ class PartnerVCard(models.Model):
         """Get the referral signup URL - simplified to /get-started"""
         self.ensure_one()
         return '/get-started'
+    
+    @api.model
+    def _get_default_banner_image(self):
+        """Load the default banner image from static files"""
+        try:
+            import os
+            import base64
+            # Get the addon path
+            addon_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            banner_path = os.path.join(addon_path, 'qr_code_odoo', 'static', 'description', 'Banner.png')
+            
+            if os.path.exists(banner_path):
+                with open(banner_path, 'rb') as f:
+                    return base64.b64encode(f.read()).decode('utf-8')
+            else:
+                _logger.warning(f"Default banner image not found at {banner_path}")
+                return False
+        except Exception as e:
+            _logger.error(f"Error loading default banner image: {e}")
+            return False
+    
+    @api.model
+    def _get_notification_email(self, user=None):
+        """
+        Get the universal notification email address.
+        Uses Odoo's mail.default.from system parameter, or falls back to user email.
+        
+        :param user: Optional user record. If not provided, uses current user.
+        :return: Email address string
+        """
+        # First, try to get mail.default.from system parameter
+        default_from = self.env['ir.config_parameter'].sudo().get_param('mail.default.from', '')
+        if default_from:
+            # If it's a full email, use it; otherwise combine with catchall domain
+            if '@' in default_from:
+                return default_from
+            else:
+                # Combine with catchall domain
+                catchall_domain = self.env['ir.config_parameter'].sudo().get_param('mail.catchall.domain', '')
+                if catchall_domain:
+                    return f"{default_from}@{catchall_domain}"
+        
+        # Fallback to user's email
+        if user:
+            if hasattr(user, 'email') and user.email:
+                return user.email
+            if hasattr(user, 'login') and user.login and '@' in user.login:
+                return user.login
+        
+        # Fallback to current user
+        current_user = self.env.user
+        if hasattr(current_user, 'email') and current_user.email:
+            return current_user.email
+        if hasattr(current_user, 'login') and current_user.login and '@' in current_user.login:
+            return current_user.login
+        
+        # Final fallback to catchall alias
+        catchall_alias = self.env['ir.config_parameter'].sudo().get_param('mail.catchall.alias', 'noreply')
+        catchall_domain = self.env['ir.config_parameter'].sudo().get_param('mail.catchall.domain', '')
+        if catchall_domain:
+            return f"{catchall_alias}@{catchall_domain}"
+        
+        # Last resort
+        return 'noreply@localhost'
+    
+    @api.model
+    def _get_default_profile_image(self):
+        """Load the default profile image from static files"""
+        try:
+            import os
+            import base64
+            # Get the addon path
+            addon_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            profile_path = os.path.join(addon_path, 'qr_code_odoo', 'static', 'description', 'user.png')
+            
+            if os.path.exists(profile_path):
+                with open(profile_path, 'rb') as f:
+                    return base64.b64encode(f.read()).decode('utf-8')
+            else:
+                _logger.warning(f"Default profile image not found at {profile_path}")
+                return False
+        except Exception as e:
+            _logger.error(f"Error loading default profile image: {e}")
+            return False
     
     @api.model
     def default_get(self, fields_list):
@@ -1382,7 +1466,7 @@ class PartnerVCard(models.Model):
         }
 
     def action_open_vinculum_guide(self):
-        """Open the How to Use Vinculum guide"""
+        """Open the How to Use Vinc guide"""
         self.ensure_one()
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
         guide_url = f"{base_url}/vinculum/guide"
@@ -1587,7 +1671,7 @@ class PartnerVCard(models.Model):
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
                 <!-- Header -->
                 <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #e0e0e0;">
-                    <h1 style="margin: 0; color: #333; font-size: 24px;">📊 Your Vinculum Card Digest</h1>
+                    <h1 style="margin: 0; color: #333; font-size: 24px;">📊 Your Vinc Card Digest</h1>
                     <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">{period_display}</p>
                 </div>
 
@@ -1607,7 +1691,7 @@ class PartnerVCard(models.Model):
                             <span style="color: #666;">Total Leads:</span>
                             <strong style="color: #333; font-size: 18px;">{stats['total_leads_count']}</strong>
                         </div>
-                        <p style="margin: 0 0 10px 0; color: #999; font-size: 11px; font-style: italic;">All-time total leads captured from this Vinculum Card</p>
+                        <p style="margin: 0 0 10px 0; color: #999; font-size: 11px; font-style: italic;">All-time total leads captured from this Vinc Card</p>
                         <div style="display: flex; justify-content: space-between;">
                             <span style="color: #666;">Without Follow-up:</span>
                             <strong style="color: #dc3545; font-size: 18px;">{stats['leads_without_followup_count']}</strong>
@@ -1660,7 +1744,7 @@ class PartnerVCard(models.Model):
                             <span style="color: #666;">Page Views:</span>
                             <strong style="color: #333; font-size: 18px;">{stats['page_views']}</strong>
                         </div>
-                        <p style="margin: 0 0 10px 0; color: #999; font-size: 11px; font-style: italic;">Total number of times your Vinculum Card page has been viewed (via your unique URL)</p>
+                        <p style="margin: 0 0 10px 0; color: #999; font-size: 11px; font-style: italic;">Total number of times your Vinc Card page has been viewed (via your unique URL)</p>
                         <div style="display: flex; justify-content: space-between;">
                             <span style="color: #666;">QR Code Scans:</span>
                             <strong style="color: #333; font-size: 18px;">{stats['scans_count']}</strong>
@@ -1676,7 +1760,7 @@ class PartnerVCard(models.Model):
                 <div style="text-align: center; padding: 30px 0; border-top: 2px solid #e0e0e0;">
                     <a href="{vcard_url}" 
                        style="display: inline-block; background-color: #457eb8; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
-                        View Your Vinculum Card →
+                        View Your Vinc Card →
                     </a>
                     <p style="margin: 20px 0 0 0; color: #666; font-size: 12px;">
                         <a href="{base_url}/web#id={self.id}&model=partner.vcard&view_type=form&active_id={self.id}" 
@@ -1686,17 +1770,17 @@ class PartnerVCard(models.Model):
 
                 <!-- Footer -->
                 <div style="text-align: center; padding: 20px 0; border-top: 1px solid #e0e0e0; color: #999; font-size: 12px;">
-                    <p style="margin: 0;">This is an automated digest email from Vinculum.</p>
-                    <p style="margin: 5px 0 0 0;">You can change your digest preferences in your Vinculum Card settings.</p>
+                    <p style="margin: 0;">This is an automated digest email from Vinc.</p>
+                    <p style="margin: 5px 0 0 0;">You can change your digest preferences in your Vinc Card settings.</p>
                 </div>
             </div>
             """
             
             # Create mail values
             mail_values = {
-                'subject': f"{period_display}'s Digest - {self.name or 'Your Vinculum Card'}",
+                'subject': f"{period_display}'s Digest - {self.name or 'Your Vinc Card'}",
                 'body_html': Markup(body_html),
-                'email_from': 'notifications@vinculumapp.com',
+                'email_from': self._get_notification_email(user=self.env.user),
                 'email_to': self.email,
                 'auto_delete': True,
                 'model': 'partner.vcard',
@@ -1758,7 +1842,7 @@ class PartnerVCard(models.Model):
         self.ensure_one()
         
         if not self.email:
-            raise UserError('Please set an email address on your Vinculum Card to receive digest emails.')
+            raise UserError('Please set an email address on your Vinc Card to receive digest emails.')
         
         if not self.digest_enabled:
             raise UserError('Please enable digest emails first.')
@@ -1817,7 +1901,7 @@ class PartnerVCard(models.Model):
             'subject': subject,
             'body_html': body_html,
             'email_to': 'john.smith@example.com',
-            'email_from': 'notifications@vinculumapp.com',
+            'email_from': self._get_notification_email(user=self.env.user),
         })
         
         return {
@@ -2527,7 +2611,7 @@ class PartnerVCard(models.Model):
                 'subject': email_subject,
                 'body_html': email_body_html,
                 'email_to': contact_email,
-                'email_from': self.email or self.env.user.email or self.env['ir.config_parameter'].sudo().get_param('mail.catchall.alias', 'noreply@example.com'),
+                'email_from': self._get_notification_email(user=self.env.user),
                 'auto_delete': False,
             }
             
@@ -3419,7 +3503,7 @@ If you'd like to save my info again later, here's my card: {vcard_url}
                     <!-- Vinculum Footer Banner -->
                     <div style="background: rgba(255,255,255,0.95); border-top: 1px solid rgba(0,0,0,0.1); padding: 20px 0; text-align: center;">
                         <a href="{referral_url}" target="_blank" style="display: inline-block; color: #6c757d; text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.3s ease; padding: 8px 16px; border-radius: 20px;">
-                            Built with <strong style="color: #4c89c8;">Vinculum</strong> <span style="display: inline-block; transition: transform 0.3s ease; margin: 0 4px;">→</span> Create yours for <strong style="color: #4c89c8;">FREE</strong>
+                            Built with <strong style="color: #4c89c8;">Vinc</strong> <span style="display: inline-block; transition: transform 0.3s ease; margin: 0 4px;">→</span> Create yours for <strong style="color: #4c89c8;">FREE</strong>
                         </a>
                     </div>
                 </div>
@@ -3497,7 +3581,7 @@ If you'd like to save my info again later, here's my card: {vcard_url}
                     <!-- Vinculum Footer Banner -->
                     <div style="padding: 20px 0; background: ' + (partner.primary_color or '#ffffff') + '; border-top: 1px solid #e9ecef; text-align: center;">
                         <a href="{referral_url}" target="_blank" style="display: inline-block; color: #6c757d; text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.3s ease; padding: 8px 16px; border-radius: 20px;">
-                            Built with Vinculum <span style="display: inline-block; transition: transform 0.3s ease; margin: 0 4px;">→</span> Create yours
+                            Built with Vinc <span style="display: inline-block; transition: transform 0.3s ease; margin: 0 4px;">→</span> Create yours
                         </a>
                     </div>
                 </div>
@@ -3573,7 +3657,7 @@ If you'd like to save my info again later, here's my card: {vcard_url}
                     <!-- Vinculum Footer Banner -->
                     <div t-att-style="'padding: 20px 0; border-top: 1px solid #e9ecef; text-align: center; background: ' + (partner.primary_color or '#ffffff') + ';'">
                         <a href="{referral_url}" target="_blank" style="display: inline-block; color: #6c757d; text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.3s ease; padding: 8px 16px; border-radius: 20px;">
-                            Built with Vinculum <span style="display: inline-block; transition: transform 0.3s ease; margin: 0 4px;">→</span> Create yours
+                            Built with Vinc <span style="display: inline-block; transition: transform 0.3s ease; margin: 0 4px;">→</span> Create yours
                         </a>
                     </div>
                                         </div>
@@ -3663,7 +3747,7 @@ If you'd like to save my info again later, here's my card: {vcard_url}
                     <!-- Vinculum Footer Banner -->
                     <div style="padding: 20px 0; background: ' + (partner.primary_color or '#ffffff') + '; border-top: 1px solid #e9ecef; text-align: center;">
                         <a href="{referral_url}" target="_blank" style="display: inline-block; color: #6c757d; text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.3s ease; padding: 8px 16px; border-radius: 20px;">
-                            Built with Vinculum <span style="display: inline-block; transition: transform 0.3s ease; margin: 0 4px;">→</span> Create yours
+                            Built with Vinc <span style="display: inline-block; transition: transform 0.3s ease; margin: 0 4px;">→</span> Create yours
                         </a>
                     </div>
                 </div>
@@ -3777,7 +3861,7 @@ If you'd like to save my info again later, here's my card: {vcard_url}
                         <!-- Vinculum Footer Banner -->
                         <div style="padding: 25px 0; background: rgba(255,255,255,0.95); border-top: 1px solid rgba(255,255,255,0.3); text-align: center;">
                             <a href="{referral_url}" target="_blank" style="display: inline-block; color: #6c757d; text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.3s ease; padding: 8px 16px; border-radius: 20px;">
-                                Built with Vinculum <span style="display: inline-block; transition: transform 0.3s ease; margin: 0 4px;">→</span> Create yours
+                                Built with Vinc <span style="display: inline-block; transition: transform 0.3s ease; margin: 0 4px;">→</span> Create yours
                             </a>
                         </div>
                     </div>

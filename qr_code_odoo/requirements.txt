@@ -1,3 +1,4 @@
 Pillow>=10.0.0  # For Image and ImageDraw (PIL) - compatible with Python 3.10+
 qrcode>=7.4.0  # For generating QR codes - compatible with Python 3.10+
+openpyxl>=3.0.0  # For Excel file parsing in bulk onboarding
 

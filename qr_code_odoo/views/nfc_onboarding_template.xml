@@ -7,8 +7,8 @@
                 <div class="container mt-5 mb-5">
                     <div class="row justify-content-center">
                         <div class="col-md-8">
-                            <h1 class="text-center mb-4">Program Your Vinculum Card</h1>
-                            <p class="text-center text-muted mb-5">Follow these simple steps to program your Vinculum card with your vCard</p>
+                            <h1 class="text-center mb-4">Program Your Vinc Card</h1>
+                            <p class="text-center text-muted mb-5">Follow these simple steps to program your Vinc card with your vCard</p>
 
                             <!-- Progress Steps -->
                             <div class="progress mb-5" style="height: 3px;">
@@ -20,9 +20,9 @@
                                 <div class="card-body">
                                     <div class="d-flex align-items-center mb-3">
                                         <span class="badge badge-primary badge-pill mr-3" style="font-size: 20px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">1</span>
-                                        <h3 class="mb-0">Copy Your Vinculum URL</h3>
+                                        <h3 class="mb-0">Copy Your Vinc URL</h3>
                                     </div>
-                                    <p>This is the URL that will be written to your Vinculum card:</p>
+                                    <p>This is the URL that will be written to your Vinc card:</p>
                                     <div class="input-group mb-3">
                                         <input type="text" class="form-control form-control-lg" id="vcardUrl" t-att-value="vcard_url" readonly="readonly" style="font-size: 16px;"/>
                                         <div class="input-group-append">
@@ -88,10 +88,10 @@
                                 <div class="card-body">
                                     <div class="d-flex align-items-center mb-3">
                                         <span class="badge badge-primary badge-pill mr-3" style="font-size: 20px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">3</span>
-                                        <h3 class="mb-0">Program Your Vinculum Card</h3>
+                                        <h3 class="mb-0">Program Your Vinc Card</h3>
                                     </div>
                                     
-                                    <p class="lead mb-4">Follow these steps in the NFC Tools app to program your Vinculum card:</p>
+                                    <p class="lead mb-4">Follow these steps in the NFC Tools app to program your Vinc card:</p>
 
                                     <div class="list-group mb-4">
                                         <div class="list-group-item">
@@ -159,8 +159,8 @@
                                             <div class="d-flex align-items-start">
                                                 <span class="badge badge-success mr-3" style="font-size: 16px;">7</span>
                                                 <div>
-                                                    <h5 class="mb-1">Hold Vinculum Card to Phone</h5>
-                                                    <p class="mb-0 text-muted">Place your Vinculum card on the back of your phone until you see "Write successful"</p>
+                                                    <h5 class="mb-1">Hold Vinc Card to Phone</h5>
+                                                    <p class="mb-0 text-muted">Place your Vinc card on the back of your phone until you see "Write successful"</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -182,7 +182,7 @@
                                 <div class="card-body">
                                     <div class="d-flex align-items-center mb-3">
                                         <span class="badge badge-primary badge-pill mr-3" style="font-size: 20px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">4</span>
-                                        <h3 class="mb-0">Test Your Vinculum Card</h3>
+                                        <h3 class="mb-0">Test Your Vinc Card</h3>
                                     </div>
                                     
                                     <div class="text-center mb-4">
@@ -191,15 +191,15 @@
 
                                     <h4 class="text-center mb-4">Almost Done!</h4>
                                     
-                                    <p class="lead text-center mb-4">Test your Vinculum card by tapping it to any NFC-enabled phone. It should open your vCard page automatically!</p>
+                                    <p class="lead text-center mb-4">Test your Vinc card by tapping it to any NFC-enabled phone. It should open your vCard page automatically!</p>
 
                                     <div class="alert alert-success">
                                         <h5><i class="fa fa-lightbulb-o"></i> Pro Tips:</h5>
                                         <ul class="mb-0">
-                                            <li>Your Vinculum card works best when you tap it to the back center of the phone</li>
-                                            <li>You can program multiple Vinculum cards with the same URL</li>
-                                            <li>Your Vinculum card works on both iPhone and Android devices</li>
-                                            <li>No app is needed for someone to scan your Vinculum card - it opens in their browser</li>
+                                            <li>Your Vinc card works best when you tap it to the back center of the phone</li>
+                                            <li>You can program multiple Vinc cards with the same URL</li>
+                                            <li>Your Vinc card works on both iPhone and Android devices</li>
+                                            <li>No app is needed for someone to scan your Vinc card - it opens in their browser</li>
                                         </ul>
                                     </div>
 
@@ -218,8 +218,8 @@
                             <div class="card mt-4 bg-light">
                                 <div class="card-body text-center">
                                     <h5><i class="fa fa-question-circle"></i> Need Help?</h5>
-                                    <p>Having trouble programming your Vinculum card?</p>
-                                    <a href="/contactus" class="btn btn-primary">Contact Vinculum Support</a>
+                                    <p>Having trouble programming your Vinc card?</p>
+                                    <a href="/contactus" class="btn btn-primary">Contact Vinc Support</a>
                                 </div>
                             </div>
 
@@ -256,7 +256,7 @@
                 }
 
                 function completeTutorial() {
-                    alert('Tutorial completed! Your Vinculum card is ready to use.');
+                    alert('Tutorial completed! Your Vinc card is ready to use.');
                     window.location.href = '/web';
                 }
 
@@ -283,4 +283,3 @@
         </t>
     </template>
 </odoo>
-

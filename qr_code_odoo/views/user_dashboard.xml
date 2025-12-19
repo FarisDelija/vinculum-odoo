@@ -8,7 +8,7 @@
             <form string="My Dashboard" create="0" delete="0">
                 <header>
                     <button name="action_open_nfc_setup" string="NFC Setup Guide" type="object" class="btn-secondary"/>
-                    <button name="action_open_vinculum_guide" string="How to Use Vinculum" type="object" class="btn-secondary"/>
+                    <button name="action_open_vinculum_guide" string="How to Use Vinc" type="object" class="btn-secondary"/>
                 </header>
 
                 <!-- Main dashboard content -->
@@ -38,6 +38,13 @@
                                                     onmouseover="this.style.transform='translateY(-2px)'"
                                                     onmouseout="this.style.transform='translateY(0)'">
                                                 View Cards <i class="fa fa-arrow-right" style="margin-left: 8px;"></i>
+                                            </button>
+                                            <button name="action_view_bulk_onboarding" type="object" 
+                                                    groups="base.group_system,base.group_erp_manager"
+                                                    style="background: white; color: #3b82f6; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: transform 0.2s;"
+                                                    onmouseover="this.style.transform='translateY(-2px)'"
+                                                    onmouseout="this.style.transform='translateY(0)'">
+                                                Bulk Onboarding <i class="fa fa-users" style="margin-left: 8px;"></i>
                                             </button>
                                         </div>
                                     </div>

@@ -1,0 +1,2266 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Bulk Onboarding Wizard - Redesigned to match get-started form -->
+    <template id="bulk_onboarding_wizard" name="Bulk Onboard Users">
+        <t t-call="website.layout">
+            <!-- Welcome Banner -->
+            <section style="background: #4C75A3; color: white; padding: 40px 0; text-align: center;">
+                <div class="container">
+                    <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem;">
+                        Bulk Onboard Your Team
+                    </h1>
+                    <p style="font-size: 1.2rem; opacity: 0.95; margin-bottom: 1rem;">
+                        Set up company-wide defaults and onboard multiple users at once
+                    </p>
+                    <div style="display: inline-flex; align-items: center; background: rgba(255,255,255,0.2); padding: 10px 25px; border-radius: 50px; margin-top: 10px;">
+                        <span style="margin-right: 15px; font-size: 1.1rem;">👥 Add Users</span>
+                        <span style="margin-right: 15px;">→</span>
+                        <span style="margin-right: 15px; font-size: 1.1rem;">🎨 Set Company Defaults</span>
+                        <span style="margin-right: 15px;">→</span>
+                        <span style="font-size: 1.1rem;">✨ Send Invitations</span>
+                    </div>
+                </div>
+            </section>
+            
+            <div class="container mt-5 mb-5">
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        <nav aria-label="breadcrumb" class="mb-3">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a href="/web">Dashboard</a></li>
+                                <li class="breadcrumb-item"><a href="/bulk-onboard">Bulk Onboarding</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">New Batch</li>
+                            </ol>
+                        </nav>
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <h2 class="text-primary mb-1" style="font-size: 2rem; font-weight: 600;">Configure Your Company Vinc Cards</h2>
+                                <p class="lead text-muted mb-0">These settings will be applied to all Cards created for your users</p>
+                            </div>
+                            <div>
+                                <a href="/bulk-onboard" class="btn btn-outline-secondary me-2">
+                                    <i class="fa fa-list"></i> View Batches
+                                </a>
+                                <a href="/web" class="btn btn-outline-secondary">
+                                    <i class="fa fa-dashboard"></i> Dashboard
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Toast Notification Container -->
+                        <div id="toastContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
+                        
+                        <t t-if="error">
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <i class="fa fa-exclamation-triangle me-2"></i>
+                                <t t-esc="error"/>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        </t>
+                        
+                        <form id="bulkOnboardForm" method="post" action="/bulk-onboard/submit" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            
+                            <!-- Batch Name at Top -->
+                            <div class="card mb-4">
+                                <div class="card-header" style="background: #4C75A3; color: white;">
+                                    <h4 class="mb-0"><i class="fa fa-info-circle me-2"></i>Batch Information</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-group mb-3">
+                                        <label class="form-label fw-bold">Batch Name</label>
+                                        <input type="text" name="batch_name" class="form-control" placeholder="e.g., Q1 2025 Sales Team"/>
+                                        <small class="form-text text-muted">Name for this onboarding batch (for tracking purposes)</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 0: Add Sales Reps -->
+                            <div class="form-section" data-step="0">
+                                <div class="card mb-4">
+                                    <div class="card-header" style="background: #4C75A3; color: white;">
+                                        <h4 class="mb-0"><i class="fa fa-users me-2"></i>Step 1: Add Users</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-group mb-3">
+                                            <label class="fw-bold mb-3">Choose Input Method:</label>
+                                            <div class="row">
+                                                <div class="col-md-6 mb-3">
+                                                    <div class="form-check">
+                                                        <input type="radio" name="input_method" value="file" id="input_file" checked="checked" class="form-check-input" onchange="toggleInputMethod()"/>
+                                                        <label for="input_file" class="form-check-label fw-bold">Upload CSV/Excel File</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <div class="form-check">
+                                                        <input type="radio" name="input_method" value="manual" id="input_manual" class="form-check-input" onchange="toggleInputMethod()"/>
+                                                        <label for="input_manual" class="form-check-label fw-bold">Manual Entry</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- File Upload Section -->
+                                        <div id="fileUploadSection">
+                                            <div class="form-group mb-3">
+                                                <label class="form-label fw-bold">Upload File</label>
+                                                <input type="file" name="file" id="fileInput" accept=".csv,.xlsx,.xls" class="form-control" onchange="handleFileUpload()"/>
+                                                <small class="form-text text-muted">
+                                                    Download <a href="/bulk-onboard/template" download="bulk_onboarding_template.csv">template CSV</a> with required columns: name, email, phone (optional), function (optional). The template includes explanations in row 1, headers in row 2, and 5 example rows.
+                                                </small>
+                                            </div>
+                                            <div id="filePreview" style="display: none; margin-top: 20px;">
+                                                <h5>File Preview (first 5 rows):</h5>
+                                                <div id="previewTable" class="table-responsive"></div>
+                                                <input type="hidden" name="rep_data_json" id="repDataJson"/>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Manual Entry Section -->
+                                        <div id="manualEntrySection" style="display: none;">
+                                            <div id="repRows">
+                                                <div class="rep-row mb-3 p-3 border rounded bg-light">
+                                                    <div class="row">
+                                                        <div class="form-group col-md-4 mb-3">
+                                                            <label class="form-label fw-bold">Name <span class="text-danger">*</span></label>
+                                                            <input type="text" name="rep_name[]" class="form-control" oninput="updateSeatCount()"/>
+                                                        </div>
+                                                        <div class="form-group col-md-4 mb-3">
+                                                            <label class="form-label fw-bold">Email <span class="text-danger">*</span></label>
+                                                            <input type="email" name="rep_email[]" class="form-control" oninput="updateSeatCount()"/>
+                                                        </div>
+                                                        <div class="form-group col-md-3 mb-3">
+                                                            <label class="form-label fw-bold">Phone</label>
+                                                            <input type="text" name="rep_phone[]" class="form-control"/>
+                                                        </div>
+                                                        <div class="form-group col-md-1 d-flex align-items-end">
+                                                            <button type="button" class="btn btn-outline-danger btn-sm remove-rep-row" style="display: none;" onclick="removeRepRow(this)">
+                                                                <i class="fa fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row">
+                                                        <div class="form-group col-md-4 mb-3">
+                                                            <label class="form-label fw-bold">Job Title</label>
+                                                            <input type="text" name="rep_function[]" class="form-control"/>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addRepRow()">
+                                                <i class="fa fa-plus me-1"></i> Add Another Rep
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="alert alert-info mt-3">
+                                            <strong>Users to onboard:</strong> <span id="repsCount">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 1: Basic Information (Company Defaults) -->
+                            <div class="form-section" data-step="1">
+                                <div class="card mb-4">
+                                    <div class="card-header" style="background: #4C75A3; color: white;">
+                                        <h4 class="mb-0"><i class="fa fa-building me-2"></i>Step 2: Company &amp; Branding</h4>
+                                        <small style="color: white; opacity: 0.9;">These settings apply to all Cards</small>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="form-group col-md-6 mb-3">
+                                                <label class="form-label fw-bold">Company Name</label>
+                                                <input type="text" name="company_name" class="form-control" placeholder="Your Company LLC"/>
+                                                <small class="form-text text-muted">Company name for all Cards</small>
+                                            </div>
+                                            <div class="form-group col-md-6 mb-3">
+                                                <label class="form-label fw-bold">Company Logo (Default for all Cards)</label>
+                                                <input type="file" name="default_logo" accept="image/*" class="form-control"/>
+                                                <small class="form-text text-muted">Logo used as default profile photo if rep doesn't provide one</small>
+                                            </div>
+                                            <div class="form-group col-md-6 mb-3">
+                                                <label class="form-label fw-bold">Banner Image (Default for all Cards)</label>
+                                                <input type="file" name="banner_image" accept="image/*" class="form-control"/>
+                                                <small class="form-text text-muted">Banner image behind profile picture (optional)</small>
+                                            </div>
+                                            <div class="form-group col-12 mb-3">
+                                                <label class="form-label fw-bold">Brand Color <span class="text-danger">*</span></label>
+                                                <input type="color" name="brand_color" id="brand_color" class="form-control form-control-color" value="#4C75A3" style="width: 100%; height: 50px; cursor: pointer;"/>
+                                                <small class="form-text text-muted">Accent color for all Cards (buttons, borders, sections)</small>
+                                            </div>
+                                            <div class="form-group col-12 mb-3">
+                                                <label class="form-label fw-bold">Default About Text</label>
+                                                <textarea name="default_about" class="form-control" rows="3" placeholder="Default 'About' text for all Cards (users can customize later)"></textarea>
+                                                <small class="form-text text-muted">Default description applied to all Cards</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 2: Address Information (Company Defaults) -->
+                            <div class="form-section" data-step="2">
+                                <div class="card mb-4">
+                                    <div class="card-header" style="background: #4C75A3; color: white;">
+                                        <h4 class="mb-0"><i class="fa fa-map-marker-alt me-2"></i>Step 3: Address Information</h4>
+                                        <small style="color: white; opacity: 0.9;">Default address for all Cards</small>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="form-group col-md-6 mb-3">
+                                                <label class="form-label fw-bold">Street Address</label>
+                                                <input type="text" name="default_street" class="form-control" placeholder="123 Main Street"/>
+                                            </div>
+                                            <div class="form-group col-md-6 mb-3">
+                                                <label class="form-label fw-bold">Address Line 2</label>
+                                                <input type="text" name="default_street2" class="form-control" placeholder="Suite 100"/>
+                                            </div>
+                                            <div class="form-group col-md-4 mb-3">
+                                                <label class="form-label fw-bold">City</label>
+                                                <input type="text" name="default_city" class="form-control" placeholder="Los Angeles"/>
+                                            </div>
+                                            <div class="form-group col-md-4 mb-3">
+                                                <label class="form-label fw-bold">ZIP/Postal Code</label>
+                                                <input type="text" name="default_zip" class="form-control" placeholder="90210"/>
+                                            </div>
+                                            <div class="form-group col-md-6 mb-3">
+                                                <label class="form-label fw-bold">Country</label>
+                                                <select name="country_id" class="form-control" id="country_select">
+                                                    <option value="">Select a country</option>
+                                                    <t t-foreach="countries" t-as="country">
+                                                        <option t-att-value="country.id"><t t-esc="country.name"/></option>
+                                                    </t>
+                                                </select>
+                                            </div>
+                                            <div class="form-group col-md-6 mb-3" id="state_group" style="display: none;">
+                                                <label class="form-label fw-bold">State/Province</label>
+                                                <select name="state_id" id="state_select" class="form-control">
+                                                    <option value="">Select a state</option>
+                                                    <t t-foreach="states" t-as="state">
+                                                        <option t-att-value="state.id" t-att-data-country-id="state.country_id.id">
+                                                            <t t-esc="state.name"/>
+                                                        </option>
+                                                    </t>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 3: Social Media Links (Company Defaults) -->
+                            <div class="form-section" data-step="3">
+                                <div class="card mb-4">
+                                    <div class="card-header" style="background: #4C75A3; color: white;">
+                                        <h4 class="mb-0"><i class="fa fa-share-alt me-2"></i>Step 4: Social Media Links</h4>
+                                        <small style="color: white; opacity: 0.9;">Company social media links applied to all Cards</small>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-12 mb-3">
+                                                <h6 class="text-success"><i class="fa fa-building me-2"></i>Company Profiles</h6>
+                                            </div>
+                                            <div class="form-group col-md-6 mb-3">
+                                                <label class="form-label fw-bold">Company LinkedIn</label>
+                                                <input type="url" name="linkedin_url_company" class="form-control" placeholder="https://www.linkedin.com/company/companyname"/>
+                                            </div>
+                                            <div class="form-group col-md-6 mb-3">
+                                                <label class="form-label fw-bold">Company Twitter/X</label>
+                                                <input type="url" name="twitter_url_company" class="form-control" placeholder="https://x.com/companyname"/>
+                                            </div>
+                                            <div class="form-group col-md-6 mb-3">
+                                                <label class="form-label fw-bold">Company Instagram</label>
+                                                <input type="url" name="instagram_url_company" class="form-control" placeholder="https://www.instagram.com/companyname"/>
+                                            </div>
+                                            <div class="form-group col-md-6 mb-3">
+                                                <label class="form-label fw-bold">Company Facebook</label>
+                                                <input type="url" name="facebook_url_company" class="form-control" placeholder="https://www.facebook.com/companyname"/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 4: QR Code & Final Touches -->
+                            <div class="form-section" data-step="4">
+                                <div class="card mb-4">
+                                    <div class="card-header" style="background: #4C75A3; color: white;">
+                                        <h4 class="mb-0"><i class="fa fa-qrcode me-2"></i>Step 5: QR Code &amp; Final Touches</h4>
+                                        <small style="color: white; opacity: 0.9;">Default QR code settings for all Cards</small>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="form-group col-md-6 mb-3">
+                                                <label class="form-label fw-bold">QR Code Logo (Default for all Cards)</label>
+                                                <input type="file" name="qr_logo" accept="image/*" class="form-control" id="qr_logo_input" onchange="updateQRPreview(); updateBulkPreview();"/>
+                                                <small class="form-text text-muted">
+                                                    <i class="fa fa-info-circle me-1"></i>
+                                                    Upload a logo image (PNG, JPG, or SVG) to display in the center of QR codes. This makes your QR code more branded and recognizable. The logo will be automatically resized to fit properly while maintaining QR code readability.
+                                                </small>
+                                            </div>
+                                            <div class="form-group col-md-6 mb-3">
+                                                <label class="form-label fw-bold">QR Code Preview</label>
+                                                <div id="qr_code_preview_container" style="border: 2px dashed #dee2e6; border-radius: 8px; padding: 20px; text-align: center; min-height: 200px; background: #f8f9fa; position: relative; display: flex; align-items: center; justify-content: center;">
+                                                    <div id="qr_code_preview_placeholder" style="color: #6c757d; position: relative;">
+                                                        <!-- Static dummy QR code image -->
+                                                        <img id="qr_code_dummy" src="/qr_code_odoo/static/description/Vinc.png" alt="QR Code Preview" style="display: block; margin: 0 auto; max-width: 200px; max-height: 200px; width: auto; height: auto; position: relative;"/>
+                                                        <!-- Logo overlay (positioned absolutely over the QR code) -->
+                                                        <div id="qr_logo_overlay_container" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 50px; height: 50px; display: none; align-items: center; justify-content: center; z-index: 10;">
+                                                            <img id="qr_logo_image" src="" alt="Logo" style="max-width: 100%; max-height: 100%; width: auto; height: auto; display: none;"/>
+                                                        </div>
+                                                        <p class="mb-0" style="font-size: 12px; margin-top: 10px; color: #6c7280;">
+                                                            <i class="fa fa-info-circle"></i> This is a dummy QR code preview
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <small class="form-text text-muted">Preview of how your QR code will look with your logo (dummy QR code shown)</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 5: Choose Template -->
+                            <div class="form-section" data-step="5">
+                                <div class="card mb-4">
+                                    <div class="card-header" style="background: #4C75A3; color: white;">
+                                        <h4 class="mb-0"><i class="fa fa-palette me-2"></i>Step 6: Choose Your Template</h4>
+                                        <small style="color: white; opacity: 0.9;">Default template for all Cards</small>
+                                    </div>
+                                    <div class="card-body">
+                                        <t t-set="default_template" t-value="'modern'"/>
+                                        <input type="hidden" name="website_template" id="selected_template" t-att-value="default_template"/>
+                                        <div class="row" id="template-selection">
+                                            <!-- Modern template - All plans -->
+                                            <div class="col-md-6 mb-3">
+                                                <div class="template-option card h-100" data-template="modern" style="cursor: pointer; border: 2px solid #007bff; transition: all 0.3s;">
+                                                    <div class="card-body text-center">
+                                                        <h5 class="card-title">Modern</h5>
+                                                        <p class="card-text small text-muted">Side-by-side layout with inline action buttons</p>
+                                                        <div class="template-preview" style="height: 150px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 8px; position: relative; margin-top: 10px; display: flex; align-items: center; padding: 20px;">
+                                                            <div style="width: 50px; height: 50px; background: white; border-radius: 50%; margin-right: 15px;"></div>
+                                                            <div style="flex: 1; background: rgba(255,255,255,0.3); height: 40px; border-radius: 4px;"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Minimal template -->
+                                            <div class="col-md-6 mb-3">
+                                                <div class="template-option card h-100" data-template="minimal" style="cursor: pointer; border: 2px solid #e0e0e0; transition: all 0.3s;">
+                                                    <div class="card-body text-center">
+                                                        <h5 class="card-title">Minimal</h5>
+                                                        <p class="card-text small text-muted">Tabbed navigation with maximum white space</p>
+                                                        <div class="template-preview" style="height: 150px; background: #fafafa; border-radius: 8px; position: relative; margin-top: 10px; border: 1px solid #e0e0e0;">
+                                                            <div style="position: absolute; top: 10px; left: 10px; right: 10px; height: 30px; background: #e0e0e0; border-radius: 4px;"></div>
+                                                            <div style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 50px; height: 50px; background: #d0d0d0; border-radius: 50%;"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Creative template -->
+                                            <div class="col-md-6 mb-3">
+                                                <div class="template-option card h-100" data-template="creative" style="cursor: pointer; border: 2px solid #e0e0e0; transition: all 0.3s;">
+                                                    <div class="card-body text-center">
+                                                        <h5 class="card-title">Creative</h5>
+                                                        <p class="card-text small text-muted">Floating background elements with vibrant colors</p>
+                                                        <div class="template-preview" style="height: 150px; background: linear-gradient(45deg, #FF6B6B, #4ECDC4, #45B7D1); border-radius: 8px; position: relative; margin-top: 10px; overflow: hidden;">
+                                                            <div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; background: white; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.3);"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Classic template -->
+                                            <div class="col-md-6 mb-3">
+                                                <div class="template-option card h-100" data-template="classic" style="cursor: pointer; border: 2px solid #e0e0e0; transition: all 0.3s;">
+                                                    <div class="card-body text-center">
+                                                        <h5 class="card-title">Classic</h5>
+                                                        <p class="card-text small text-muted">Traditional gradient card layout with centered profile picture</p>
+                                                        <div class="template-preview" style="height: 150px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; position: relative; margin-top: 10px;">
+                                                            <div style="position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; background: white; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.2);"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Corporate template -->
+                                            <div class="col-md-6 mb-3">
+                                                <div class="template-option card h-100" data-template="corporate" style="cursor: pointer; border: 2px solid #e0e0e0; transition: all 0.3s;">
+                                                    <div class="card-body text-center">
+                                                        <h5 class="card-title">Corporate</h5>
+                                                        <p class="card-text small text-muted">Professional banner header with structured sections</p>
+                                                        <div class="template-preview" style="height: 150px; background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); border-radius: 8px; position: relative; margin-top: 10px;">
+                                                            <div style="position: absolute; top: 0; left: 0; right: 0; height: 40px; background: rgba(255,255,255,0.1); border-radius: 8px 8px 0 0;"></div>
+                                                            <div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 50px; height: 50px; background: white; border-radius: 50%;"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 6: Extra Features -->
+                            <div class="form-section" data-step="6">
+                                <div class="card mb-4">
+                                    <div class="card-header" style="background: #4C75A3; color: white;">
+                                        <h4 class="mb-0"><i class="fa fa-cog me-2"></i>Step 7: Extra Features</h4>
+                                        <small style="color: white; opacity: 0.9;">Configure additional features for all Cards</small>
+                                    </div>
+                                    <div class="card-body">
+                                        <!-- Lead Collection Form -->
+                                        <div class="mb-4 p-3 border rounded">
+                                            <div class="form-check mb-3">
+                                                <input type="checkbox" name="show_form" class="form-check-input" id="show_form_yes" value="yes" onchange="toggleLeadFormSettings()"/>
+                                                <label for="show_form_yes" class="form-check-label fw-bold">Lead Collection Form</label>
+                                            </div>
+                                            <p class="text-muted small ms-4 mb-3">
+                                                Enable this feature to add a button to your card which will allow visitors submit their contact information directly through a form. All leads will be automatically captured and added to your mailing list, helping you build your network and follow up with potential contacts.
+                                            </p>
+                                            <div class="alert alert-info ms-4 mb-3" id="lead_form_defaults_alert" style="display: none;">
+                                                <i class="fa fa-info-circle me-2"></i>
+                                                <strong>Note:</strong> If you don't fill in the Lead Button Label, Thank You Message, or Mailing List Name fields, default values will be automatically assigned to ensure your lead collection form works properly.
+                                            </div>
+                                            <div class="row ms-4" id="lead_extra_fields" style="display: none;">
+                                                <div class="form-group col-md-6 mb-3">
+                                                    <label class="form-label fw-bold">Lead Button Label</label>
+                                                    <input type="text" name="lead_button_label" class="form-control" placeholder="Get In Touch"/>
+                                                    <small class="form-text text-muted">Text for the button that opens the lead form</small>
+                                                </div>
+                                                <div class="form-group col-md-6 mb-3">
+                                                    <label class="form-label fw-bold">Thank You Message</label>
+                                                    <input type="text" name="form_thank_you_message" class="form-control" placeholder="Thank you! I'll be in touch soon."/>
+                                                    <small class="form-text text-muted">Message shown after someone submits the form</small>
+                                                </div>
+                                                <div class="form-group col-md-12 mb-3">
+                                                    <label class="form-label fw-bold">Mailing List Name <span class="text-danger">*</span></label>
+                                                    <input type="text" name="mailing_list_name" id="mailing_list_name_input" class="form-control" data-required-when-enabled="1" placeholder="General"/>
+                                                    <small class="form-text text-muted"><i class="fa fa-info-circle"></i> We use this list to automatically add leads captured from your Card. You can manage additional lists later from your dashboard.</small>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Notify on New Lead -->
+                                        <div class="mb-4 p-3 border rounded">
+                                            <div class="form-check">
+                                                <input type="checkbox" name="notify_on_new_lead" class="form-check-input" id="notify_on_new_lead_yes" value="yes"/>
+                                                <label for="notify_on_new_lead_yes" class="form-check-label fw-bold">Notify on New Lead</label>
+                                            </div>
+                                            <p class="text-muted small ms-4">Send an email notification when a new lead is submitted through the form</p>
+                                        </div>
+
+                                        <!-- Send Intro Email Automatically -->
+                                        <div class="mb-4 p-3 border rounded">
+                                            <div class="form-check">
+                                                <input type="checkbox" name="intro_email_enabled" class="form-check-input" id="intro_email_enabled_yes" value="yes"/>
+                                                <label for="intro_email_enabled_yes" class="form-check-label fw-bold">Send Intro Email Automatically</label>
+                                            </div>
+                                            <p class="text-muted small ms-4">Automatically send an introduction email to new leads</p>
+                                        </div>
+
+                                        <!-- Instant Lead Back -->
+                                        <div class="mb-4 p-3 border rounded">
+                                            <div class="form-check mb-3">
+                                                <input type="checkbox" name="enable_instant_leadback" class="form-check-input" id="enable_instant_leadback_yes" value="yes" onchange="toggleInstantLeadbackSettings()"/>
+                                                <label for="enable_instant_leadback_yes" class="form-check-label fw-bold">Instant Lead Back</label>
+                                            </div>
+                                            <p class="text-muted small ms-4 mb-3">Automatically send email and messaging links to new contacts</p>
+                                            
+                                            <!-- Enable Automated Email - Only visible when Instant Lead Back is enabled -->
+                                            <div class="ms-4 mb-3" id="leadback_email_container" style="display: none;">
+                                                <div class="form-check">
+                                                    <input type="checkbox" name="leadback_send_email" class="form-check-input" id="leadback_send_email_yes" value="yes"/>
+                                                    <label for="leadback_send_email_yes" class="form-check-label fw-bold">Enable Automated Email</label>
+                                                </div>
+                                                <p class="text-muted small ms-4">Automatically send an email to new leads using your email marketing system</p>
+                                            </div>
+
+                                            <!-- Enable Click to Chat - Only visible when Instant Lead Back is enabled -->
+                                            <div class="ms-4 mb-3" id="leadback_messaging_container" style="display: none;">
+                                                <div class="form-check mb-2">
+                                                    <input type="checkbox" name="leadback_enable_messaging" class="form-check-input" id="leadback_enable_messaging_yes" value="yes" onchange="toggleMessagingChannels()"/>
+                                                    <label for="leadback_enable_messaging_yes" class="form-check-label fw-bold">Enable Click to Chat</label>
+                                                </div>
+                                                <p class="text-muted small ms-4 mb-2">Generate click-to-chat links for messaging platforms (WhatsApp, Viber, Telegram)</p>
+                                                <div id="messaging_channels_container" style="display: none; margin-left: 2rem;">
+                                                    <label class="form-label fw-bold small">Select Messaging Channels <span class="text-danger">*</span></label>
+                                                    <div class="form-check">
+                                                        <input type="checkbox" name="leadback_channels[]" class="form-check-input" id="channel_whatsapp" value="whatsapp"/>
+                                                        <label for="channel_whatsapp" class="form-check-label">WhatsApp</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input type="checkbox" name="leadback_channels[]" class="form-check-input" id="channel_viber" value="viber"/>
+                                                        <label for="channel_viber" class="form-check-label">Viber</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input type="checkbox" name="leadback_channels[]" class="form-check-input" id="channel_telegram" value="telegram"/>
+                                                        <label for="channel_telegram" class="form-check-label">Telegram</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Show Reviews Section -->
+                                        <div class="mb-4 p-3 border rounded">
+                                            <div class="form-check mb-3">
+                                                <input type="checkbox" name="show_reviews" class="form-check-input" id="show_reviews_yes" value="yes"/>
+                                                <label for="show_reviews_yes" class="form-check-label fw-bold">Show Reviews Section</label>
+                                            </div>
+                                            <p class="text-muted small ms-4">Display the reviews section on your Card website</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            
+                            <!-- Submit Button -->
+                            <div class="text-center mb-5">
+                                <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" style="padding: 1rem 3rem; font-size: 1.2rem;">
+                                    <span id="submitText">Start Onboarding</span>
+                                    <span id="submitLoading" style="display: none;">
+                                        <i class="fa fa-spinner fa-spin"></i> Processing...
+                                    </span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Phone Preview Column (Right Side) -->
+                    <div class="col-lg-4 d-none d-lg-block" id="preview-column" style="position: sticky; top: 20px; height: fit-content;">
+                        <div class="phone-preview-container" style="position: relative; max-width: 320px; margin: 0 auto;">
+                            <!-- Phone Frame -->
+                            <div class="phone-frame" style="background: #1a1a1a; border-radius: 40px; padding: 20px 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                                <!-- Phone Screen -->
+                                <div class="phone-screen" style="background: white; border-radius: 30px; overflow: hidden; height: 600px; position: relative;">
+                                    <!-- Status Bar -->
+                                    <div style="background: #1a1a1a; color: white; padding: 8px 15px; font-size: 11px; display: flex; justify-content: space-between; align-items: center;">
+                                        <span>9:41</span>
+                                        <div style="display: flex; gap: 4px;">
+                                            <span style="width: 18px; height: 10px; border: 1px solid white; border-radius: 2px;"></span>
+                                            <span style="width: 4px; height: 4px; background: white; border-radius: 50%;"></span>
+                                        </div>
+                                    </div>
+                                    <!-- Preview Content -->
+                                    <div id="bulk-preview-content" style="height: calc(100% - 40px); overflow: auto; background: white; position: relative;">
+                                        <iframe id="bulk-preview-iframe" 
+                                                src="about:blank"
+                                                style="width: 100%; height: 100%; border: none; display: block; min-height: 100%;"
+                                                frameborder="0"
+                                                scrolling="auto"
+                                                allowfullscreen="allowfullscreen"
+                                                sandbox="allow-same-origin allow-scripts allow-forms allow-popups">
+                                        </iframe>
+                                        <!-- Loading indicator -->
+                                        <div id="bulk-preview-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #999; z-index: 10;">
+                                            <i class="fa fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i>
+                                            <p style="font-size: 12px; margin: 0;">Loading preview...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="text-align: center; margin-top: 15px; color: #6b7280; font-size: 0.875rem;">
+                                <i class="fa fa-info-circle"></i> Live preview of how Cards will look
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <style>
+                .form-section {
+                    display: block;
+                }
+                .card {
+                    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+                    border: 1px solid rgba(0, 0, 0, 0.125);
+                }
+                .card-header {
+                    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+                }
+                .form-control:focus {
+                    border-color: #007bff;
+                    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+                }
+                .btn-lg {
+                    padding: 0.75rem 2rem;
+                    font-size: 1.1rem;
+                }
+            </style>
+            
+            <script>
+                <![CDATA[
+                function showToast(message, type = 'success') {
+                    // Create toast container if it doesn't exist
+                    let container = document.getElementById('toastContainer');
+                    if (!container) {
+                        container = document.createElement('div');
+                        container.id = 'toastContainer';
+                        container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999;';
+                        document.body.appendChild(container);
+                    }
+                    
+                    const toast = document.createElement('div');
+                    toast.className = 'toast show';
+                    toast.setAttribute('role', 'alert');
+                    toast.setAttribute('aria-live', 'assertive');
+                    toast.setAttribute('aria-atomic', 'true');
+                    toast.style.cssText = 'min-width: 300px; max-width: 500px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 8px; margin-bottom: 10px; animation: slideInRight 0.3s ease-out;';
+                    
+                    const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-info';
+                    const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
+                    
+                    toast.innerHTML = `
+                        <div class="toast-header ${bgClass} text-white" style="font-weight: 600; border-bottom: 1px solid rgba(0,0,0,0.1);">
+                            <i class="fa ${icon} me-2"></i>
+                            <strong class="me-auto">${type === 'success' ? 'Success' : type === 'error' ? 'Error' : 'Info'}</strong>
+                            <button type="button" class="btn-close btn-close-white" onclick="this.closest('.toast').remove()"></button>
+                        </div>
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                    `;
+                    
+                    container.appendChild(toast);
+                    
+                    // Auto remove after 5 seconds
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            toast.style.animation = 'slideInRight 0.3s ease-out reverse';
+                            setTimeout(() => toast.remove(), 300);
+                        }
+                    }, 5000);
+                }
+                
+                function toggleInputMethod() {
+                    const fileMethod = document.querySelector('input[name="input_method"][value="file"]').checked;
+                    document.getElementById('fileUploadSection').style.display = fileMethod ? 'block' : 'none';
+                    document.getElementById('manualEntrySection').style.display = fileMethod ? 'none' : 'block';
+                    
+                    // Remove required from hidden fields
+                    if (fileMethod) {
+                        document.querySelectorAll('#manualEntrySection input').forEach(function(input) {
+                            input.removeAttribute('required');
+                        });
+                    } else {
+                        document.querySelectorAll('#fileUploadSection input').forEach(function(input) {
+                            input.removeAttribute('required');
+                        });
+                    }
+                }
+                
+                function toggleLeadFormSettings() {
+                    const showForm = document.getElementById('show_form_yes').checked;
+                    const leadExtraFields = document.getElementById('lead_extra_fields');
+                    const leadDefaultsAlert = document.getElementById('lead_form_defaults_alert');
+                    
+                    if (showForm) {
+                        leadExtraFields.style.display = 'block';
+                        leadDefaultsAlert.style.display = 'block';
+                    } else {
+                        leadExtraFields.style.display = 'none';
+                        leadDefaultsAlert.style.display = 'none';
+                    }
+                }
+                
+                function toggleInstantLeadbackSettings() {
+                    const enableLeadback = document.getElementById('enable_instant_leadback_yes').checked;
+                    const emailContainer = document.getElementById('leadback_email_container');
+                    const messagingContainer = document.getElementById('leadback_messaging_container');
+                    
+                    if (enableLeadback) {
+                        emailContainer.style.display = 'block';
+                        messagingContainer.style.display = 'block';
+                    } else {
+                        emailContainer.style.display = 'none';
+                        messagingContainer.style.display = 'none';
+                        document.getElementById('leadback_enable_messaging_yes').checked = false;
+                        toggleMessagingChannels();
+                    }
+                }
+                
+                function toggleMessagingChannels() {
+                    const enableMessaging = document.getElementById('leadback_enable_messaging_yes').checked;
+                    const channelsContainer = document.getElementById('messaging_channels_container');
+                    
+                    if (enableMessaging) {
+                        channelsContainer.style.display = 'block';
+                    } else {
+                        channelsContainer.style.display = 'none';
+                        // Uncheck all channels
+                        document.querySelectorAll('input[name="leadback_channels[]"]').forEach(cb => cb.checked = false);
+                    }
+                }
+                
+                // Template selection handler
+                document.addEventListener('DOMContentLoaded', function() {
+                    const templateOptions = document.querySelectorAll('.template-option');
+                    templateOptions.forEach(option => {
+                        option.addEventListener('click', function() {
+                            // Remove active border from all options
+                            templateOptions.forEach(opt => {
+                                opt.style.border = '2px solid #e0e0e0';
+                            });
+                            // Add active border to selected option
+                            this.style.border = '2px solid #007bff';
+                            // Update hidden input
+                            const template = this.getAttribute('data-template');
+                            const hiddenInput = document.getElementById('selected_template');
+                            if (hiddenInput) {
+                                hiddenInput.value = template;
+                                // Update preview when template changes
+                                updateBulkPreview();
+                            }
+                        });
+                    });
+                });
+                
+                // QR Code Preview function - shows static dummy QR code with logo overlay
+                function updateQRPreview() {
+                    const previewContainer = document.getElementById('qr_code_preview_container');
+                    const previewPlaceholder = document.getElementById('qr_code_preview_placeholder');
+                    const qrDummy = document.getElementById('qr_code_dummy');
+                    const qrLogoOverlayContainer = document.getElementById('qr_logo_overlay_container');
+                    const qrLogoImage = document.getElementById('qr_logo_image');
+                    const fileInput = document.getElementById('qr_logo_input');
+                    
+                    if (!previewContainer || !previewPlaceholder || !qrDummy) {
+                        console.warn('QR code preview elements not found');
+                        return;
+                    }
+                    
+                    // Always show the dummy QR code
+                    previewPlaceholder.style.display = 'block';
+                    if (qrDummy) {
+                        qrDummy.style.display = 'block';
+                    }
+                    
+                    // Check if logo file is uploaded
+                    if (fileInput && fileInput.files && fileInput.files[0]) {
+                        const file = fileInput.files[0];
+                        const reader = new FileReader();
+                        
+                        reader.onload = function(e) {
+                            // Show logo overlay container and image
+                            if (qrLogoOverlayContainer) {
+                                qrLogoOverlayContainer.style.display = 'flex';
+                            }
+                            if (qrLogoImage) {
+                                qrLogoImage.src = e.target.result;
+                                qrLogoImage.style.display = 'block';
+                            }
+                        };
+                        
+                        reader.onerror = function() {
+                            console.error('Error reading logo file');
+                            // Hide logo if error
+                            if (qrLogoOverlayContainer) {
+                                qrLogoOverlayContainer.style.display = 'none';
+                            }
+                            if (qrLogoImage) {
+                                qrLogoImage.style.display = 'none';
+                            }
+                        };
+                        
+                        reader.readAsDataURL(file);
+                    } else {
+                        // No logo uploaded, hide logo overlay
+                        if (qrLogoOverlayContainer) {
+                            qrLogoOverlayContainer.style.display = 'none';
+                        }
+                        if (qrLogoImage) {
+                            qrLogoImage.style.display = 'none';
+                        }
+                    }
+                }
+                
+                function updateSeatCount() {
+                    const fileMethod = document.querySelector('input[name="input_method"][value="file"]').checked;
+                    let repCount = 0;
+                    
+                    if (fileMethod) {
+                        const repDataJson = document.getElementById('repDataJson').value;
+                        if (repDataJson) {
+                            try {
+                                const rows = JSON.parse(repDataJson);
+                                repCount = rows.length;
+                            } catch (e) {
+                                repCount = 0;
+                            }
+                        }
+                    } else {
+                        // Manual entry - count rows with email
+                        const repRows = document.querySelectorAll('#manualEntrySection .rep-row');
+                        repRows.forEach(function(row) {
+                            const emailInput = row.querySelector('input[name="rep_email[]"]');
+                            if (emailInput && emailInput.value.trim()) {
+                                repCount++;
+                            }
+                        });
+                    }
+                    
+                    // Update display
+                    document.getElementById('repsCount').textContent = repCount;
+                }
+                
+                function handleFileUpload() {
+                    const fileInput = document.getElementById('fileInput');
+                    const file = fileInput.files[0];
+                    if (!file) return;
+                    
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    fetch('/bulk-onboard/upload', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            showToast('Error: ' + data.error, 'error');
+                            return;
+                        }
+                        
+                        document.getElementById('repDataJson').value = JSON.stringify(data.rows);
+                        
+                        const previewDiv = document.getElementById('filePreview');
+                        previewDiv.style.display = 'block';
+                        
+                        let tableHtml = '<table class="table table-striped"><thead><tr>';
+                        if (data.rows.length > 0) {
+                            Object.keys(data.rows[0]).forEach(key => {
+                                tableHtml += '<th>' + key + '</th>';
+                            });
+                            tableHtml += '</tr></thead><tbody>';
+                            data.rows.slice(0, 5).forEach(row => {
+                                tableHtml += '<tr>';
+                                Object.values(row).forEach(val => {
+                                    tableHtml += '<td>' + (val || '') + '</td>';
+                                });
+                                tableHtml += '</tr>';
+                            });
+                            tableHtml += '</tbody></table>';
+                            tableHtml += '<p><strong>Total rows:</strong> ' + data.total_rows + '</p>';
+                        }
+                        document.getElementById('previewTable').innerHTML = tableHtml;
+                        
+                        // Update seat count after file upload
+                        updateSeatCount();
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('Error uploading file: ' + (error.message || 'Please try again.'), 'error');
+                    });
+                }
+                
+                function addRepRow() {
+                    const repRows = document.getElementById('repRows');
+                    const newRow = document.createElement('div');
+                    newRow.className = 'rep-row mb-3 p-3 border rounded bg-light';
+                    newRow.innerHTML = `
+                        <div class="row">
+                            <div class="form-group col-md-4 mb-3">
+                                <label class="form-label fw-bold">Name <span class="text-danger">*</span></label>
+                                <input type="text" name="rep_name[]" class="form-control" oninput="updateSeatCount()"/>
+                            </div>
+                            <div class="form-group col-md-4 mb-3">
+                                <label class="form-label fw-bold">Email <span class="text-danger">*</span></label>
+                                <input type="email" name="rep_email[]" class="form-control" oninput="updateSeatCount()"/>
+                            </div>
+                            <div class="form-group col-md-3 mb-3">
+                                <label class="form-label fw-bold">Phone</label>
+                                <input type="text" name="rep_phone[]" class="form-control"/>
+                            </div>
+                            <div class="form-group col-md-1 d-flex align-items-end">
+                                <button type="button" class="btn btn-outline-danger btn-sm remove-rep-row" onclick="removeRepRow(this)">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group col-md-4 mb-3">
+                                <label class="form-label fw-bold">Job Title</label>
+                                <input type="text" name="rep_function[]" class="form-control"/>
+                            </div>
+                        </div>
+                    `;
+                    repRows.appendChild(newRow);
+                    
+                    document.querySelectorAll('.remove-rep-row').forEach(btn => {
+                        btn.style.display = 'block';
+                    });
+                    
+                    // Update seat count after adding row
+                    updateSeatCount();
+                }
+                
+                function removeRepRow(btn) {
+                    btn.closest('.rep-row').remove();
+                    // Update seat count after removing row
+                    updateSeatCount();
+                }
+                
+                // Country/State dropdown logic
+                document.addEventListener('DOMContentLoaded', function() {
+                    const countrySelect = document.getElementById('country_select');
+                    const stateSelect = document.getElementById('state_select');
+                    const stateGroup = document.getElementById('state_group');
+                    
+                    if (countrySelect && stateSelect) {
+                        countrySelect.addEventListener('change', function() {
+                            const countryId = this.value;
+                            stateSelect.innerHTML = '<option value="">Select a state</option>';
+                            
+                            if (countryId) {
+                                const allStates = document.querySelectorAll('#state_select option[data-country-id]');
+                                let hasStates = false;
+                                allStates.forEach(option => {
+                                    if (option.getAttribute('data-country-id') === countryId) {
+                                        const newOption = option.cloneNode(true);
+                                        newOption.style.display = 'block';
+                                        stateSelect.appendChild(newOption);
+                                        hasStates = true;
+                                    }
+                                });
+                                stateGroup.style.display = hasStates ? 'block' : 'none';
+                            } else {
+                                stateGroup.style.display = 'none';
+                            }
+                        });
+                    }
+                    
+                    // Form submission handler
+                    document.getElementById('bulkOnboardForm').addEventListener('submit', function(e) {
+                        const fileMethod = document.querySelector('input[name="input_method"][value="file"]').checked;
+                        
+                        // Remove required from hidden fields
+                        if (fileMethod) {
+                            document.querySelectorAll('#manualEntrySection input').forEach(function(input) {
+                                input.removeAttribute('required');
+                            });
+                            const repDataJson = document.getElementById('repDataJson').value;
+                            if (!repDataJson || repDataJson === '[]') {
+                                e.preventDefault();
+                                showToast('Please upload a file with user data first.', 'error');
+                                return false;
+                            }
+                        } else {
+                            document.querySelectorAll('#fileUploadSection input').forEach(function(input) {
+                                input.removeAttribute('required');
+                            });
+                            const repRows = document.querySelectorAll('#manualEntrySection .rep-row');
+                            let hasCompleteRow = false;
+                            repRows.forEach(function(row) {
+                                const nameInput = row.querySelector('input[name="rep_name[]"]');
+                                const emailInput = row.querySelector('input[name="rep_email[]"]');
+                                if (nameInput && emailInput && nameInput.value.trim() && emailInput.value.trim()) {
+                                    nameInput.setAttribute('required', 'required');
+                                    emailInput.setAttribute('required', 'required');
+                                    hasCompleteRow = true;
+                                }
+                            });
+                            if (!hasCompleteRow) {
+                                e.preventDefault();
+                                showToast('Please add at least one user with both name and email.', 'error');
+                                return false;
+                            }
+                        }
+                        
+                        // Show loading state
+                        document.getElementById('submitBtn').disabled = true;
+                        document.getElementById('submitText').style.display = 'none';
+                        document.getElementById('submitLoading').style.display = 'inline';
+                    });
+                    
+                    toggleInputMethod();
+                    updateSeatCount();
+                    
+                    // Initialize preview and QR code preview
+                    updateBulkPreview();
+                    // Initialize QR code preview after a short delay to ensure DOM is ready
+                    setTimeout(() => {
+                        updateQRPreview();
+                    }, 100);
+                });
+                
+                // Preview update function for bulk onboarding
+                let previewUpdateTimeout;
+                function updateBulkPreview() {
+                    // Debounce preview updates
+                    clearTimeout(previewUpdateTimeout);
+                    previewUpdateTimeout = setTimeout(() => {
+                        _executeBulkPreviewUpdate();
+                    }, 500);
+                }
+                
+                function _executeBulkPreviewUpdate() {
+                    const previewIframe = document.getElementById('bulk-preview-iframe');
+                    const loadingIndicator = document.getElementById('bulk-preview-loading');
+                    
+                    if (!previewIframe || !loadingIndicator) {
+                        return;
+                    }
+                    
+                    // Show loading indicator
+                    loadingIndicator.style.display = 'block';
+                    
+                    // Collect form data
+                    const formData = {
+                        // Sample rep data for preview
+                        name: 'John Doe',
+                        email: 'john.doe@example.com',
+                        function: 'Sales Representative',
+                        phone: '+1 (555) 123-4567',
+                        // Company defaults from form
+                        company_name: document.querySelector('input[name="company_name"]')?.value || 'Your Company',
+                        secondary_color: document.querySelector('input[name="brand_color"]')?.value || '#4C75A3',
+                        website_template: (() => {
+                            const hiddenInput = document.getElementById('selected_template');
+                            if (hiddenInput && hiddenInput.value) {
+                                return hiddenInput.value;
+                            }
+                            const select = document.querySelector('select[name="website_template"]');
+                            if (select && select.value) {
+                                return select.value;
+                            }
+                            const checked = document.querySelector('input[name="website_template"]:checked');
+                            if (checked && checked.value) {
+                                return checked.value;
+                            }
+                            return 'modern';
+                        })(),
+                        about: document.querySelector('textarea[name="default_about"]')?.value || '',
+                        // Address
+                        street: document.querySelector('input[name="default_street"]')?.value || '',
+                        street2: document.querySelector('input[name="default_street2"]')?.value || '',
+                        city: document.querySelector('input[name="default_city"]')?.value || '',
+                        zip: document.querySelector('input[name="default_zip"]')?.value || '',
+                        country_id: document.querySelector('select[name="country_id"]')?.value || '',
+                        state_id: document.querySelector('select[name="state_id"]')?.value || '',
+                        // Social links
+                        linkedin_url_company: document.querySelector('input[name="linkedin_url_company"]')?.value || '',
+                        facebook_url_company: document.querySelector('input[name="facebook_url_company"]')?.value || '',
+                        twitter_url_company: document.querySelector('input[name="twitter_url_company"]')?.value || '',
+                        instagram_url_company: document.querySelector('input[name="instagram_url_company"]')?.value || '',
+                        // Features
+                        show_reviews: document.querySelector('input[name="show_reviews"]')?.checked || false,
+                        show_form: document.querySelector('input[name="show_form"]')?.checked || 
+                                  document.querySelector('input[name="show_form_yes"]')?.checked || false,
+                        mailing_list_name: document.querySelector('input[name="mailing_list_name"]')?.value || 'Leads',
+                        lead_button_label: document.querySelector('input[name="lead_button_label"]')?.value || 'Get In Touch',
+                        form_thank_you_message: document.querySelector('textarea[name="form_thank_you_message"]')?.value || '',
+                    };
+                    
+                    // Handle image files (convert to base64)
+                    const logoFile = document.querySelector('input[name="default_logo"]')?.files?.[0];
+                    const bannerFile = document.querySelector('input[name="banner_image"]')?.files?.[0];
+                    const qrLogoFile = document.querySelector('input[name="qr_logo"]')?.files?.[0];
+                    
+                    const processFiles = () => {
+                        // Call preview endpoint
+                        fetch('/vcard/preview', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(formData)
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('HTTP error! status: ' + response.status);
+                            }
+                            return response.json();
+                        })
+                        .then(response => {
+                            let result = response;
+                            if (response.result) {
+                                result = response.result;
+                            }
+                            
+                            if (result && (result.success === true || result.success === 'true')) {
+                                setTimeout(() => {
+                                    const previewUrl = result.preview_url;
+                                    
+                                    let loadTimeout = setTimeout(() => {
+                                        if (loadingIndicator) {
+                                            loadingIndicator.innerHTML = '<i class="fa fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><p style="font-size: 12px; margin: 0;">Loading preview...</p>';
+                                        }
+                                    }, 3000);
+                                    
+                                    previewIframe.onerror = () => {
+                                        clearTimeout(loadTimeout);
+                                        if (loadingIndicator) {
+                                            loadingIndicator.innerHTML = '<i class="fa fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 10px; color: #dc3545;"></i><p style="font-size: 12px; margin: 0; color: #dc3545;">Failed to load preview</p>';
+                                        }
+                                    };
+                                    
+                                    previewIframe.onload = () => {
+                                        clearTimeout(loadTimeout);
+                                        if (loadingIndicator) {
+                                            loadingIndicator.style.display = 'none';
+                                        }
+                                    };
+                                    
+                                    const separator = previewUrl.includes('?') ? '&' : '?';
+                                    previewIframe.src = previewUrl + separator + 't=' + Date.now();
+                                }, 1000);
+                            } else {
+                                if (loadingIndicator) {
+                                    loadingIndicator.innerHTML = '<i class="fa fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 10px; color: #dc3545;"></i><p style="font-size: 12px; margin: 0; color: #dc3545;">Preview unavailable</p>';
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Preview error:', error);
+                            if (loadingIndicator) {
+                                loadingIndicator.innerHTML = '<i class="fa fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 10px; color: #dc3545;"></i><p style="font-size: 12px; margin: 0; color: #dc3545;">Preview error</p>';
+                            }
+                        });
+                    };
+                    
+                    // Process files if any
+                    let filesToProcess = 0;
+                    if (logoFile) {
+                        filesToProcess++;
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            formData.image_base64 = e.target.result.split(',')[1];
+                            filesToProcess--;
+                            if (filesToProcess === 0) processFiles();
+                        };
+                        reader.readAsDataURL(logoFile);
+                    }
+                    if (bannerFile) {
+                        filesToProcess++;
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            formData.banner_image_base64 = e.target.result.split(',')[1];
+                            filesToProcess--;
+                            if (filesToProcess === 0) processFiles();
+                        };
+                        reader.readAsDataURL(bannerFile);
+                    }
+                    if (qrLogoFile) {
+                        filesToProcess++;
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            formData.qr_logo_base64 = e.target.result.split(',')[1];
+                            filesToProcess--;
+                            if (filesToProcess === 0) processFiles();
+                        };
+                        reader.readAsDataURL(qrLogoFile);
+                    }
+                    
+                    if (filesToProcess === 0) {
+                        processFiles();
+                    }
+                }
+                
+                // Add event listeners to form fields to trigger preview updates
+                document.addEventListener('DOMContentLoaded', function() {
+                    const previewFields = [
+                        'input[name="company_name"]',
+                        'input[name="brand_color"]',
+                        'select[name="website_template"]',
+                        'input[name="selected_template"]',
+                        'input[name="website_template"]',
+                        'textarea[name="default_about"]',
+                        'input[name="default_street"]',
+                        'input[name="default_city"]',
+                        'input[name="default_zip"]',
+                        'select[name="country_id"]',
+                        'select[name="state_id"]',
+                        'input[name="linkedin_url_company"]',
+                        'input[name="facebook_url_company"]',
+                        'input[name="twitter_url_company"]',
+                        'input[name="instagram_url_company"]',
+                        'input[name="show_reviews"]',
+                        'input[name="show_form"]',
+                        'input[name="show_form_yes"]',
+                        'input[name="mailing_list_name"]',
+                        'input[name="lead_button_label"]',
+                        'textarea[name="form_thank_you_message"]',
+                        'input[name="default_logo"]',
+                        'input[name="banner_image"]',
+                        'input[name="qr_logo"]'
+                    ];
+                    
+                    previewFields.forEach(selector => {
+                        const elements = document.querySelectorAll(selector);
+                        elements.forEach(element => {
+                            element.addEventListener('input', () => {
+                                updateBulkPreview();
+                                if (selector === 'input[name="qr_logo"]') {
+                                    updateQRPreview();
+                                }
+                            });
+                            element.addEventListener('change', () => {
+                                updateBulkPreview();
+                                if (selector === 'input[name="qr_logo"]') {
+                                    updateQRPreview();
+                                }
+                            });
+                        });
+                    });
+                    
+                    // Add event listeners for template selection cards
+                    const templateOptions = document.querySelectorAll('.template-option');
+                    templateOptions.forEach(option => {
+                        option.addEventListener('click', function() {
+                            // Preview will update when selected_template hidden input is updated
+                            setTimeout(() => {
+                                updateBulkPreview();
+                            }, 100);
+                        });
+                    });
+                    
+                    // Also listen for changes to the hidden template input
+                    const hiddenTemplateInput = document.getElementById('selected_template');
+                    if (hiddenTemplateInput) {
+                        // Use MutationObserver to watch for value changes
+                        const observer = new MutationObserver(() => {
+                            updateBulkPreview();
+                        });
+                        observer.observe(hiddenTemplateInput, { attributes: true, attributeFilter: ['value'] });
+                        
+                        // Also listen for input events (in case it's programmatically changed)
+                        hiddenTemplateInput.addEventListener('input', updateBulkPreview);
+                        hiddenTemplateInput.addEventListener('change', updateBulkPreview);
+                    }
+                });
+                ]]>
+            </script>
+        </t>
+    </template>
+    
+    <!-- Bulk Onboarding Index (List of Batches) -->
+    <template id="bulk_onboarding_index" name="Bulk Onboarding">
+        <t t-call="website.layout">
+            <style>
+                .bulk-onboarding-wrapper {
+                    max-width: 1200px;
+                    margin: 40px auto;
+                    padding: 20px;
+                }
+                .bulk-onboarding-header h1 {
+                    color: #1f2937;
+                    font-size: 2rem;
+                    font-weight: 700;
+                    margin-bottom: 10px;
+                }
+                .bulk-onboarding-btn-primary {
+                    background: #4C75A3;
+                    color: white;
+                    font-weight: 700;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 12px rgba(76, 117, 163, 0.3);
+                    transition: all 0.3s ease;
+                    border: none;
+                    padding: 10px 24px;
+                    text-decoration: none;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+                .bulk-onboarding-btn-primary:hover {
+                    background: #3d5f87;
+                    color: white;
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 16px rgba(76, 117, 163, 0.4);
+                }
+                .bulk-onboarding-stats-card {
+                    border: none;
+                    border-radius: 12px;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                    transition: all 0.3s ease;
+                    background: white;
+                }
+                .bulk-onboarding-stats-card:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+                }
+                .bulk-onboarding-stats-card .card-body {
+                    padding: 24px;
+                }
+                .bulk-onboarding-stats-card h3 {
+                    font-size: 2.5rem;
+                    font-weight: 700;
+                    color: #4C75A3;
+                    margin-bottom: 8px;
+                }
+                .bulk-onboarding-stats-card p {
+                    color: #6b7280;
+                    font-size: 0.95rem;
+                    font-weight: 500;
+                    margin: 0;
+                }
+                .bulk-onboarding-table-card {
+                    border: none;
+                    border-radius: 12px;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                    overflow: hidden;
+                }
+                .bulk-onboarding-table-card .card-header {
+                    background: #f8f9fa;
+                    border-bottom: 2px solid #e5e7eb;
+                    padding: 20px 24px;
+                }
+                .bulk-onboarding-table-card .card-header h3 {
+                    font-size: 1.5rem;
+                    font-weight: 600;
+                    color: #111827;
+                    margin: 0;
+                }
+                .bulk-onboarding-table-card .card-body {
+                    padding: 0;
+                }
+                .bulk-onboarding-table {
+                    margin: 0;
+                }
+                .bulk-onboarding-table thead {
+                    background: #f8f9fa;
+                }
+                .bulk-onboarding-table thead th {
+                    font-weight: 600;
+                    color: #374151;
+                    text-transform: uppercase;
+                    font-size: 0.75rem;
+                    letter-spacing: 0.5px;
+                    padding: 16px 24px;
+                    border-bottom: 2px solid #e5e7eb;
+                }
+                .bulk-onboarding-table tbody tr {
+                    transition: all 0.2s ease;
+                }
+                .bulk-onboarding-table tbody tr:hover {
+                    background: #f9fafb;
+                }
+                .bulk-onboarding-table tbody td {
+                    padding: 16px 24px;
+                    vertical-align: middle;
+                    color: #374151;
+                }
+                .bulk-onboarding-table tbody td strong {
+                    color: #111827;
+                    font-weight: 600;
+                }
+                .status-badge {
+                    display: inline-block;
+                    padding: 6px 14px;
+                    border-radius: 20px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    border: none;
+                }
+                .status-badge.completed {
+                    background: #d1fae5;
+                    color: #065f46;
+                }
+                .status-badge.processing {
+                    background: #dbeafe;
+                    color: #1e40af;
+                }
+                .status-badge.pending {
+                    background: #fef3c7;
+                    color: #92400e;
+                }
+                .status-badge.failed {
+                    background: #fee2e2;
+                    color: #991b1b;
+                }
+                .bulk-onboarding-view-btn {
+                    background: #4C75A3;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 6px 16px;
+                    font-size: 0.875rem;
+                    font-weight: 600;
+                    text-decoration: none;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    transition: all 0.2s ease;
+                }
+                .bulk-onboarding-view-btn:hover {
+                    background: #3d5f87;
+                    color: white;
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 8px rgba(76, 117, 163, 0.3);
+                }
+                .bulk-onboarding-date {
+                    color: #6b7280;
+                    font-size: 0.875rem;
+                }
+            </style>
+            <div id="wrap" class="oe_structure">
+                <div class="bulk-onboarding-wrapper">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="bulk-onboarding-header">
+                            <h1>Bulk Onboarding</h1>
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb mb-0">
+                                    <li class="breadcrumb-item"><a href="/web">Dashboard</a></li>
+                                    <li class="breadcrumb-item active" aria-current="page">Bulk Onboarding</li>
+                                </ol>
+                            </nav>
+                        </div>
+                        <div>
+                            <a href="/bulk-onboard/new" class="bulk-onboarding-btn-primary">
+                                <i class="fa fa-plus"></i> New Batch
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12 mb-3">
+                            <div class="card bulk-onboarding-stats-card text-center">
+                                <div class="card-body">
+                                    <h3><t t-esc="len(batches)"/></h3>
+                                    <p>Total Batches</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card bulk-onboarding-table-card">
+                        <div class="card-header">
+                            <h3 class="mb-0">Batches</h3>
+                        </div>
+                        <div class="card-body">
+                            <t t-if="not batches">
+                                <div class="text-center py-5">
+                                    <i class="fa fa-users fa-3x text-muted mb-3"></i>
+                                    <h4>No batches yet</h4>
+                                    <p class="text-muted">Create your first batch to start onboarding users</p>
+                                    <a href="/bulk-onboard/new" class="bulk-onboarding-btn-primary">
+                                        <i class="fa fa-plus"></i> Create First Batch
+                                    </a>
+                                </div>
+                            </t>
+                            <t t-if="batches">
+                                <div class="table-responsive">
+                                    <table class="table bulk-onboarding-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Batch Name</th>
+                                                <th>Status</th>
+                                                <th>Total Users</th>
+                                                <th>Invited</th>
+                                                <th>Activated</th>
+                                                <th>Completed</th>
+                                                <th>Created</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <t t-foreach="batches" t-as="batch">
+                                                <tr>
+                                                    <td><strong><t t-esc="batch.name"/></strong></td>
+                                                    <td>
+                                                        <span class="status-badge" 
+                                                              t-att-class="'completed' if batch.status == 'completed' else ('processing' if batch.status == 'processing' else ('pending' if batch.status == 'pending' else 'failed'))">
+                                                            <t t-esc="batch.status"/>
+                                                        </span>
+                                                    </td>
+                                                    <td><t t-esc="batch.total_reps"/></td>
+                                                    <td><t t-esc="batch.invited_reps"/></td>
+                                                    <td><t t-esc="batch.activated_reps"/></td>
+                                                    <td><t t-esc="batch.completed_reps"/></td>
+                                                    <td>
+                                                        <span class="bulk-onboarding-date">
+                                                            <t t-esc="batch.create_date.strftime('%m/%d/%Y') if batch.create_date else ''"/>
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <a t-attf-href="/bulk-onboard/batch/#{batch.id}" class="bulk-onboarding-view-btn">
+                                                            <i class="fa fa-eye"></i> View
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            </t>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+    
+    <!-- Batch View Template -->
+    <template id="bulk_onboarding_batch_view" name="Bulk Onboarding Batch">
+        <t t-call="website.layout">
+            <div id="wrap" class="oe_structure">
+                <div class="container" style="max-width: 1200px; margin: 40px auto; padding: 20px;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h1 style="color: #333; margin-bottom: 10px;">Batch: <t t-esc="batch.name"/></h1>
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb mb-0">
+                                    <li class="breadcrumb-item"><a href="/web">Dashboard</a></li>
+                                    <li class="breadcrumb-item"><a href="/bulk-onboard">Bulk Onboarding</a></li>
+                                    <li class="breadcrumb-item active" aria-current="page">Batch Details</li>
+                                </ol>
+                            </nav>
+                        </div>
+                        <div>
+                            <a href="/bulk-onboard/new" class="btn btn-sm me-2" style="background: #4C75A3; color: white; font-weight: 700; border-radius: 12px; box-shadow: 0 4px 12px rgba(76, 117, 163, 0.3); transition: all 0.3s ease; border: none; padding: 10px 24px; text-decoration: none;">
+                                New Batch
+                            </a>
+                            <a href="/bulk-onboard" class="btn btn-sm me-2" style="background: #4C75A3; color: white; font-weight: 700; border-radius: 12px; box-shadow: 0 4px 12px rgba(76, 117, 163, 0.3); transition: all 0.3s ease; border: none; padding: 10px 24px; text-decoration: none;">
+                                All Batches
+                            </a>
+                            <a href="/web" class="btn btn-sm" style="background: #4C75A3; color: white; font-weight: 700; border-radius: 12px; box-shadow: 0 4px 12px rgba(76, 117, 163, 0.3); transition: all 0.3s ease; border: none; padding: 10px 24px; text-decoration: none;">
+                                Dashboard
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Toast Notification Container -->
+                    <div id="toastContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
+                    
+                    <!-- Progress Tracking Section -->
+                    <t t-if="batch.status == 'processing'">
+                        <div class="card shadow-sm mb-4" style="border-left: 4px solid #4C75A3;">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="mb-0" style="color: #333; font-weight: 600;">
+                                        <i class="fa fa-spinner fa-spin me-2" style="color: #4C75A3;"></i>
+                                        Processing Batch...
+                                    </h5>
+                                    <span class="badge bg-primary rounded-pill px-3 py-2" style="font-size: 0.9rem;">
+                                        <t t-esc="batch.progress_current"/>/<t t-esc="batch.progress_total"/> users
+                                    </span>
+                                </div>
+                                <div class="progress" style="height: 30px; border-radius: 15px; background-color: #e9ecef;">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                         role="progressbar" 
+                                         t-att-style="'width: ' + str(batch.progress_percent) + '%; background-color: #4C75A3;'"
+                                         t-att-aria-valuenow="batch.progress_percent"
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                        <span style="line-height: 30px; font-weight: 600; color: white;">
+                                            <t t-esc="int(batch.progress_percent)"/>%
+                                        </span>
+                                    </div>
+                                </div>
+                                <p class="text-muted mt-2 mb-0" style="font-size: 0.85rem;">
+                                    Processing users in the background. This page will auto-refresh every 5 seconds.
+                                </p>
+                            </div>
+                        </div>
+                    </t>
+                    <t t-elif="batch.status == 'completed'">
+                        <div class="card shadow-sm mb-4" style="border-left: 4px solid #28a745;">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0" style="color: #333; font-weight: 600;">
+                                        <i class="fa fa-check-circle me-2" style="color: #28a745;"></i>
+                                        Batch Completed Successfully
+                                    </h5>
+                                    <span class="badge bg-success rounded-pill px-3 py-2" style="font-size: 0.9rem;">
+                                        <t t-esc="batch.progress_total"/>/<t t-esc="batch.progress_total"/> users
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                    <t t-elif="batch.status == 'failed'">
+                        <div class="card shadow-sm mb-4" style="border-left: 4px solid #dc3545;">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0" style="color: #333; font-weight: 600;">
+                                        <i class="fa fa-exclamation-triangle me-2" style="color: #dc3545;"></i>
+                                        Batch Processing Failed
+                                    </h5>
+                                    <span class="badge bg-danger rounded-pill px-3 py-2" style="font-size: 0.9rem;">
+                                        <t t-esc="batch.progress_current"/>/<t t-esc="batch.progress_total"/> users
+                                    </span>
+                                </div>
+                                <p class="text-danger mt-2 mb-0" style="font-size: 0.85rem;">
+                                    An error occurred during processing. Please check the error log or contact support.
+                                </p>
+                            </div>
+                        </div>
+                    </t>
+                    <t t-elif="batch.status == 'partial'">
+                        <div class="card shadow-sm mb-4" style="border-left: 4px solid #ffc107;">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0" style="color: #333; font-weight: 600;">
+                                        <i class="fa fa-exclamation-circle me-2" style="color: #ffc107;"></i>
+                                        Batch Partially Completed
+                                    </h5>
+                                    <span class="badge bg-warning text-dark rounded-pill px-3 py-2" style="font-size: 0.9rem;">
+                                        <t t-esc="batch.completed_reps"/>/<t t-esc="batch.progress_total"/> users
+                                    </span>
+                                </div>
+                                <p class="text-warning mt-2 mb-0" style="font-size: 0.85rem;">
+                                    Some users failed to process. Check the user list below for details.
+                                </p>
+                            </div>
+                        </div>
+                    </t>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card text-center" style="position: relative;">
+                                <div class="card-body">
+                                    <h3><t t-esc="batch.total_reps"/></h3>
+                                    <p>Total Users</p>
+                                    <small class="text-muted" style="font-size: 0.75rem; display: block; margin-top: 5px;" title="Total number of users in this batch">
+                                        Total number of users in this batch
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center" style="position: relative;">
+                                <div class="card-body">
+                                    <h3><t t-esc="batch.invited_reps"/></h3>
+                                    <p>Invited</p>
+                                    <small class="text-muted" style="font-size: 0.75rem; display: block; margin-top: 5px;" title="Number of users who have received their invitation email with magic link">
+                                        Users who received invitation email
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center" style="position: relative;">
+                                <div class="card-body">
+                                    <h3><t t-esc="batch.activated_reps"/></h3>
+                                    <p>Activated</p>
+                                    <small class="text-muted" style="font-size: 0.75rem; display: block; margin-top: 5px;" title="Number of users who clicked their magic link and activated their account">
+                                        Users who activated their account
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center" style="position: relative;">
+                                <div class="card-body">
+                                    <h3><t t-esc="batch.completed_reps"/></h3>
+                                    <p>Completed</p>
+                                    <small class="text-muted" style="font-size: 0.75rem; display: block; margin-top: 5px;" title="Number of users who completed their vCard setup and published it">
+                                        Users who completed Card setup
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card shadow-sm">
+                        <div class="card-header d-flex justify-content-between align-items-center" style="background-color: #f8f9fa; border-bottom: 2px solid #e5e7eb;">
+                            <h3 class="mb-0" style="font-weight: 600; color: #111827;">Users</h3>
+                            <div>
+                                <button class="btn btn-sm me-2" onclick="selectAll()" id="selectAllBtn" style="background: #4C75A3; color: white; font-weight: 700; border-radius: 12px; box-shadow: 0 4px 12px rgba(76, 117, 163, 0.3); transition: all 0.3s ease; border: none; padding: 8px 20px;">
+                                    Select All
+                                </button>
+                                <button class="btn btn-sm me-2" onclick="deselectAll()" id="deselectAllBtn" style="display: none; background: #4C75A3; color: white; font-weight: 700; border-radius: 12px; box-shadow: 0 4px 12px rgba(76, 117, 163, 0.3); transition: all 0.3s ease; border: none; padding: 8px 20px;">
+                                    Deselect All
+                                </button>
+                                <button class="btn btn-sm" onclick="bulkResendInvites()" id="bulkResendBtn" disabled="disabled" style="background: #4C75A3; color: white; font-weight: 700; border-radius: 12px; box-shadow: 0 4px 12px rgba(76, 117, 163, 0.3); transition: all 0.3s ease; border: none; padding: 8px 20px;">
+                                    Resend Selected (<span id="selectedCount">0</span>)
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead style="background-color: #f8f9fa;">
+                                        <tr>
+                                            <th style="width: 40px; padding: 12px;">
+                                                <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)" class="form-check-input"/>
+                                            </th>
+                                            <th style="padding: 12px;">Name</th>
+                                            <th style="padding: 12px;">Email</th>
+                                            <th style="padding: 12px;">Status</th>
+                                            <th style="padding: 12px;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                <tbody>
+                                    <t t-foreach="reps" t-as="rep">
+                                        <tr>
+                                            <td>
+                                                <t t-if="rep.status in ['failed', 'invited', 'activated']">
+                                                    <input type="checkbox" class="rep-checkbox" t-att-value="rep.id" t-att-data-status="rep.status" onchange="updateBulkButton()"/>
+                                                </t>
+                                            </td>
+                                            <td><t t-esc="rep.name"/></td>
+                                            <td><t t-esc="rep.email"/></td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <t t-if="rep.status == 'completed'">
+                                                        <span class="badge bg-success rounded-pill px-3 py-2" style="font-size: 0.85rem; font-weight: 500;" title="Completed: User has finished setting up their Card">
+                                                            <i class="fa fa-check-circle me-1"></i> Completed
+                                                        </span>
+                                                    </t>
+                                                    <t t-elif="rep.status == 'invited'">
+                                                        <span class="badge bg-primary rounded-pill px-3 py-2" style="font-size: 0.85rem; font-weight: 500;" title="Invited: Invitation email sent, waiting for user to click magic link">
+                                                            <i class="fa fa-envelope me-1"></i> Invited
+                                                        </span>
+                                                    </t>
+                                                    <t t-elif="rep.status == 'activated'">
+                                                        <span class="badge bg-warning text-dark rounded-pill px-3 py-2" style="font-size: 0.85rem; font-weight: 500;" title="Activated: User clicked magic link and activated account, but has not completed Card setup yet">
+                                                            <i class="fa fa-clock me-1"></i> Activated
+                                                        </span>
+                                                    </t>
+                                                    <t t-elif="rep.status == 'failed'">
+                                                        <span class="badge bg-danger rounded-pill px-3 py-2" style="font-size: 0.85rem; font-weight: 500;" title="Failed: Error occurred during account creation or invitation sending">
+                                                            <i class="fa fa-exclamation-triangle me-1"></i> Failed
+                                                        </span>
+                                                    </t>
+                                                    <t t-else="">
+                                                        <span class="badge bg-secondary rounded-pill px-3 py-2" style="font-size: 0.85rem; font-weight: 500;" title="Pending: User not yet processed">
+                                                            <i class="fa fa-hourglass-half me-1"></i> Pending
+                                                        </span>
+                                                    </t>
+                                                </div>
+                                                <t t-if="rep.error_message">
+                                                    <div class="mt-2">
+                                                        <small class="text-danger d-flex align-items-start" style="font-size: 0.75rem;" t-att-title="rep.error_message">
+                                                            <i class="fa fa-exclamation-circle me-1 mt-1"></i>
+                                                            <span><t t-esc="rep.error_message[:80]"/><t t-if="len(rep.error_message) > 80">...</t></span>
+                                                        </small>
+                                                    </div>
+                                                </t>
+                                            </td>
+                                            <td>
+                                                <t t-if="rep.status in ['failed', 'invited']">
+                                                    <button class="btn btn-sm px-4 py-2" 
+                                                            t-att-onclick="'resendInvite(' + str(rep.id) + ')'" 
+                                                            t-att-title="'Retry creating account and sending invitation' if rep.status == 'failed' else 'Resend invitation email with magic link'"
+                                                            style="background: #4C75A3; color: white; font-weight: 700; border-radius: 12px; box-shadow: 0 4px 12px rgba(76, 117, 163, 0.3); transition: all 0.3s ease; border: none;">
+                                                        <t t-esc="'Retry' if rep.status == 'failed' else 'Resend'"/>
+                                                    </button>
+                                                </t>
+                                                <t t-if="rep.status == 'activated'">
+                                                    <span class="badge px-3 py-2" style="background: linear-gradient(14deg, rgba(255, 193, 7, 1) 0%, rgba(255, 152, 0, 1) 100%); color: #000; font-weight: 600; border-radius: 8px; box-shadow: 0 2px 4px rgba(255,193,7,0.3);">
+                                                        Waiting for completion
+                                                    </span>
+                                                </t>
+                                                <t t-if="rep.status == 'completed'">
+                                                    <span class="badge px-3 py-2" style="background: linear-gradient(14deg, rgba(40, 167, 69, 1) 0%, rgba(32, 201, 151, 1) 100%); color: #fff; font-weight: 600; border-radius: 8px; box-shadow: 0 2px 4px rgba(40,167,69,0.3);">
+                                                        Done
+                                                    </span>
+                                                </t>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+            
+            <style>
+                .toast {
+                    min-width: 300px;
+                    max-width: 500px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    border-radius: 8px;
+                    margin-bottom: 10px;
+                    animation: slideInRight 0.3s ease-out;
+                }
+                @keyframes slideInRight {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                .toast-header {
+                    font-weight: 600;
+                    border-bottom: 1px solid rgba(0,0,0,0.1);
+                }
+                .table {
+                    font-size: 0.95rem;
+                }
+                .table thead th {
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    font-size: 0.75rem;
+                    letter-spacing: 0.5px;
+                    color: #6b7280;
+                    border-bottom: 2px solid #e5e7eb;
+                    padding: 16px 12px;
+                    background-color: #fafbfc;
+                }
+                .table tbody td {
+                    padding: 20px 12px;
+                    vertical-align: middle;
+                    border-bottom: 1px solid #f0f0f0;
+                }
+                .table tbody tr {
+                    transition: all 0.2s ease;
+                }
+                .table tbody tr:hover {
+                    background-color: #f8f9fa;
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+                }
+                .card {
+                    border: none;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+                    border-radius: 12px;
+                    overflow: hidden;
+                    transition: all 0.3s ease;
+                }
+                .card:hover {
+                    box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+                }
+                .card-header {
+                    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+                    border-bottom: 2px solid #e5e7eb;
+                    padding: 1.25rem 1.5rem;
+                }
+                .btn-primary, button[style*="#4C75A3"] {
+                    background: #4C75A3;
+                    color: white;
+                    border: none;
+                    box-shadow: 0 4px 12px rgba(76, 117, 163, 0.3);
+                }
+                .btn-primary:hover, button[style*="#4C75A3"]:hover {
+                    background: #3a5a7a;
+                    box-shadow: 0 6px 16px rgba(76, 117, 163, 0.5);
+                    transform: translateY(-2px);
+                    color: white;
+                }
+                button[style*="#4C75A3"]:hover, a[style*="#4C75A3"]:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 16px rgba(76, 117, 163, 0.5);
+                    color: white;
+                    text-decoration: none;
+                }
+                button[disabled][style*="linear-gradient"] {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+                .card.text-center {
+                    border-radius: 12px;
+                    transition: all 0.3s ease;
+                    border: 1px solid #e5e7eb;
+                }
+                .card.text-center:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+                    border-color: #4C75A3;
+                }
+                .card.text-center h3 {
+                    font-size: 2.5rem;
+                    font-weight: 700;
+                    background: #4C75A3;
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                    margin-bottom: 0.5rem;
+                }
+                .badge {
+                    font-weight: 600;
+                    letter-spacing: 0.3px;
+                }
+            </style>
+            
+            <!-- Store batch status and started flag in data attributes for JavaScript -->
+            <div id="batch-status-data" 
+                 t-att-data-status="batch.status"
+                 t-att-data-started="'1' if show_started_message else '0'"
+                 t-att-data-total="batch.progress_total"
+                 style="display: none;"></div>
+            
+            <script>
+                <![CDATA[
+                // Auto-refresh page when batch is processing
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Get batch status from data attribute
+                    const statusData = document.getElementById('batch-status-data');
+                    const batchStatus = statusData ? statusData.getAttribute('data-status') : '';
+                    const showStarted = statusData ? statusData.getAttribute('data-started') === '1' : false;
+                    const totalUsers = statusData ? statusData.getAttribute('data-total') : '0';
+                    
+                    // Show success message if batch was just started
+                    if (showStarted) {
+                        showToast('Batch processing started! Processing ' + totalUsers + ' users in the background. This page will auto-refresh to show progress.', 'success');
+                    }
+                    
+                    if (batchStatus === 'processing') {
+                        console.log('Batch is processing, starting auto-refresh every 5 seconds...');
+                        // Refresh every 5 seconds using setInterval
+                        const refreshInterval = setInterval(function() {
+                            console.log('Auto-refreshing page...');
+                            location.reload();
+                        }, 5000);
+                        
+                        // Store interval ID so we can clear it if needed
+                        window.batchRefreshInterval = refreshInterval;
+                    } else {
+                        // Clear interval if batch is no longer processing
+                        if (window.batchRefreshInterval) {
+                            clearInterval(window.batchRefreshInterval);
+                            window.batchRefreshInterval = null;
+                        }
+                    }
+                });
+                
+                function showToast(message, type = 'success') {
+                    const container = document.getElementById('toastContainer');
+                    if (!container) {
+                        const newContainer = document.createElement('div');
+                        newContainer.id = 'toastContainer';
+                        newContainer.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999;';
+                        document.body.appendChild(newContainer);
+                        return showToast(message, type);
+                    }
+                    
+                    const toast = document.createElement('div');
+                    toast.className = 'toast show';
+                    toast.setAttribute('role', 'alert');
+                    toast.setAttribute('aria-live', 'assertive');
+                    toast.setAttribute('aria-atomic', 'true');
+                    toast.style.cssText = 'min-width: 300px; max-width: 500px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 8px; margin-bottom: 10px; animation: slideInRight 0.3s ease-out;';
+                    
+                    const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-info';
+                    const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
+                    
+                    toast.innerHTML = `
+                        <div class="toast-header ${bgClass} text-white" style="font-weight: 600; border-bottom: 1px solid rgba(0,0,0,0.1);">
+                            <i class="fa ${icon} me-2"></i>
+                            <strong class="me-auto">${type === 'success' ? 'Success' : type === 'error' ? 'Error' : 'Info'}</strong>
+                            <button type="button" class="btn-close btn-close-white" onclick="this.closest('.toast').remove()"></button>
+                        </div>
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                    `;
+                    
+                    container.appendChild(toast);
+                    
+                    // Auto remove after 5 seconds
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            toast.style.animation = 'slideInRight 0.3s ease-out reverse';
+                            setTimeout(() => toast.remove(), 300);
+                        }
+                    }, 5000);
+                }
+                
+                function resendInvite(repId) {
+                    // Find the button that was clicked
+                    const buttons = document.querySelectorAll('button[onclick*="resendInvite(' + repId + ')"]');
+                    let button = null;
+                    let originalText = null;
+                    
+                    if (buttons.length > 0) {
+                        button = buttons[0];
+                        originalText = button.innerHTML;
+                        button.disabled = true;
+                        button.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Sending...';
+                    }
+                    
+                    fetch('/bulk-onboard/resend-invite/' + repId, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({})
+                    })
+                    .then(response => {
+                        // Check status first
+                        if (!response.ok) {
+                            return response.text().then(text => {
+                                throw new Error('Request failed with status ' + response.status + ': ' + text.substring(0, 200));
+                            });
+                        }
+                        // Check if response is JSON
+                        const contentType = response.headers.get('content-type') || '';
+                        if (contentType.includes('application/json')) {
+                            return response.json();
+                        } else {
+                            // If not JSON, try to parse as text first
+                            return response.text().then(text => {
+                                try {
+                                    const parsed = JSON.parse(text);
+                                    // Handle Odoo JSON-RPC response format
+                                    if (parsed.result) {
+                                        return parsed.result;
+                                    }
+                                    return parsed;
+                                } catch (e) {
+                                    throw new Error('Invalid response format: ' + text.substring(0, 100));
+                                }
+                            });
+                        }
+                    })
+                    .then(data => {
+                        // Handle Odoo JSON-RPC response format
+                        const result = data.result || data;
+                        if (result && result.success) {
+                            showToast('Invitation resent successfully! The user will receive a new email with their magic link.', 'success');
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            showToast('Error: ' + (result.error || result.message || 'Failed to resend invitation'), 'error');
+                            if (button && originalText !== null) {
+                                button.disabled = false;
+                                button.innerHTML = originalText;
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('Error resending invitation: ' + (error.message || 'Please try again.'), 'error');
+                        if (button && originalText !== null) {
+                            button.disabled = false;
+                            button.innerHTML = originalText;
+                        }
+                    });
+                }
+                
+                function updateBulkButton() {
+                    const checkboxes = document.querySelectorAll('.rep-checkbox:checked');
+                    const count = checkboxes.length;
+                    const bulkBtn = document.getElementById('bulkResendBtn');
+                    const countSpan = document.getElementById('selectedCount');
+                    
+                    if (countSpan) {
+                        countSpan.textContent = count;
+                    }
+                    
+                    if (bulkBtn) {
+                        bulkBtn.disabled = count === 0;
+                    }
+                }
+                
+                function toggleSelectAll(checkbox) {
+                    const repCheckboxes = document.querySelectorAll('.rep-checkbox');
+                    repCheckboxes.forEach(cb => {
+                        cb.checked = checkbox.checked;
+                    });
+                    updateBulkButton();
+                    updateSelectAllButtons();
+                }
+                
+                function selectAll() {
+                    const repCheckboxes = document.querySelectorAll('.rep-checkbox');
+                    repCheckboxes.forEach(cb => {
+                        cb.checked = true;
+                    });
+                    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+                    if (selectAllCheckbox) {
+                        selectAllCheckbox.checked = true;
+                    }
+                    updateBulkButton();
+                    updateSelectAllButtons();
+                }
+                
+                function deselectAll() {
+                    const repCheckboxes = document.querySelectorAll('.rep-checkbox');
+                    repCheckboxes.forEach(cb => {
+                        cb.checked = false;
+                    });
+                    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+                    if (selectAllCheckbox) {
+                        selectAllCheckbox.checked = false;
+                    }
+                    updateBulkButton();
+                    updateSelectAllButtons();
+                }
+                
+                function updateSelectAllButtons() {
+                    const checkedCount = document.querySelectorAll('.rep-checkbox:checked').length;
+                    const totalCount = document.querySelectorAll('.rep-checkbox').length;
+                    const selectAllBtn = document.getElementById('selectAllBtn');
+                    const deselectAllBtn = document.getElementById('deselectAllBtn');
+                    
+                    if (checkedCount === totalCount && totalCount > 0) {
+                        if (selectAllBtn) selectAllBtn.style.display = 'none';
+                        if (deselectAllBtn) deselectAllBtn.style.display = 'inline-block';
+                    } else {
+                        if (selectAllBtn) selectAllBtn.style.display = 'inline-block';
+                        if (deselectAllBtn) deselectAllBtn.style.display = 'none';
+                    }
+                }
+                
+                function bulkResendInvites() {
+                    const checkboxes = document.querySelectorAll('.rep-checkbox:checked');
+                    const repIds = Array.from(checkboxes).map(cb => cb.value);
+                    
+                    if (repIds.length === 0) {
+                        showToast('Please select at least one user to resend invitations.', 'error');
+                        return;
+                    }
+                    
+                    if (!confirm('Are you sure you want to resend invitations to ' + repIds.length + ' user(s)?')) {
+                        return;
+                    }
+                    
+                    const bulkBtn = document.getElementById('bulkResendBtn');
+                    const originalText = bulkBtn.innerHTML;
+                    bulkBtn.disabled = true;
+                    bulkBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Sending...';
+                    
+                    fetch('/bulk-onboard/bulk-resend-invite', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ rep_ids: repIds })
+                    })
+                    .then(response => {
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            return response.json();
+                        } else {
+                            return response.text().then(text => {
+                                try {
+                                    return JSON.parse(text);
+                                } catch (e) {
+                                    throw new Error('Invalid response format');
+                                }
+                            });
+                        }
+                    })
+                    .then(data => {
+                        const result = data.result || data;
+                        if (result && result.success) {
+                            const message = 'Successfully resent invitations to ' + result.sent_count + ' user(s).' + (result.failed_count > 0 ? ' ' + result.failed_count + ' failed.' : '');
+                            showToast(message, 'success');
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            showToast('Error: ' + (result.error || 'Failed to resend invitations'), 'error');
+                            bulkBtn.disabled = false;
+                            bulkBtn.innerHTML = originalText;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('Error resending invitations: ' + error.message, 'error');
+                        bulkBtn.disabled = false;
+                        bulkBtn.innerHTML = originalText;
+                    });
+                }
+                
+                // Initialize on page load
+                document.addEventListener('DOMContentLoaded', function() {
+                    updateBulkButton();
+                    updateSelectAllButtons();
+                });
+                
+                // Make functions globally accessible
+                window.selectAll = selectAll;
+                window.deselectAll = deselectAll;
+                window.toggleSelectAll = toggleSelectAll;
+                window.updateBulkButton = updateBulkButton;
+                window.bulkResendInvites = bulkResendInvites;
+                window.resendInvite = resendInvite;
+                window.showToast = showToast;
+                ]]>
+            </script>
+        </t>
+    </template>
+    
+    <!-- Complete Card Page for Bulk Onboarding Users -->
+    <template id="complete_vcard_page" name="Complete Your Card">
+        <t t-call="website.layout">
+            <div id="wrap" class="oe_structure">
+                <div class="container mt-5 mb-5">
+                    <div class="row justify-content-center">
+                        <div class="col-lg-8">
+                            <!-- Welcome Header (No Banner Image) -->
+                            <div style="background: #4C75A3; color: white; padding: 30px 0; text-align: center; border-radius: 8px 8px 0 0;">
+                                <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; color: white;">
+                                    Complete Your Vinc Card
+                                </h1>
+                                <p style="font-size: 1.1rem; opacity: 0.95; margin-bottom: 0; color: white;">
+                                    Add your personal touch to finish setting up your digital business card
+                                </p>
+                            </div>
+                            
+                            <!-- Error Alert -->
+                            <t t-if="error">
+                                <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+                                    <i class="fa fa-exclamation-triangle me-2"></i>
+                                    <t t-esc="error"/>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            </t>
+                            
+                            <div class="card shadow-sm" style="border-radius: 0 0 8px 8px;">
+                                <div class="card-body p-4">
+                                    <form action="/bulk-onboard/complete-vcard/submit" method="post" enctype="multipart/form-data">
+                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                        
+                                        <!-- Profile Photo -->
+                                        <div class="form-group mb-4">
+                                            <label class="form-label fw-bold">Profile Photo <span class="text-danger">*</span></label>
+                                            <input type="file" name="image_url" accept="image/*" class="form-control" required="required"/>
+                                            <small class="form-text text-muted">Upload a professional photo of yourself</small>
+                                            <t t-if="vcard and vcard.image_url">
+                                                <div class="mt-2">
+                                                    <img t-att-src="'/web/image/partner.vcard/' + str(vcard.id) + '/image_url'" 
+                                                         alt="Current photo" 
+                                                         style="max-width: 200px; max-height: 200px; border-radius: 8px;"/>
+                                                </div>
+                                            </t>
+                                        </div>
+                                        
+                                        <!-- About Section -->
+                                        <div class="form-group mb-4">
+                                            <label class="form-label fw-bold">About You</label>
+                                            <textarea name="about" class="form-control" rows="4" placeholder="Tell people about yourself, your expertise, and what you do..."><t t-esc="about_text if about_text else (vcard.about if vcard and vcard.about else '')"/></textarea>
+                                            <small class="form-text text-muted">Write a compelling description of yourself (optional, but recommended)</small>
+                                        </div>
+                                        
+                                        <!-- Personal Social Links -->
+                                        <div class="form-group mb-4">
+                                            <h5 class="mb-3">Personal Social Media Links (Optional)</h5>
+                                            <p class="text-muted small mb-3">Add your personal social media profiles. Company links are already set up.</p>
+                                            
+                                            <div class="row">
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label">LinkedIn</label>
+                                                    <input type="url" name="linkedin_url" class="form-control" placeholder="https://linkedin.com/in/yourprofile" t-att-value="vcard.linkedin_url if vcard and vcard.linkedin_url else ''"/>
+                                                </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label">Facebook</label>
+                                                    <input type="url" name="facebook_url" class="form-control" placeholder="https://facebook.com/yourprofile" t-att-value="vcard.facebook_url if vcard and vcard.facebook_url else ''"/>
+                                                </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label">Twitter/X</label>
+                                                    <input type="url" name="twitter_url" class="form-control" placeholder="https://x.com/yourprofile" t-att-value="vcard.twitter_url if vcard and vcard.twitter_url else ''"/>
+                                                </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label">Instagram</label>
+                                                    <input type="url" name="instagram_url" class="form-control" placeholder="https://instagram.com/yourprofile" t-att-value="vcard.instagram_url if vcard and vcard.instagram_url else ''"/>
+                                                </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label">WhatsApp</label>
+                                                    <input type="url" name="whatsapp_url" class="form-control" placeholder="https://wa.me/1234567890" t-att-value="vcard.whatsapp_url if vcard and vcard.whatsapp_url else ''"/>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Submit Button -->
+                                        <div class="d-grid mt-4">
+                                            <button type="submit" class="btn btn-primary btn-lg" style="background-color: #4C75A3; border-color: #4C75A3;">
+                                                <i class="fa fa-check me-2"></i>Complete Setup
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+</odoo>

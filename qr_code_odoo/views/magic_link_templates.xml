@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Magic Link Error Page -->
+    <template id="magic_link_error" name="Magic Link Error">
+        <t t-call="website.layout">
+            <div id="wrap" class="oe_structure">
+                <div class="container" style="max-width: 600px; margin: 60px auto; padding: 20px;">
+                    <div class="card" style="border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden;">
+                        <div class="card-header" style="background: linear-gradient(14deg, rgba(220, 53, 69, 1) 0%, rgba(200, 35, 51, 1) 100%); color: white; padding: 30px; text-align: center;">
+                            <h1 style="margin: 0; font-size: 28px; font-weight: 700;">Activation Link Error</h1>
+                        </div>
+                        <div class="card-body" style="padding: 40px;">
+                            <div style="text-align: center; margin-bottom: 30px;">
+                                <i class="fa fa-exclamation-triangle" style="font-size: 64px; color: #dc3545; margin-bottom: 20px;"></i>
+                            </div>
+                            <p style="font-size: 18px; color: #333; text-align: center; margin-bottom: 30px;">
+                                <t t-if="error">
+                                    <t t-out="error"/>
+                                </t>
+                                <t t-else="">
+                                    The activation link is invalid or has expired.
+                                </t>
+                            </p>
+                            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                                <p style="margin: 0; color: #666; font-size: 14px;">
+                                    <strong>What to do:</strong>
+                                </p>
+                                <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #666; font-size: 14px;">
+                                    <li>Check that you clicked the link from the most recent invitation email</li>
+                                    <li>Activation links expire after 7 days</li>
+                                    <li>Contact your administrator to request a new invitation</li>
+                                </ul>
+                            </div>
+                            <div style="text-align: center;">
+                                <a href="/web/login" class="btn" style="background: #4C75A3; color: white; font-weight: 700; border-radius: 12px; box-shadow: 0 4px 12px rgba(76, 117, 163, 0.3); transition: all 0.3s ease; border: none; padding: 12px 32px; text-decoration: none; display: inline-block;">
+                                    Go to Login
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+    
+    <!-- Magic Link Already Activated Page -->
+    <template id="magic_link_already_activated" name="Magic Link Already Activated">
+        <t t-call="website.layout">
+            <div id="wrap" class="oe_structure">
+                <div class="container" style="max-width: 600px; margin: 60px auto; padding: 20px;">
+                    <div class="card" style="border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden;">
+                        <div class="card-header" style="background: linear-gradient(14deg, rgba(40, 167, 69, 1) 0%, rgba(32, 201, 151, 1) 100%); color: white; padding: 30px; text-align: center;">
+                            <h1 style="margin: 0; font-size: 28px; font-weight: 700;">Account Already Activated</h1>
+                        </div>
+                        <div class="card-body" style="padding: 40px;">
+                            <div style="text-align: center; margin-bottom: 30px;">
+                                <i class="fa fa-check-circle" style="font-size: 64px; color: #28a745; margin-bottom: 20px;"></i>
+                            </div>
+                            <p style="font-size: 18px; color: #333; text-align: center; margin-bottom: 30px;">
+                                Your account has already been activated. You can log in with your credentials.
+                            </p>
+                            <div style="text-align: center;">
+                                <a t-att-href="login_url" class="btn" style="background: #4C75A3; color: white; font-weight: 700; border-radius: 12px; box-shadow: 0 4px 12px rgba(76, 117, 163, 0.3); transition: all 0.3s ease; border: none; padding: 12px 32px; text-decoration: none; display: inline-block;">
+                                    Log In
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+    
+    <!-- Magic Link Activation Form -->
+    <template id="magic_link_activation" name="Magic Link Activation">
+        <t t-call="website.layout">
+            <div id="wrap" class="oe_structure">
+                <div class="container" style="max-width: 600px; margin: 60px auto; padding: 20px;">
+                    <div class="card" style="border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden;">
+                        <div class="card-header" style="background: #4C75A3; color: white; padding: 30px; text-align: center;">
+                            <h1 style="margin: 0; font-size: 28px; font-weight: 700;">Activate Your Account</h1>
+                        </div>
+                        <div class="card-body" style="padding: 40px;">
+                            <t t-if="error">
+                                <div class="alert alert-danger" role="alert" style="background: #f8d7da; color: #721c24; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #f5c6cb;">
+                                    <t t-out="error"/>
+                                </div>
+                            </t>
+                            <p style="font-size: 16px; color: #333; margin-bottom: 30px; text-align: center;">
+                                Hi <strong><t t-out="user_name or email"/></strong>,<br/>
+                                Please set a password to activate your account.
+                            </p>
+                            <form method="post" action="/bulk-onboard/activate/submit" id="activationForm">
+                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                <input type="hidden" name="token" t-att-value="token"/>
+                                
+                                <div class="form-group mb-4">
+                                    <label for="password" style="font-weight: 600; color: #333; margin-bottom: 8px; display: block;">Password</label>
+                                    <input type="password" 
+                                           id="password" 
+                                           name="password" 
+                                           class="form-control" 
+                                           required="required" 
+                                           minlength="8"
+                                           placeholder="Enter your password (min. 8 characters)"
+                                           style="padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; width: 100%;"/>
+                                    <small style="color: #666; font-size: 13px; margin-top: 5px; display: block;">Must be at least 8 characters long</small>
+                                </div>
+                                
+                                <div class="form-group mb-4">
+                                    <label for="password_confirm" style="font-weight: 600; color: #333; margin-bottom: 8px; display: block;">Confirm Password</label>
+                                    <input type="password" 
+                                           id="password_confirm" 
+                                           name="password_confirm" 
+                                           class="form-control" 
+                                           required="required" 
+                                           minlength="8"
+                                           placeholder="Confirm your password"
+                                           style="padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; width: 100%;"/>
+                                </div>
+                                
+                                <div style="text-align: center; margin-top: 30px;">
+                                    <button type="submit" 
+                                            class="btn" 
+                                            style="background: #4C75A3; color: white; font-weight: 700; border-radius: 12px; box-shadow: 0 4px 12px rgba(76, 117, 163, 0.3); transition: all 0.3s ease; border: none; padding: 12px 32px; font-size: 16px; width: 100%;">
+                                        Activate Account
+                                    </button>
+                                </div>
+                            </form>
+                            
+                            <script>
+                                <![CDATA[
+                                document.getElementById('activationForm').addEventListener('submit', function(e) {
+                                    const password = document.getElementById('password').value;
+                                    const passwordConfirm = document.getElementById('password_confirm').value;
+                                    
+                                    if (password.length < 8) {
+                                        e.preventDefault();
+                                        alert('Password must be at least 8 characters long.');
+                                        return false;
+                                    }
+                                    
+                                    if (password !== passwordConfirm) {
+                                        e.preventDefault();
+                                        alert('Passwords do not match.');
+                                        return false;
+                                    }
+                                });
+                                ]]>
+                            </script>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+</odoo>

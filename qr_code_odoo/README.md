@@ -1,10 +1,10 @@
-# Vinculum for Odoo - Digital Business Cards & Lead Capture Module
+# Vinc for Odoo - Digital Business Cards & Lead Capture Module
 
 **Standalone Odoo Module - Single Purchase | Self-Hosted | Full Control**
 
-**Vinculum** brings digital business cards and lead capture directly into your Odoo database. This is the **standalone module version** for Odoo users who want complete self-hosted control with a one-time purchase.
+**Vinc** brings digital business cards and lead capture directly into your Odoo database. This is the **standalone module version** for Odoo users who want complete self-hosted control with a one-time purchase.
 
-> **💡 Prefer a hosted solution?** Check out [Vinculum SaaS](https://vinculumapp.com) - our subscription-based hosted platform with the same features, zero setup required.
+> **💡 Prefer a hosted solution?** Check out [Vinc SaaS](https://getvinc.com) - our subscription-based hosted platform with the same features, zero setup required.
 
 ## 🎯 About This Version
 
@@ -15,11 +15,11 @@ This is the **standalone Odoo module** designed for:
 - ✅ **Full customization** - modify and extend as needed
 - ✅ **No external dependencies** - everything runs in your environment
 
-**Perfect for:** Companies with existing Odoo deployments who want Vinculum's digital business card capabilities integrated directly into their system.
+**Perfect for:** Companies with existing Odoo deployments who want Vinc's digital business card capabilities integrated directly into their system.
 
 ## 🌟 Overview
 
-Vinculum replaces paper business cards with intelligent, dynamic digital cards that:
+Vinc replaces paper business cards with intelligent, dynamic digital cards that:
 - **Capture leads automatically** through built-in forms directly into Odoo CRM
 - **Track every interaction** with detailed analytics
 - **Integrate seamlessly** with Odoo's built-in CRM and email marketing
@@ -118,6 +118,17 @@ All templates feature:
 - **Email Campaigns** - Send marketing emails to collected leads
 - **Contact Management** - Comprehensive contact database
 
+### 👥 Bulk Onboarding
+
+- **CSV/Excel Upload** - Upload multiple users at once via spreadsheet
+- **Batch Processing** - Process hundreds of users in the background
+- **Magic Link Activation** - Secure token-based account activation
+- **Automatic vCard Creation** - Pre-populated cards for each user
+- **Progress Tracking** - Real-time batch status and completion reports
+- **Email Invitations** - Automated welcome emails with activation links
+- **Completion Notifications** - Summary emails with batch statistics
+- **Resend Invitations** - Re-send activation links for failed users
+
 ---
 
 ## 🚀 Quick Start
@@ -155,18 +166,18 @@ All templates feature:
    - Make sure "Apps" filter is set to show all apps
 
 5. **Install the Module**:
-   - Search for "Vinculum" in the Apps menu
+   - Search for "Vinc" in the Apps menu
    - Click Install
    - Follow the on-screen prompts
 
 6. **Activate License** (if applicable):
    - After installation, you may need to activate your license key
-   - Check Settings → Vinculum License (if license validation is enabled)
+   - Check Settings → Vinc License (if license validation is enabled)
 
 ### First-Time Setup
 
 1. **Create Your First Card**:
-   - Navigate to Vinculum → Cards
+   - Navigate to Vinc → Cards
    - Click "Create"
    - Fill in basic information:
      - Name, title, company
@@ -332,11 +343,18 @@ All templates feature:
 - **`mailing.list`** - Email marketing lists (Odoo mass_mailing)
 - **`leadback.scheduled.email`** - Scheduled email automation
 - **`leadback.messaging.channel`** - Messaging platform configuration
+- **`bulk.onboarding.batch`** - Bulk onboarding batch records
+- **`bulk.onboarding.rep`** - Individual user records in a batch
+- **`bulk.onboarding.token`** - Magic link activation tokens
 
 ### Controllers
 
 - **`/qr_code/<slug>`** - Public card website route
 - **`/get-started`** - Onboarding form for new users
+- **`/bulk-onboard`** - Bulk onboarding dashboard
+- **`/bulk-onboard/new`** - Create new bulk onboarding batch
+- **`/bulk-onboard/batch/<id>`** - View batch details and progress
+- **`/bulk-onboard/activate`** - Magic link activation page
 - **`/api/lead`** - Lead form submission API
 - **`/api/review`** - Review submission API
 - **`/api/service-request`** - Service request API
@@ -605,12 +623,12 @@ This is a **standalone Odoo module** available for **one-time purchase** on the 
 - ✅ **Self-hosted** - Full control over your data
 - ✅ **Updates included** - Future module updates included in your purchase
 
-> **Looking for a subscription-based option?** Check out [Vinculum SaaS](https://vinculumapp.com) for a hosted solution with monthly/annual plans.
+> **Looking for a subscription-based option?** Check out [Vinc SaaS](https://getvinc.com) for a hosted solution with monthly/annual plans.
 
 ## 🤝 Support
 
 For technical support on this module:
-- **Email**: admin@vinculumapp.com
+- **Email**: support@getvinc.com
 - **Subject**: Include "[Odoo Module]" in your subject line
 - Check the Odoo community forums
 - Review the module documentation
@@ -636,4 +654,4 @@ Built with:
 
 ---
 
-**Vinculum** - Transform every networking interaction into a measurable business opportunity.
+**Vinc** - Transform every networking interaction into a measurable business opportunity.
