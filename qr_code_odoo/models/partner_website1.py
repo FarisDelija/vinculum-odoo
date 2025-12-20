@@ -574,6 +574,34 @@ class PartnerWebsite(models.Model):
         <t t-name="website.{self.website_slug}">
             <t t-set="partner" t-value="request.env['partner.vcard'].sudo().browse({self.id})"/>
     
+            <!-- Dashboard Button (visible to logged-in internal users) -->
+            <t t-if="request.env.user and not request.env.user._is_public() and not request.env.user.share">
+                <style>
+                    @media only screen and (max-width: 600px) {{
+                        .dashboard-btn-container {{
+                            top: 10px !important;
+                            right: 10px !important;
+                        }}
+                        .dashboard-btn-container a {{
+                            padding: 10px 16px !important;
+                            font-size: 12px !important;
+                        }}
+                        .dashboard-btn-container .fa {{
+                            font-size: 14px !important;
+                        }}
+                    }}
+                </style>
+                <div class="dashboard-btn-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+                    <a href="/web#action=qr_code_odoo.action_user_dashboard" 
+                       style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: rgba(69, 126, 184, 0.9); color: white; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 14px; font-weight: 500; transition: all 0.3s ease;"
+                       onmouseover="this.style.background='rgba(69, 126, 184, 1)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)';"
+                       onmouseout="this.style.background='rgba(69, 126, 184, 0.9)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)';">
+                        <i class="fa fa-dashboard" style="font-size: 16px;"></i>
+                        <span>Back to Dashboard</span>
+                    </a>
+                </div>
+            </t>
+    
             <!-- Use custom vCard layout without header and footer -->
             <t t-call="qr_code_odoo.vcard_layout">
                 <!-- Main content with responsive width constraint and top padding -->
@@ -2268,6 +2296,34 @@ class PartnerWebsite(models.Model):
         <t t-name="website.{self.website_slug}">
             <t t-set="partner" t-value="request.env['partner.vcard'].sudo().browse({self.id})"/>
     
+            <!-- Dashboard Button (visible to logged-in internal users) -->
+            <t t-if="request.env.user and not request.env.user._is_public() and not request.env.user.share">
+                <style>
+                    @media only screen and (max-width: 600px) {{
+                        .dashboard-btn-container {{
+                            top: 10px !important;
+                            right: 10px !important;
+                        }}
+                        .dashboard-btn-container a {{
+                            padding: 10px 16px !important;
+                            font-size: 12px !important;
+                        }}
+                        .dashboard-btn-container .fa {{
+                            font-size: 14px !important;
+                        }}
+                    }}
+                </style>
+                <div class="dashboard-btn-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+                    <a href="/web#action=qr_code_odoo.action_user_dashboard" 
+                       style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: rgba(69, 126, 184, 0.9); color: white; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 14px; font-weight: 500; transition: all 0.3s ease;"
+                       onmouseover="this.style.background='rgba(69, 126, 184, 1)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)';"
+                       onmouseout="this.style.background='rgba(69, 126, 184, 0.9)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)';">
+                        <i class="fa fa-dashboard" style="font-size: 16px;"></i>
+                        <span>Back to Dashboard</span>
+                    </a>
+                </div>
+            </t>
+    
             <!-- Use custom vCard layout without header and footer -->
             <t t-call="qr_code_odoo.vcard_layout">
                 <!-- Main content -->
@@ -3446,6 +3502,34 @@ class PartnerWebsite(models.Model):
         <t t-name="website.{self.website_slug}">
             <t t-set="partner" t-value="request.env['partner.vcard'].sudo().browse({self.id})"/>
     
+            <!-- Dashboard Button (visible to logged-in internal users) -->
+            <t t-if="not request.env.user._is_public()">
+                <style>
+                    @media only screen and (max-width: 600px) {{
+                        .dashboard-btn-container {{
+                            top: 10px !important;
+                            right: 10px !important;
+                        }}
+                        .dashboard-btn-container a {{
+                            padding: 10px 16px !important;
+                            font-size: 12px !important;
+                        }}
+                        .dashboard-btn-container .fa {{
+                            font-size: 14px !important;
+                        }}
+                    }}
+                </style>
+                <div class="dashboard-btn-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+                    <a href="/web#action=qr_code_odoo.action_user_dashboard" 
+                       style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: rgba(69, 126, 184, 0.9); color: white; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 14px; font-weight: 500; transition: all 0.3s ease; z-index: 9999;"
+                       onmouseover="this.style.background='rgba(69, 126, 184, 1)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)';"
+                       onmouseout="this.style.background='rgba(69, 126, 184, 0.9)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)';">
+                        <i class="fa fa-dashboard" style="font-size: 16px;"></i>
+                        <span>Back to Dashboard</span>
+                    </a>
+                </div>
+            </t>
+    
             <!-- Use custom vCard layout without header and footer -->
             <t t-call="qr_code_odoo.vcard_layout">
                 <div id="wrap" class="oe_structure oe_empty vcard-template-minimal"
@@ -4376,6 +4460,34 @@ class PartnerWebsite(models.Model):
         return f"""
         <t t-name="website.{self.website_slug}">
             <t t-set="partner" t-value="request.env['partner.vcard'].sudo().browse({self.id})"/>
+    
+            <!-- Dashboard Button (visible to logged-in internal users) -->
+            <t t-if="not request.env.user._is_public()">
+                <style>
+                    @media only screen and (max-width: 600px) {{
+                        .dashboard-btn-container {{
+                            top: 10px !important;
+                            right: 10px !important;
+                        }}
+                        .dashboard-btn-container a {{
+                            padding: 10px 16px !important;
+                            font-size: 12px !important;
+                        }}
+                        .dashboard-btn-container .fa {{
+                            font-size: 14px !important;
+                        }}
+                    }}
+                </style>
+                <div class="dashboard-btn-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+                    <a href="/web#action=qr_code_odoo.action_user_dashboard" 
+                       style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: rgba(69, 126, 184, 0.9); color: white; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 14px; font-weight: 500; transition: all 0.3s ease; z-index: 9999;"
+                       onmouseover="this.style.background='rgba(69, 126, 184, 1)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)';"
+                       onmouseout="this.style.background='rgba(69, 126, 184, 0.9)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)';">
+                        <i class="fa fa-dashboard" style="font-size: 16px;"></i>
+                        <span>Back to Dashboard</span>
+                    </a>
+                </div>
+            </t>
     
             <!-- Use custom vCard layout without header and footer -->
             <t t-call="qr_code_odoo.vcard_layout">

@@ -2,7 +2,7 @@
   <template id="vcard_form_page" name="Get Started Form Page">
     <t t-call="website.layout">
       <!-- Welcome Banner -->
-      <section style="background: #4C75A3; color: white; padding: 40px 0; text-align: center;">
+      <section id="welcome-banner" style="background: #4C75A3; color: white; padding: 40px 0; text-align: center;">
         <div class="container">
           <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem;">
             Let's Create Your Vinc Digital Business Card
@@ -48,7 +48,7 @@
               <!-- Step 1: Basic Information -->
               <div class="form-section" data-step="1">
                 <div class="card mb-4">
-                  <div class="card-header" style="background: #4C75A3; color: white;">
+                  <div class="card-header vinc-brand-header" style="background: #4C75A3; color: white;">
                     <h4 class="mb-0"><i class="fa fa-user me-2"></i>Step 1: Basic Information</h4>
                   </div>
                   <div class="card-body">
@@ -97,7 +97,7 @@
               <!-- Step 2: Company & Branding -->
               <div class="form-section" data-step="2">
                 <div class="card mb-4">
-                  <div class="card-header" style="background: #4C75A3; color: white;">
+                  <div class="card-header vinc-brand-header" style="background: #4C75A3; color: white;">
                     <h4 class="mb-0"><i class="fa fa-building me-2"></i>Step 2: Company &amp; Branding</h4>
                   </div>
                   <div class="card-body">
@@ -370,7 +370,7 @@
                       </div>
                         <div class="form-group col-md-12 mb-3">
                         <label class="form-label fw-bold">Mailing List Name <span class="text-danger">*</span></label>
-                        <input type="text" name="mailing_list_name" class="form-control" data-required-when-enabled="1" placeholder="e.g., Main Contacts, Newsletter Subscribers"/>
+                        <input type="text" name="mailing_list_name" id="mailing_list_name_input" class="form-control" data-required-when-enabled="1" placeholder="e.g., Main Contacts, Newsletter Subscribers"/>
                         <small class="form-text text-muted"><i class="fa fa-info-circle"></i> We use this list to automatically add leads captured from your vCard. You can manage additional lists later from your dashboard.</small>
                       </div>
                     </div>
@@ -431,7 +431,7 @@
                         <div id="messaging_channels_container" style="display: none; margin-left: 2rem;">
                           <label class="form-label fw-bold small">Select Messaging Channels <span class="text-danger">*</span></label>
                           <div class="form-check">
-                            <input type="checkbox" name="leadback_channels[]" class="form-check-input" id="channel_whatsapp" value="whatsapp"/>
+                            <input type="checkbox" name="leadback_channels[]" class="form-check-input" id="channel_whatsapp" value="whatsapp" checked="checked"/>
                             <label for="channel_whatsapp" class="form-check-label">WhatsApp</label>
                           </div>
                           <div class="form-check">
@@ -2028,6 +2028,38 @@
                     setTimeout(autoFillSlugFromName, 100);
                   }
                 });
+              }
+              
+              // Auto-fill mailing list name with "[Name]'s List"
+              const mailingListInput = document.getElementById('mailing_list_name_input');
+              if (mailingListInput && nameInput) {
+                const updateMailingListName = function() {
+                  const nameValue = nameInput.value.trim();
+                  // Only auto-fill if mailing list field is empty
+                  if (nameValue && (!mailingListInput.value || mailingListInput.value.trim() === '')) {
+                    mailingListInput.value = nameValue + "'s List";
+                  }
+                };
+                
+                nameInput.addEventListener('input', updateMailingListName);
+                nameInput.addEventListener('change', updateMailingListName);
+                
+                // Update on page load if name is pre-filled
+                const tryUpdateMailingListOnLoad = function() {
+                  if (nameInput.value.trim() && (!mailingListInput.value || mailingListInput.value.trim() === '')) {
+                    updateMailingListName();
+                  }
+                };
+                
+                if (document.readyState === 'loading') {
+                  document.addEventListener('DOMContentLoaded', function() {
+                    setTimeout(tryUpdateMailingListOnLoad, 100);
+                    setTimeout(tryUpdateMailingListOnLoad, 500);
+                  });
+                } else {
+                  setTimeout(tryUpdateMailingListOnLoad, 100);
+                  setTimeout(tryUpdateMailingListOnLoad, 500);
+                }
               }
               
               // Country/State filtering functionality

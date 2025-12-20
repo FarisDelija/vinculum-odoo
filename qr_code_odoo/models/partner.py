@@ -810,7 +810,7 @@ class PartnerVCard(models.Model):
     attachment_id = fields.Many2one('ir.attachment', string='Image Attachment', readonly=True)
     banner_attachment_id = fields.Many2one('ir.attachment', string='Banner Image Attachment', readonly=True)
     primary_color = fields.Char(string="Primary Color", help="This color is used as the background color for all vCard templates.", default="#ffffff")
-    secondary_color = fields.Char(string="Secondary Color", help="This color is used for all accent elements (buttons, sections, highlights) across all templates.", default="#4C75A3")
+    secondary_color = fields.Char(string="Brand Color", help="This color is used for all accent elements (buttons, sections, highlights) across all templates.", default="#4C75A3")
     about = fields.Html(string="About", help="HTML content to describe the partner.")
     
     # Social media URLs
@@ -1465,6 +1465,18 @@ class PartnerVCard(models.Model):
             'target': 'new',
         }
 
+    def action_download_qr_code(self):
+        """Download QR code - redirects to download URL"""
+        self.ensure_one()
+        if not self.qr_code:
+            raise ValidationError('QR code is not available. Please generate the website first.')
+        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url', 'http://localhost:8069')
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f'{base_url}/vcard/qr_code/download/{self.id}',
+            'target': 'self',
+        }
+    
     def action_open_vinculum_guide(self):
         """Open the How to Use Vinc guide"""
         self.ensure_one()
@@ -3454,11 +3466,40 @@ If you'd like to save my info again later, here's my card: {vcard_url}
         return f"""
         <t t-name="website.{self.website_slug}">
             <t t-set="partner" t-value="request.env['partner.vcard'].sudo().browse({self.id})"/>
+    
+            <!-- Dashboard Button (visible to logged-in internal users) -->
+            <t t-if="request.env.user and not request.env.user._is_public() and not request.env.user.share">
+                <style>
+                    @media only screen and (max-width: 600px) {{
+                        .dashboard-btn-container {{
+                            top: 10px !important;
+                            right: 10px !important;
+                        }}
+                        .dashboard-btn-container a {{
+                            padding: 10px 16px !important;
+                            font-size: 12px !important;
+                        }}
+                        .dashboard-btn-container .fa {{
+                            font-size: 14px !important;
+                        }}
+                    }}
+                </style>
+                <div class="dashboard-btn-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+                    <a href="/web#action=qr_code_odoo.action_user_dashboard" 
+                       style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: rgba(69, 126, 184, 0.9); color: white; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 14px; font-weight: 500; transition: all 0.3s ease;"
+                       onmouseover="this.style.background='rgba(69, 126, 184, 1)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)';"
+                       onmouseout="this.style.background='rgba(69, 126, 184, 0.9)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)';">
+                        <i class="fa fa-dashboard" style="font-size: 16px;"></i>
+                        <span>Back to Dashboard</span>
+                    </a>
+                </div>
+            </t>
+    
             <t t-call="website.layout">
                 <div class="container mt-5 mb-5">
                     <div class="row justify-content-center">
                         <div class="col-md-8 col-lg-6">
-                            <div class="card shadow-lg border-0" style="background: linear-gradient(135deg, {self.primary_color} 0%, {self.secondary_color} 100%);">
+                            <div class="card shadow-lg border-0" style="background: linear-gradient(135deg, {self.primary_color or '#ffffff'} 0%, {self.secondary_color or '#4C75A3'} 100%);">
                                 <div class="card-body text-center p-5">
                                     <!-- Profile Image -->
                                     <div class="mb-4">
@@ -3543,8 +3584,37 @@ If you'd like to save my info again later, here's my card: {vcard_url}
         return f"""
         <t t-name="website.{self.website_slug}">
             <t t-set="partner" t-value="request.env['partner.vcard'].sudo().browse({self.id})"/>
+    
+            <!-- Dashboard Button (visible to logged-in internal users) -->
+            <t t-if="request.env.user and not request.env.user._is_public() and not request.env.user.share">
+                <style>
+                    @media only screen and (max-width: 600px) {{
+                        .dashboard-btn-container {{
+                            top: 10px !important;
+                            right: 10px !important;
+                        }}
+                        .dashboard-btn-container a {{
+                            padding: 10px 16px !important;
+                            font-size: 12px !important;
+                        }}
+                        .dashboard-btn-container .fa {{
+                            font-size: 14px !important;
+                        }}
+                    }}
+                </style>
+                <div class="dashboard-btn-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+                    <a href="/web#action=qr_code_odoo.action_user_dashboard" 
+                       style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: rgba(69, 126, 184, 0.9); color: white; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 14px; font-weight: 500; transition: all 0.3s ease;"
+                       onmouseover="this.style.background='rgba(69, 126, 184, 1)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)';"
+                       onmouseout="this.style.background='rgba(69, 126, 184, 0.9)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)';">
+                        <i class="fa fa-dashboard" style="font-size: 16px;"></i>
+                        <span>Back to Dashboard</span>
+                    </a>
+                </div>
+            </t>
+    
             <t t-call="website.layout">
-                <div class="modern-vcard-container" style="background: linear-gradient(135deg, {self.primary_color} 0%, {self.secondary_color} 100%); min-height: 100vh;">
+                <div class="modern-vcard-container" style="background: linear-gradient(135deg, {self.primary_color or '#ffffff'} 0%, {self.secondary_color or '#4C75A3'} 100%); min-height: 100vh;">
                     <div class="container py-5">
                         <div class="row align-items-center" style="min-height: 80vh;">
                             <div class="col-lg-6 text-white">
@@ -3621,6 +3691,35 @@ If you'd like to save my info again later, here's my card: {vcard_url}
         return f"""
         <t t-name="website.{self.website_slug}">
             <t t-set="partner" t-value="request.env['partner.vcard'].sudo().browse({self.id})"/>
+    
+            <!-- Dashboard Button (visible to logged-in internal users) -->
+            <t t-if="request.env.user and not request.env.user._is_public() and not request.env.user.share">
+                <style>
+                    @media only screen and (max-width: 600px) {{
+                        .dashboard-btn-container {{
+                            top: 10px !important;
+                            right: 10px !important;
+                        }}
+                        .dashboard-btn-container a {{
+                            padding: 10px 16px !important;
+                            font-size: 12px !important;
+                        }}
+                        .dashboard-btn-container .fa {{
+                            font-size: 14px !important;
+                        }}
+                    }}
+                </style>
+                <div class="dashboard-btn-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+                    <a href="/web#action=qr_code_odoo.action_user_dashboard" 
+                       style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: rgba(69, 126, 184, 0.9); color: white; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 14px; font-weight: 500; transition: all 0.3s ease;"
+                       onmouseover="this.style.background='rgba(69, 126, 184, 1)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)';"
+                       onmouseout="this.style.background='rgba(69, 126, 184, 0.9)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)';">
+                        <i class="fa fa-dashboard" style="font-size: 16px;"></i>
+                        <span>Back to Dashboard</span>
+                    </a>
+                </div>
+            </t>
+    
             <t t-call="website.layout">
                 <div class="minimal-vcard-container" t-att-style="'min-height: 100vh; padding: 50px 0; background: ' + (partner.primary_color or '#ffffff') + ';'">
                     <div class="container">
@@ -3697,6 +3796,35 @@ If you'd like to save my info again later, here's my card: {vcard_url}
         return f"""
         <t t-name="website.{self.website_slug}">
             <t t-set="partner" t-value="request.env['partner.vcard'].sudo().browse({self.id})"/>
+    
+            <!-- Dashboard Button (visible to logged-in internal users) -->
+            <t t-if="request.env.user and not request.env.user._is_public() and not request.env.user.share">
+                <style>
+                    @media only screen and (max-width: 600px) {{
+                        .dashboard-btn-container {{
+                            top: 10px !important;
+                            right: 10px !important;
+                        }}
+                        .dashboard-btn-container a {{
+                            padding: 10px 16px !important;
+                            font-size: 12px !important;
+                        }}
+                        .dashboard-btn-container .fa {{
+                            font-size: 14px !important;
+                        }}
+                    }}
+                </style>
+                <div class="dashboard-btn-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+                    <a href="/web#action=qr_code_odoo.action_user_dashboard" 
+                       style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: rgba(69, 126, 184, 0.9); color: white; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 14px; font-weight: 500; transition: all 0.3s ease;"
+                       onmouseover="this.style.background='rgba(69, 126, 184, 1)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)';"
+                       onmouseout="this.style.background='rgba(69, 126, 184, 0.9)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)';">
+                        <i class="fa fa-dashboard" style="font-size: 16px;"></i>
+                        <span>Back to Dashboard</span>
+                    </a>
+                </div>
+            </t>
+    
             <t t-call="website.layout">
                 <div class="corporate-vcard-container">
                     <div class="header-section" style="background: {self.primary_color or '#2c3e50'}; padding: 50px 0; border-bottom: 4px solid #34495e;">
@@ -3787,6 +3915,35 @@ If you'd like to save my info again later, here's my card: {vcard_url}
         return f"""
         <t t-name="website.{self.website_slug}">
             <t t-set="partner" t-value="request.env['partner.vcard'].sudo().browse({self.id})"/>
+    
+            <!-- Dashboard Button (visible to logged-in internal users) -->
+            <t t-if="request.env.user and not request.env.user._is_public() and not request.env.user.share">
+                <style>
+                    @media only screen and (max-width: 600px) {{
+                        .dashboard-btn-container {{
+                            top: 10px !important;
+                            right: 10px !important;
+                        }}
+                        .dashboard-btn-container a {{
+                            padding: 10px 16px !important;
+                            font-size: 12px !important;
+                        }}
+                        .dashboard-btn-container .fa {{
+                            font-size: 14px !important;
+                        }}
+                    }}
+                </style>
+                <div class="dashboard-btn-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+                    <a href="/web#action=qr_code_odoo.action_user_dashboard" 
+                       style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: rgba(69, 126, 184, 0.9); color: white; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 14px; font-weight: 500; transition: all 0.3s ease;"
+                       onmouseover="this.style.background='rgba(69, 126, 184, 1)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)';"
+                       onmouseout="this.style.background='rgba(69, 126, 184, 0.9)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)';">
+                        <i class="fa fa-dashboard" style="font-size: 16px;"></i>
+                        <span>Back to Dashboard</span>
+                    </a>
+                </div>
+            </t>
+    
             <t t-call="website.layout">
                 <style>
                     @keyframes gradientShift {{

@@ -1339,8 +1339,8 @@ class VCardFormController(http.Controller):
                 'calendly_url': data.get('calendly_url', ''),
                 'website_slug': preview_slug,
                 'about': data.get('about') or 'Tell people about yourself...',
-                'primary_color': data.get('primary_color') or '#ffffff',
-                'secondary_color': data.get('secondary_color') or '#000000',
+                'primary_color': data.get('primary_color') or '#4C75A3',  # Default to Vinc blue
+                'secondary_color': data.get('secondary_color') or '#4C75A3',  # Default to Vinc blue
                 'website_template': data.get('website_template', 'modern'),
                 'whatsapp_url': data.get('whatsapp_url', ''),
                 'linkedin_url': data.get('linkedin_url', ''),
@@ -1658,8 +1658,8 @@ class VCardFormController(http.Controller):
             'calendly_url': post.get('calendly_url'),
             'website_slug': post.get('website_slug'),
             'about': post.get('about'),
-            'primary_color': post.get('primary_color', '#ffffff'),  # Default to white
-            'secondary_color': post.get('secondary_color'),
+            'primary_color': post.get('primary_color', '#4C75A3'),  # Default to Vinc blue
+            'secondary_color': post.get('secondary_color', '#4C75A3'),  # Default to Vinc blue
             'website_template': post.get('website_template', 'classic'),  # Default to classic if not provided
             'whatsapp_url': post.get('whatsapp_url'),
             'linkedin_url': post.get('linkedin_url'),
@@ -1790,7 +1790,7 @@ class VCardFormController(http.Controller):
         if website_urls and website_urls[0]:  # Check if at least one website URL is provided
             website_data = []
             # Get secondary color as default
-            secondary_color = partner.secondary_color or '#764ba2'
+            secondary_color = partner.secondary_color or '#4C75A3'  # Default to Vinc blue
             for i, url in enumerate(website_urls):
                 if url.strip():  # Only add non-empty URLs
                     # Use provided color, or default to secondary color
