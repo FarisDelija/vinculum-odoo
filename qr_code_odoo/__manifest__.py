@@ -61,6 +61,8 @@ This module is designed for companies that want Vinc-style digital cards and lea
         'web.assets_backend': [
             '/qr_code_odoo/static/src/css/reviews_backend.css',
             '/qr_code_odoo/static/src/css/mobile_tables.css',
+            '/qr_code_odoo/static/src/js/signature_generator.js',
+            '/qr_code_odoo/static/src/js/virtual_bg_generator.js',
         ],
     },
     'installable': True,

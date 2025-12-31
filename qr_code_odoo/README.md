@@ -129,6 +129,27 @@ All templates feature:
 - **Completion Notifications** - Summary emails with batch statistics
 - **Resend Invitations** - Re-send activation links for failed users
 
+### ✍️ Email Signature Generator
+
+- **Professional Signatures** - Create HTML signatures for Gmail, Outlook, Apple Mail
+- **5 Premium Templates** - Modern, Classic, Minimal, Corporate, Creative
+- **Dynamic Content** - Auto-populates with your card details and photo
+- **QR Code Integration** - Scannable QR code for instant connecting
+- **One-Click Copy** - Instantly copy formatted HTML to clipboard
+- **Fully Unlocked** - All templates available without plan restrictions
+
+### 🎥 Virtual Meeting Backgrounds
+
+- **Professional Backgrounds** - Custom 1920x1080 backgrounds for Zoom, Teams, or Meet
+- **4 Layout Styles** - Classic, Modern, Minimal, Corporate
+- **Smart Overlays** - Auto-adds your name, title, company, and QR code
+- **Background Options** - Choose from:
+  - 10 Professional Solid Colors
+  - 6 Beautiful Gradients
+  - 7 High-Quality Office/Abstract Images
+  - **Custom Image Upload** - Use your own photo or office view
+  - **Company Logo** - Overlay your brand logo
+
 ---
 
 ## 🚀 Quick Start
@@ -325,6 +346,24 @@ All templates feature:
    - Reviews appear after moderation
    - Automatic thank you message displayed
 
+### ✍️ Email Signatures
+
+1. **Access**: Go to the **Email Signatures** tab on your card record.
+2. **Select Template**: Choose from 5 professional designs.
+3. **Preview**: See a live preview with your actual data.
+4. **Copy**: Click "Copy Signature" to copy the HTML code.
+5. **Paste**: Paste into your email client's signature settings (Gmail, Outlook, etc.).
+
+### 🎥 Virtual Backgrounds
+
+1. **Access**: Go to the **Virtual Backgrounds** tab.
+2. **Customize**:
+   - **Layout**: Choose how your info is displayed.
+   - **Background**: Pick a color, gradient, or upload your own image.
+   - **Logo**: Optionally upload your company logo to overlay.
+3. **Download**: Click "Download Background" to save a 1920x1080 PNG.
+4. **Use**: Upload to Zoom/Teams as a custom virtual background.
+
 ---
 
 ## 🏗️ Technical Architecture
@@ -382,6 +421,8 @@ All templates feature:
   - Modal interactions
   - Carousel controls
   - Phone input internationalization
+- **`signature_generator.js`** - Email signature generation logic
+- **`virtual_bg_generator.js`** - Virtual background canvas generation
 
 ### Assets
 
