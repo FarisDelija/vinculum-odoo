@@ -785,7 +785,7 @@
                                             <!-- Images -->
                                             <div style="margin-bottom: 16px;">
                                                 <span style="font-size: 13px; color: #6b7280; display: block; margin-bottom: 8px;">Background Images</span>
-                                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                                <div id="vbg-image-options-container" style="display: flex; flex-wrap: wrap; gap: 8px;">
                                                     <div class="vbg-bg-option vbg-image-option" data-image="office" style="width: 80px; height: 45px; border-radius: 8px; background: url('/qr_code_odoo/static/src/img/virtual_bg/bg_office.jpg') center/cover; cursor: pointer; border: 3px solid transparent;" title="Home Office"></div>
                                                     <div class="vbg-bg-option vbg-image-option" data-image="modern" style="width: 80px; height: 45px; border-radius: 8px; background: url('/qr_code_odoo/static/src/img/virtual_bg/bg_modern.jpg') center/cover; cursor: pointer; border: 3px solid transparent;" title="Modern Shelf"></div>
                                                     <div class="vbg-bg-option vbg-image-option" data-image="minimal" style="width: 80px; height: 45px; border-radius: 8px; background: url('/qr_code_odoo/static/src/img/virtual_bg/bg_minimal.jpg') center/cover; cursor: pointer; border: 3px solid transparent;" title="Minimal Room"></div>

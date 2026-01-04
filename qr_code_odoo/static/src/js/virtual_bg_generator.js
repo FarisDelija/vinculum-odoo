@@ -732,6 +732,61 @@ function setupVbgEventListeners() {
 }
 
 /**
+ * Load dynamic backgrounds from server
+ */
+async function loadDynamicBackgrounds() {
+    try {
+        const response = await fetch('/qr_code_odoo/virtual_bg/list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jsonrpc: '2.0', method: 'call', params: {} })
+        });
+        const result = await response.json();
+
+        if (result.result && result.result.backgrounds) {
+            const container = document.getElementById('vbg-image-options-container');
+            if (!container) return;
+
+            const existingSrcs = new Set(Object.values(BACKGROUND_IMAGES).map(b => b.src));
+
+            result.result.backgrounds.forEach(bg => {
+                if (existingSrcs.has(bg.src)) {
+                    return;
+                }
+
+                // Add to configuration
+                BACKGROUND_IMAGES[bg.key] = {
+                    name: bg.name,
+                    src: bg.src,
+                    textColor: bg.textColor || '#ffffff'
+                };
+
+                // Create DOM element
+                const el = document.createElement('div');
+                el.className = 'vbg-bg-option vbg-image-option';
+                el.dataset.image = bg.key;
+                el.style.width = '80px';
+                el.style.height = '45px';
+                el.style.borderRadius = '8px';
+                el.style.backgroundImage = `url('${bg.src}')`;
+                el.style.backgroundPosition = 'center';
+                el.style.backgroundSize = 'cover';
+                el.style.cursor = 'pointer';
+                el.style.border = '3px solid transparent';
+                el.title = bg.name;
+
+                // Add click listener to new element
+                el.addEventListener('click', () => handleImageSelection(bg.key));
+
+                container.appendChild(el);
+            });
+        }
+    } catch (e) {
+        console.error('Error loading dynamic backgrounds:', e);
+    }
+}
+
+/**
  * Initialize virtual background generator
  */
 async function initVirtualBgGenerator() {
@@ -741,6 +796,9 @@ async function initVirtualBgGenerator() {
     gallery.dataset.initialized = 'true';
     vbgRecordId = getVbgRecordId();
     console.log('Initializing virtual background generator for record:', vbgRecordId);
+
+    // Load dynamic backgrounds from backend
+    await loadDynamicBackgrounds();
 
     if (vbgRecordId) {
         vbgData = await fetchVbgData(vbgRecordId);
