@@ -3091,7 +3091,20 @@ If you'd like to save my info again later, here's my card: {vcard_url}
 
     @api.depends('website_slug')
     def _compute_website_full_url(self):
-        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        # Try to get base URL, but handle transaction errors gracefully
+        try:
+            base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        except Exception:
+            # If we can't access the database (e.g., transaction is aborted), use request URL
+            try:
+                from odoo import request
+                if hasattr(request, 'httprequest') and request.httprequest:
+                    base_url = request.httprequest.host_url.rstrip('/')
+                else:
+                    base_url = 'http://localhost:8069'  # Fallback
+            except:
+                base_url = 'http://localhost:8069'  # Final fallback
+        
         for record in self:
             if record.website_slug:
                 record.website_full_url = base_url + "/" + record.website_slug
@@ -4105,7 +4118,31 @@ If you'd like to save my info again later, here's my card: {vcard_url}
     
     @api.depends('website_slug')
     def _compute_website_full_url(self):
-        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        # Try to get base URL, but handle transaction errors gracefully
+        import psycopg2
+        try:
+            base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        except psycopg2.errors.InFailedSqlTransaction:
+            # If transaction is aborted, we cannot query the database.
+            # Return a placeholder or default URL to avoid crashing.
+            base_url = 'http://localhost:8069'  # Fallback to a generic base URL
+            import logging
+            _logger = logging.getLogger(__name__)
+            _logger.warning("Transaction aborted, using fallback base_url for _compute_website_full_url")
+        except Exception as e:
+            # If we can't access the database for any other reason, use request URL or fallback
+            try:
+                from odoo import request
+                if hasattr(request, 'httprequest') and request.httprequest:
+                    base_url = request.httprequest.host_url.rstrip('/')
+                else:
+                    base_url = 'http://localhost:8069'  # Fallback
+            except:
+                base_url = 'http://localhost:8069'  # Final fallback
+            import logging
+            _logger = logging.getLogger(__name__)
+            _logger.error(f"Error getting base_url in _compute_website_full_url: {e}")
+        
         for record in self:
             if record.website_slug:
                 record.website_full_url = base_url + "/" + record.website_slug

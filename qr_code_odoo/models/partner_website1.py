@@ -126,9 +126,9 @@ class PartnerWebsite(models.Model):
                 if existing_view:
                     # Update the existing view with the dynamic template
                     existing_view.write({'arch_db': template})
-                    # Clear caches
-                    self.env['ir.ui.view'].clear_caches()
-                    self.env['ir.qweb'].clear_caches()
+                    # Clear caches more efficiently - only invalidate specific view
+                    # Use registry.clear_cache() instead of model.clear_caches() for better performance
+                    self.env.registry.clear_cache()
                     view_id = existing_view.id
                 else:
                     # Create a new view with the dynamic template
@@ -1114,7 +1114,7 @@ class PartnerWebsite(models.Model):
                     <div class="p-2 w-100">  <!-- Full width container for each video -->
                         <div class="video-container" style="position: relative;">
                             <iframe width="100%" height="315" 
-                                    t-att-src="partner_video.embed_url + '?rel=0&modestbranding=1&showinfo=0'"
+                                    t-att-src="partner_video.embed_url + '?rel=0&amp;modestbranding=1&amp;showinfo=0'"
                                     frameborder="0" 
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                                     allowfullscreen="true"
@@ -1148,7 +1148,7 @@ class PartnerWebsite(models.Model):
 
             <!-- Social Media Section, shown only if any social media URLs are set -->
 
-                <t t-if="partner.has_socials or partner.whatsapp_url or partner.linkedin_url or partner.linkedin_url_company or partner.youtube_url or partner.facebook_url or partner.facebook_url_company or partner.telegram_url or partner.instagram_url or partner.instagram_url_company or partner.twitter_url or partner.twitter_url_company or partner.github_url or partner.tumblr_url or partner.xing_url or partner.vimeo_url or partner.messenger_url or partner.dribbble_url or partner.skype_url or partner.doordash_url or partner.tripadvisor_url or partner.yelp_url or partner.google_reviews_url or partner.ubereats_url or partner.line_url or partner.vkontakte_url or partner.reddit_url or partner.viber_url or partner.pinterest_url or partner.tiktok_url or partner.snapchat_url or partner.signal_url">
+                <t t-if="partner.has_socials">
                     <section class="s_text_block o_colored_level pt0 pb0"
                              t-att-style="'background-color: ' + (partner.primary_color or '#fff') + '; text-align: center;'">
                         <h4 t-att-style="'color: ' + (partner.secondary_color or '#000')">Socials</h4>
@@ -2562,7 +2562,7 @@ class PartnerWebsite(models.Model):
             </t>
             
             <!-- Social Media Section -->
-            <t t-if="partner.has_socials or partner.whatsapp_url or partner.linkedin_url or partner.linkedin_url_company or partner.youtube_url or partner.facebook_url or partner.facebook_url_company or partner.telegram_url or partner.instagram_url or partner.instagram_url_company or partner.twitter_url or partner.twitter_url_company or partner.github_url or partner.tumblr_url or partner.xing_url or partner.vimeo_url or partner.messenger_url or partner.dribbble_url or partner.skype_url or partner.doordash_url or partner.tripadvisor_url or partner.yelp_url or partner.google_reviews_url or partner.ubereats_url or partner.line_url or partner.vkontakte_url or partner.reddit_url or partner.viber_url or partner.pinterest_url or partner.tiktok_url or partner.snapchat_url or partner.signal_url">
+            <t t-if="partner.has_socials">
                 <section class="s_text_block o_colored_level pt0 pb0"
                          t-att-style="'background-color: ' + (partner.primary_color or '#ffffff') + '; padding: 12px 0;'">
                     <div class="s_allow_columns container" style="max-width: 600px; margin: 0 auto; padding: 0 16px;">
@@ -2827,7 +2827,7 @@ class PartnerWebsite(models.Model):
                             <t t-foreach="partner.video_ids" t-as="partner_video">
                                 <div class="video-container" style="position: relative; width: 100%; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                                     <iframe width="100%" height="315" 
-                                            t-att-src="partner_video.embed_url + '?rel=0&modestbranding=1&showinfo=0'"
+                                            t-att-src="partner_video.embed_url + '?rel=0&amp;modestbranding=1&amp;showinfo=0'"
                                             frameborder="0" 
                                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                                             allowfullscreen="true"
@@ -3621,7 +3621,7 @@ class PartnerWebsite(models.Model):
                                             style="flex: 1; padding: 12px 8px; background: none; border: none; border-bottom: 2px solid transparent; font-size: 0.875rem; font-weight: 500; cursor: pointer; white-space: nowrap; color: #6b7280;">
                                         About
                                     </button>
-                                    <t t-if="partner.has_socials or partner.whatsapp_url or partner.linkedin_url or partner.linkedin_url_company or partner.youtube_url or partner.facebook_url or partner.facebook_url_company or partner.telegram_url or partner.instagram_url or partner.instagram_url_company or partner.twitter_url or partner.twitter_url_company or partner.github_url or partner.tumblr_url or partner.xing_url or partner.vimeo_url or partner.messenger_url or partner.dribbble_url or partner.skype_url or partner.doordash_url or partner.tripadvisor_url or partner.yelp_url or partner.google_reviews_url or partner.ubereats_url or partner.line_url or partner.vkontakte_url or partner.reddit_url or partner.viber_url or partner.pinterest_url or partner.tiktok_url or partner.snapchat_url or partner.signal_url">
+                                    <t t-if="partner.has_socials">
                                         <button class="minimal-tab-btn" 
                                                 data-tab="social"
                                                 style="flex: 1; padding: 12px 8px; background: none; border: none; border-bottom: 2px solid transparent; font-size: 0.875rem; font-weight: 500; cursor: pointer; white-space: nowrap; color: #6b7280;">
@@ -4668,7 +4668,7 @@ class PartnerWebsite(models.Model):
             </section>
             
             <!-- Social Media Section -->
-            <t t-if="partner.has_socials or partner.whatsapp_url or partner.linkedin_url or partner.linkedin_url_company or partner.youtube_url or partner.facebook_url or partner.facebook_url_company or partner.telegram_url or partner.instagram_url or partner.instagram_url_company or partner.twitter_url or partner.twitter_url_company or partner.github_url or partner.tumblr_url or partner.xing_url or partner.vimeo_url or partner.messenger_url or partner.dribbble_url or partner.skype_url or partner.doordash_url or partner.tripadvisor_url or partner.yelp_url or partner.google_reviews_url or partner.ubereats_url or partner.line_url or partner.vkontakte_url or partner.reddit_url or partner.viber_url or partner.pinterest_url or partner.tiktok_url or partner.snapchat_url or partner.signal_url">
+            <t t-if="partner.has_socials">
                 <section class="s_text_block o_colored_level pt0 pb0"
                          t-att-style="'background-color: ' + (partner.primary_color or '#ffffff') + '; padding: 0;'">
                     <div class="s_allow_columns container" style="max-width: 1000px; margin: 0 auto; padding: 0 16px;">

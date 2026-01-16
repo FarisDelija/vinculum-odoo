@@ -587,9 +587,9 @@
                     <!-- Preview iframe -->
                     <iframe id="vcard-preview-iframe" 
                             src="about:blank"
-                            style="width: 125%; height: 125%; border: none; transform: scale(0.8); transform-origin: top left; display: block;"
+                            style="width: 125%; height: 2000px; min-height: 2000px; border: none; transform: scale(0.8); transform-origin: top left; display: block;"
                             frameborder="0"
-                            scrolling="no">
+                            scrolling="yes">
                     </iframe>
                     <!-- Loading indicator -->
                     <div id="preview-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #999; z-index: 10;">
@@ -1505,6 +1505,25 @@
                     }
                     return response.json();
                   })
+                  .catch(error => {
+                    console.error('Preview request failed:', error);
+                    if (loadingIndicator) {
+                      loadingIndicator.innerHTML = '';
+                      const errorIcon = document.createElement('i');
+                      errorIcon.className = 'fa fa-exclamation-triangle';
+                      errorIcon.style.fontSize = '24px';
+                      errorIcon.style.marginBottom = '10px';
+                      errorIcon.style.color = '#dc3545';
+                      loadingIndicator.appendChild(errorIcon);
+                      const errorText = document.createElement('p');
+                      errorText.style.fontSize = '12px';
+                      errorText.style.margin = '0';
+                      errorText.style.color = '#dc3545';
+                      errorText.textContent = 'Failed to generate preview: ' + error.message;
+                      loadingIndicator.appendChild(errorText);
+                    }
+                    throw error; // Re-throw to prevent further processing
+                  })
                 .then(response => {
                   console.log('Preview response:', response);
                   // Handle JSON-RPC response format (Odoo wraps responses)
@@ -1522,31 +1541,64 @@
                       
                       // Set up load handlers before setting src
                       let loadTimeout = setTimeout(function() {
-                        console.warn('Preview iframe load timeout');
+                        console.warn('Preview iframe load timeout after 10 seconds');
+                        // Check if iframe actually loaded content
+                        try {
+                          const iframeDoc = previewIframe.contentDocument || previewIframe.contentWindow.document;
+                          if (iframeDoc && iframeDoc.body && iframeDoc.body.innerHTML.trim()) {
+                            // Content loaded, just hide loading indicator
+                            if (loadingIndicator) {
+                              loadingIndicator.style.display = 'none';
+                            }
+                            return;
+                          }
+                        } catch (e) {
+                          // Cross-origin or other error - can't access iframe content
+                          console.warn('Cannot access iframe content (may be cross-origin):', e);
+                        }
+                        
+                        // Show error if still loading after timeout
                         if (loadingIndicator) {
                           loadingIndicator.innerHTML = '';
-                          const spinnerIcon = document.createElement('i');
-                          spinnerIcon.className = 'fa fa-spinner fa-spin';
-                          spinnerIcon.style.fontSize = '24px';
-                          spinnerIcon.style.marginBottom = '10px';
-                          loadingIndicator.appendChild(spinnerIcon);
-                          const loadingText = document.createElement('p');
-                          loadingText.style.fontSize = '12px';
-                          loadingText.style.margin = '0';
-                          loadingText.textContent = 'Loading preview...';
-                          loadingIndicator.appendChild(loadingText);
+                          const errorIcon = document.createElement('i');
+                          errorIcon.className = 'fa fa-exclamation-triangle';
+                          errorIcon.style.fontSize = '24px';
+                          errorIcon.style.marginBottom = '10px';
+                          errorIcon.style.color = '#dc3545';
+                          loadingIndicator.appendChild(errorIcon);
+                          const errorText = document.createElement('p');
+                          errorText.style.fontSize = '12px';
+                          errorText.style.margin = '0';
+                          errorText.style.color = '#dc3545';
+                          errorText.textContent = 'Preview failed to load. Check browser console for errors.';
+                          loadingIndicator.appendChild(errorText);
                         }
-                      }, 3000);
+                      }, 10000); // Increased to 10 seconds
                       
                       previewIframe.onload = function() {
                         clearTimeout(loadTimeout);
                         console.log('Preview iframe loaded successfully');
-                        if (loadingIndicator) {
-                          loadingIndicator.style.display = 'none';
-                        }
+                        // Double-check content is actually there
+                        setTimeout(function() {
+                          try {
+                            const iframeDoc = previewIframe.contentDocument || previewIframe.contentWindow.document;
+                            if (iframeDoc && iframeDoc.body && iframeDoc.body.innerHTML.trim()) {
+                              if (loadingIndicator) {
+                                loadingIndicator.style.display = 'none';
+                              }
+                            } else {
+                              console.warn('Iframe loaded but content appears empty');
+                            }
+                          } catch (e) {
+                            // Cross-origin - assume it loaded if onload fired
+                            if (loadingIndicator) {
+                              loadingIndicator.style.display = 'none';
+                            }
+                          }
+                        }, 500);
                       };
                       
-                      // Handle iframe load errors
+                      // Handle iframe load errors (note: this doesn't always fire for iframes)
                       previewIframe.onerror = function() {
                         clearTimeout(loadTimeout);
                         console.error('Iframe load error');
@@ -1569,7 +1621,7 @@
                       
                       // Set the src to load the preview
                       previewIframe.src = previewUrl;
-                    }, 1000); // Increased delay to 1 second
+                    }, 200); // Reduced delay for faster preview loading
                   } else {
                     // Better error logging
                     let errorDetails = '';
@@ -2005,12 +2057,20 @@
                 nameInput.addEventListener('input', autoFillSlugFromName);
                 
                 // Also trigger on page load if name is pre-filled (with multiple attempts to catch late-loading values)
+                // Limit retry attempts to prevent infinite loops
+                let autoFillAttempts = 0;
+                const maxAutoFillAttempts = 3;
+                
                 function tryAutoFillOnLoad() {
+                  if (autoFillAttempts >= maxAutoFillAttempts) {
+                    return; // Stop after max attempts
+                  }
+                  autoFillAttempts++;
                   const nameVal = nameInput.value.trim();
                   if (nameVal && !slugField.value && !slugManuallyEdited) {
                     autoFillSlugFromName();
-                  } else if (nameVal && !slugField.value) {
-                    // Try again after a delay in case value was set late
+                  } else if (!nameVal && autoFillAttempts < maxAutoFillAttempts) {
+                    // Only retry if name is still empty and we haven't exceeded max attempts
                     setTimeout(tryAutoFillOnLoad, 500);
                   }
                 }
@@ -2018,9 +2078,9 @@
                 // Try immediately
                 tryAutoFillOnLoad();
                 
-                // Also try after delays to catch late-loading default values
-                setTimeout(tryAutoFillOnLoad, 500);
-                setTimeout(tryAutoFillOnLoad, 1500);
+                // Also try after delays to catch late-loading default values (but limit attempts)
+                setTimeout(() => { if (autoFillAttempts < maxAutoFillAttempts) tryAutoFillOnLoad(); }, 500);
+                setTimeout(() => { if (autoFillAttempts < maxAutoFillAttempts) tryAutoFillOnLoad(); }, 1500);
                 
                 // Also trigger when name field gets focus (in case user clicks on it)
                 nameInput.addEventListener('focus', function() {

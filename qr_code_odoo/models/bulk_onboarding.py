@@ -491,7 +491,7 @@ class BulkOnboardingBatch(models.Model):
             'company_name': common_data.get('company_name', ''),
             'website': common_data.get('company_website', ''),
             'about': rep_data.get('about', '').strip() or common_data.get('default_about', ''),
-            'primary_color': common_data.get('brand_color', '#4C75A3'),  # Default to Vinc blue
+            'primary_color': '#ffffff',  # Always white for backgrounds
             'secondary_color': common_data.get('brand_color', '#4C75A3'),  # Default to Vinc blue
             'website_template': common_data.get('website_template', 'modern'),
             'qr_pattern': common_data.get('qr_pattern', 'square'),

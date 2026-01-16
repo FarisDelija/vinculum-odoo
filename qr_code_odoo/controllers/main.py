@@ -1234,46 +1234,63 @@ class VCardFormController(http.Controller):
             # For type='json' routes, Odoo automatically parses JSON into request.jsonrequest
             # Also check kwargs as fallback
             data = request.jsonrequest if hasattr(request, 'jsonrequest') and request.jsonrequest else kwargs
-            slug = data.get('slug', '').strip() if isinstance(data, dict) else ''
+            
+            # Debug logging
+            _logger.info(f"Slug check request - jsonrequest: {request.jsonrequest if hasattr(request, 'jsonrequest') else 'N/A'}, kwargs: {kwargs}")
+            
+            # Try multiple ways to get the slug
+            slug = ''
+            if isinstance(data, dict):
+                slug = data.get('slug', '').strip()
+            elif isinstance(request.jsonrequest, dict):
+                slug = request.jsonrequest.get('slug', '').strip()
+            elif kwargs:
+                slug = kwargs.get('slug', '').strip()
+            
+            # If still no slug, try to parse from raw request body
+            if not slug and hasattr(request, 'httprequest') and request.httprequest.data:
+                try:
+                    import json
+                    raw_data = json.loads(request.httprequest.data.decode('utf-8'))
+                    if isinstance(raw_data, dict):
+                        slug = raw_data.get('slug', '').strip()
+                except:
+                    pass
+            
+            _logger.info(f"Extracted slug: '{slug}'")
             
             if not slug:
+                _logger.warning("No slug provided in request")
                 return {'available': False, 'error': 'No slug provided'}
             
-            # Use raw SQL to check vcards, but EXCLUDE preview vCards (they're temporary)
-            request.env.cr.execute("""
-                SELECT id, name, website_slug
-                FROM partner_vcard 
-                WHERE website_slug = %s
-                AND website_slug NOT LIKE 'preview-%'
-                LIMIT 1
-            """, (slug,))
+            # Use ORM to check vcards, but EXCLUDE preview vCards (they're temporary)
+            # This is safer than raw SQL and avoids tuple unpacking issues
+            existing_vcard = request.env['partner.vcard'].sudo().search([
+                ('website_slug', '=', slug),
+                ('website_slug', 'not like', 'preview-%')
+            ], limit=1)
             
-            existing = request.env.cr.fetchone()
+            _logger.info(f"Slug availability check for '{slug}' (ORM, excluding previews): exists={bool(existing_vcard)}")
             
-            _logger.info(f"Slug availability check for '{slug}' (raw SQL, excluding previews): exists={bool(existing)}")
-            
-            if existing:
-                vcard_id, vcard_name, vcard_slug = existing
-                _logger.info(f"  Found existing vCard via SQL: ID={vcard_id}, Name={vcard_name}, Slug={vcard_slug}")
+            if existing_vcard:
+                _logger.info(f"  Found existing vCard: ID={existing_vcard.id}, Name={existing_vcard.name}, Slug={existing_vcard.website_slug}")
                 
-                # Slug is taken, suggest an alternative using SQL (also exclude previews)
+                # Slug is taken, suggest an alternative using ORM (also exclude previews)
                 counter = 2
                 suggestion = f"{slug}-{counter}"
                 
-                # Check suggestions using SQL too (excluding previews)
+                # Check suggestions using ORM too (excluding previews)
                 while counter < 100:  # Safety limit
-                    request.env.cr.execute("""
-                        SELECT id FROM partner_vcard 
-                        WHERE website_slug = %s 
-                        AND website_slug NOT LIKE 'preview-%'
-                        LIMIT 1
-                    """, (suggestion,))
-                    if not request.env.cr.fetchone():
+                    suggestion_exists = request.env['partner.vcard'].sudo().search([
+                        ('website_slug', '=', suggestion),
+                        ('website_slug', 'not like', 'preview-%')
+                    ], limit=1)
+                    if not suggestion_exists:
                         break
                     counter += 1
                     suggestion = f"{slug}-{counter}"
                 
-                _logger.info(f"  Suggesting alternative: {suggestion} (all existing slugs checked via SQL, excluding previews)")
+                _logger.info(f"  Suggesting alternative: {suggestion} (all existing slugs checked via ORM, excluding previews)")
                 
                 return {
                     'available': False,
@@ -1339,7 +1356,7 @@ class VCardFormController(http.Controller):
                 'calendly_url': data.get('calendly_url', ''),
                 'website_slug': preview_slug,
                 'about': data.get('about') or 'Tell people about yourself...',
-                'primary_color': data.get('primary_color') or '#4C75A3',  # Default to Vinc blue
+                'primary_color': data.get('primary_color') or '#ffffff',  # Default to white for backgrounds
                 'secondary_color': data.get('secondary_color') or '#4C75A3',  # Default to Vinc blue
                 'website_template': data.get('website_template', 'modern'),
                 'whatsapp_url': data.get('whatsapp_url', ''),
@@ -1429,17 +1446,66 @@ class VCardFormController(http.Controller):
             video_urls = data.get('video_url', []) if isinstance(data.get('video_url'), list) else (data.get('video_url') and [data.get('video_url')] or [])
             video_names = data.get('video_name', []) if isinstance(data.get('video_name'), list) else (data.get('video_name') and [data.get('video_name')] or [])
             
-            # Create or update preview vCard
-            if preview_vcard:
-                preview_vcard.sudo().write(vals)
-                vcard = preview_vcard
-            else:
-                vcard = request.env['partner.vcard'].sudo().with_context(skip_vcard_limit_check=True).create(vals)
+            # Create or update preview vCard with retry logic for concurrent updates
+            import psycopg2
+            import time
+            max_retries = 3
+            retry_count = 0
+            vcard = None
+            
+            while retry_count < max_retries:
+                try:
+                    # Use savepoint for each attempt to isolate failures
+                    with request.env.cr.savepoint():
+                        if preview_vcard:
+                            preview_vcard.sudo().write(vals)
+                            vcard = preview_vcard
+                        else:
+                            vcard = request.env['partner.vcard'].sudo().with_context(skip_vcard_limit_check=True).create(vals)
+                    break  # Success, exit retry loop
+                except psycopg2.errors.SerializationFailure as e:
+                    retry_count += 1
+                    request.env.cr.rollback()  # Rollback the failed transaction
+                    
+                    if retry_count >= max_retries:
+                        _logger.warning(f"Failed to update preview vCard after {max_retries} retries due to concurrent updates")
+                        # Last attempt: ensure clean transaction state
+                        request.env.cr.rollback()
+                        # Refresh the preview vCard to get latest state
+                        preview_vcard = request.env['partner.vcard'].sudo().search([
+                            ('website_slug', '=', preview_slug)
+                        ], limit=1)
+                        try:
+                            if preview_vcard:
+                                preview_vcard.sudo().write(vals)
+                                vcard = preview_vcard
+                            else:
+                                vcard = request.env['partner.vcard'].sudo().with_context(skip_vcard_limit_check=True).create(vals)
+                            break
+                        except Exception as final_e:
+                            _logger.error(f"Final retry attempt failed: {final_e}", exc_info=True)
+                            return {'success': False, 'error': 'Failed to create/update preview due to concurrent access. Please try again.'}
+                    else:
+                        _logger.info(f"Retrying preview vCard update (attempt {retry_count + 1}/{max_retries}) due to concurrent update")
+                        # Exponential backoff with jitter
+                        time.sleep(0.1 * (2 ** retry_count) + (time.time() % 0.1))
+                        # Refresh the preview vCard to get latest state
+                        preview_vcard = request.env['partner.vcard'].sudo().search([
+                            ('website_slug', '=', preview_slug)
+                        ], limit=1)
+                except Exception as e:
+                    # For other errors, don't retry
+                    _logger.error(f"Error updating preview vCard: {e}", exc_info=True)
+                    request.env.cr.rollback()
+                    return {'success': False, 'error': str(e)}
+            
+            if not vcard:
+                _logger.error(f"Failed to create/update preview vCard for slug '{preview_slug}' after {max_retries} retries.")
+                return {'success': False, 'error': 'Failed to create/update preview due to concurrent access. Please try again.'}
             
             # Ensure banner attachment is created/updated if banner_image was set (including default)
             if vals.get('banner_image'):
                 vcard.sudo()._update_banner_attachment_if_image_changed()
-                request.env.cr.flush()
             
             # Handle websites data for preview
             if website_urls and website_urls[0]:
@@ -1466,7 +1532,6 @@ class VCardFormController(http.Controller):
                 
                 if website_data:
                     request.env['partner.vcard.website'].sudo().create(website_data)
-                    request.env.cr.commit()
             
             # Handle videos data for preview
             if video_urls and video_urls[0]:
@@ -1487,19 +1552,19 @@ class VCardFormController(http.Controller):
                 
                 if video_data:
                     request.env['partner.vcard.videos'].sudo().create(video_data)
-                    request.env.cr.commit()
             
-            # Generate the website page
+            # Generate the website page (optimized for preview - single commit at end)
             if hasattr(vcard, 'action_generate_website_page'):
                 try:
                     vcard.action_generate_website_page()
-                    # Commit to ensure the website page is saved
-                    request.env.cr.commit()
                     _logger.info(f"Preview website generated successfully for vCard {vcard.id} (slug: {preview_slug})")
                 except Exception as e:
                     _logger.error(f"Error generating preview website: {str(e)}", exc_info=True)
                     # Don't return error - just log it and continue (suppress errors in preview)
                     pass
+            
+            # Single commit at the end for better performance
+            request.env.cr.commit()
             
             # Verify the website page exists and is published
             website_page = request.env['website.page'].sudo().search([
@@ -1658,7 +1723,7 @@ class VCardFormController(http.Controller):
             'calendly_url': post.get('calendly_url'),
             'website_slug': post.get('website_slug'),
             'about': post.get('about'),
-            'primary_color': post.get('primary_color', '#4C75A3'),  # Default to Vinc blue
+            'primary_color': post.get('primary_color', '#ffffff'),  # Default to white for backgrounds
             'secondary_color': post.get('secondary_color', '#4C75A3'),  # Default to Vinc blue
             'website_template': post.get('website_template', 'classic'),  # Default to classic if not provided
             'whatsapp_url': post.get('whatsapp_url'),
