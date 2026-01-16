@@ -877,6 +877,17 @@ class PartnerVCard(models.Model):
         default="<p>Hi {contact_name},</p><p>Great meeting you today. I'm {owner_name} (cc'd), here's my info and how to reach me:</p><p><strong>Email:</strong> {owner_email}<br/><strong>Phone:</strong> {owner_phone}<br/><strong>My vCard:</strong> <a href='{vcard_url}'>{vcard_url}</a></p>{if booking_url}<p>If you'd like to schedule a time to connect, you can book a slot here:</p><p><a href='{booking_url}'>{booking_url}</a></p>{/if}<p>Looking forward to connecting!<br/>{owner_name}</p>",
         help="HTML email template for the introduction email. Use placeholders like {contact_name}, {first_name}, {vcard_url}, {booking_url}, {owner_name}, {owner_email}, {owner_phone}. Use {placeholder|fallback} for fallback values. Use {if field}...{/if} for conditional blocks."
     )
+    auto_show_lead_form = fields.Boolean(
+        string="Auto-show lead collection form",
+        default=False,
+        help="Automatically open the lead collection form when visitors open the vCard. Only works if lead collection form is enabled."
+    )
+    auto_download_vcard = fields.Boolean(
+        string="Auto-download vCard for visitors",
+        default=False,
+        help="Automatically start downloading the vCard file when visitors open the vCard page."
+    )
+
     
     # Follow-up Reminders Configuration
     followup_reminders_enabled = fields.Boolean(

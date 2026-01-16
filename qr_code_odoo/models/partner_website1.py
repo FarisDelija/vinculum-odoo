@@ -607,7 +607,11 @@ class PartnerWebsite(models.Model):
                 <!-- Main content with responsive width constraint and top padding -->
                 <div id="wrap" class="oe_structure oe_empty"
                      t-att-style="partner.primary_color and 'background-color: ' + partner.primary_color or ''"
+                     t-att-data-auto-show-lead="str(partner.auto_show_lead_form and partner.show_form and (request.env.user._is_public() or request.env.user.share)).lower()"
+                     t-att-data-auto-download-vcard="str(partner.auto_download_vcard and (request.env.user._is_public() or request.env.user.share)).lower()"
+                     t-att-data-vcard-download-url="'/website/vcard/download/' + str(partner.id)"
                      style="text-align: center; font-family: 'Poppins', sans-serif; padding-top: 0;">
+
                 
                 <!-- Responsive container with max-width -->
                 <div class="container-fluid" style="max-width: 800px; margin: 0 auto; padding: 0; overflow: visible;">
@@ -2274,8 +2278,31 @@ class PartnerWebsite(models.Model):
             
             // Run on window resize as well
             window.addEventListener('resize', removeScrollbars);
+            
+            // Auto-show lead form feature
+            var wrapDiv = document.getElementById('wrap');
+            if (wrapDiv) {{
+                var autoShowLead = wrapDiv.getAttribute('data-auto-show-lead');
+                if (autoShowLead === 'true') {{
+                    setTimeout(function() {{
+                        $('#leadModal').modal('show');
+                    }}, 500);
+                }}
+                
+                // Auto-download vCard feature
+                var autoDownloadVcard = wrapDiv.getAttribute('data-auto-download-vcard');
+                if (autoDownloadVcard === 'true') {{
+                    setTimeout(function() {{
+                        var downloadUrl = wrapDiv.getAttribute('data-vcard-download-url');
+                        if (downloadUrl) {{
+                            window.location.href = downloadUrl;
+                        }}
+                    }}, 800);
+                }}
+            }}
         }});
     </script>
+
     
 </t>
 </t>
@@ -2329,7 +2356,11 @@ class PartnerWebsite(models.Model):
                 <!-- Main content -->
                 <div id="wrap" class="oe_structure oe_empty"
                      t-att-style="partner.primary_color and 'background-color: ' + partner.primary_color or ''"
+                     t-att-data-auto-show-lead="str(partner.auto_show_lead_form and partner.show_form and (request.env.user._is_public() or request.env.user.share)).lower()"
+                     t-att-data-auto-download-vcard="str(partner.auto_download_vcard and (request.env.user._is_public() or request.env.user.share)).lower()"
+                     t-att-data-vcard-download-url="'/website/vcard/download/' + str(partner.id)"
                      style="text-align: center; font-family: 'Poppins', sans-serif; padding-top: 0;">
+
                 
                 <!-- Responsive container -->
                 <div class="container-fluid" style="max-width: 800px; margin: 0 auto; padding: 0; overflow: visible;">
@@ -3294,8 +3325,31 @@ class PartnerWebsite(models.Model):
                             }}
                         }}, 500);
                     }}
+                    
+                    // Auto-show lead form feature
+                    var wrapDiv = document.getElementById('wrap');
+                    if (wrapDiv) {{
+                        var autoShowLead = wrapDiv.getAttribute('data-auto-show-lead');
+                        if (autoShowLead === 'true') {{
+                            setTimeout(function() {{
+                                $('#leadModal').modal('show');
+                            }}, 500);
+                        }}
+                        
+                        // Auto-download vCard feature
+                        var autoDownloadVcard = wrapDiv.getAttribute('data-auto-download-vcard');
+                        if (autoDownloadVcard === 'true') {{
+                            setTimeout(function() {{
+                                var downloadUrl = wrapDiv.getAttribute('data-vcard-download-url');
+                                if (downloadUrl) {{
+                                    window.location.href = downloadUrl;
+                                }}
+                            }}, 800);
+                        }}
+                    }}
                 }});
             </script>
+
             
             <!-- Modal and Carousel CSS -->
             <style>
@@ -3533,7 +3587,11 @@ class PartnerWebsite(models.Model):
             <!-- Use custom vCard layout without header and footer -->
             <t t-call="qr_code_odoo.vcard_layout">
                 <div id="wrap" class="oe_structure oe_empty vcard-template-minimal"
-                     t-att-style="'text-align: center; font-family: Poppins, sans-serif; padding-top: 0; background-color: ' + (partner.primary_color or '#ffffff') + ';'">
+                     t-att-style="'text-align: center; font-family: Poppins, sans-serif; padding-top: 0; background-color: ' + (partner.primary_color or '#ffffff') + ';'"
+                     t-att-data-auto-show-lead="str(partner.auto_show_lead_form and partner.show_form and (request.env.user._is_public() or request.env.user.share)).lower()"
+                     t-att-data-auto-download-vcard="str(partner.auto_download_vcard and (request.env.user._is_public() or request.env.user.share)).lower()"
+                     t-att-data-vcard-download-url="'/website/vcard/download/' + str(partner.id)">
+
                 
                     <div class="container-fluid" style="max-width: 600px; margin: 0 auto; padding: 0;">
                         
@@ -4430,7 +4488,30 @@ class PartnerWebsite(models.Model):
                                     'color': '#6b7280'
                                 }});
                             }});
+                            
+                            // Auto-show lead form feature
+                            var wrapDiv = document.getElementById('wrap');
+                            if (wrapDiv) {{
+                                var autoShowLead = wrapDiv.getAttribute('data-auto-show-lead');
+                                if (autoShowLead === 'true') {{
+                                    setTimeout(function() {{
+                                        $('#leadModal').modal('show');
+                                    }}, 500);
+                                }}
+                                
+                                // Auto-download vCard feature
+                                var autoDownloadVcard = wrapDiv.getAttribute('data-auto-download-vcard');
+                                if (autoDownloadVcard === 'true') {{
+                                    setTimeout(function() {{
+                                        var downloadUrl = wrapDiv.getAttribute('data-vcard-download-url');
+                                        if (downloadUrl) {{
+                                            window.location.href = downloadUrl;
+                                        }}
+                                    }}, 800);
+                                }}
+                            }}
                         }});
+
                         </script>
                         
                         <!-- Calendly Widget Script -->
@@ -4494,7 +4575,11 @@ class PartnerWebsite(models.Model):
                 <!-- Main content -->
                 <div id="wrap" class="oe_structure oe_empty vcard-template-corporate"
                      t-att-style="partner.primary_color and 'background-color: ' + partner.primary_color or ''"
+                     t-att-data-auto-show-lead="str(partner.auto_show_lead_form and partner.show_form and (request.env.user._is_public() or request.env.user.share)).lower()"
+                     t-att-data-auto-download-vcard="str(partner.auto_download_vcard and (request.env.user._is_public() or request.env.user.share)).lower()"
+                     t-att-data-vcard-download-url="'/website/vcard/download/' + str(partner.id)"
                      style="text-align: left; font-family: 'Poppins', sans-serif; padding-top: 0;">
+
                 
                 <!-- Responsive container -->
                 <div class="container-fluid" style="max-width: 1000px; margin: 0 auto; padding: 0; overflow: visible;">
@@ -5839,6 +5924,28 @@ class PartnerWebsite(models.Model):
                        }}, 500);
                    }}
                }});
+
+               // Auto-show lead form feature
+               var wrapDiv = document.getElementById('wrap');
+               if (wrapDiv) {{
+                   var autoShowLead = wrapDiv.getAttribute('data-auto-show-lead');
+                   if (autoShowLead === 'true') {{
+                       setTimeout(function() {{
+                           $('#leadModal').modal('show');
+                       }}, 500);
+                   }}
+                   
+                   // Auto-download vCard feature
+                   var autoDownloadVcard = wrapDiv.getAttribute('data-auto-download-vcard');
+                   if (autoDownloadVcard === 'true') {{
+                       setTimeout(function() {{
+                           var downloadUrl = wrapDiv.getAttribute('data-vcard-download-url');
+                           if (downloadUrl) {{
+                               window.location.href = downloadUrl;
+                           }}
+                       }}, 800);
+                   }}
+               }}
            </script>
            
         </t>

@@ -497,11 +497,20 @@ async function drawCorporateLayout(ctx, data) {
 /**
  * Generate the full background canvas
  */
-async function generateBackground() {
+async function generateBackground(flip = true) {
     const canvas = document.createElement('canvas');
     canvas.width = BG_WIDTH;
     canvas.height = BG_HEIGHT;
     const ctx = canvas.getContext('2d');
+
+    // Flip horizontally to compensate for meeting platform mirroring
+    // Meeting platforms (Zoom/Teams/Google Meet) flip the image, so we flip it here
+    // so it appears correctly when they flip it back
+    if (flip) {
+        ctx.save();
+        ctx.translate(BG_WIDTH, 0);
+        ctx.scale(-1, 1);
+    }
 
     drawBackground(ctx, currentBgType, currentBgValue, currentBgImage);
 
@@ -511,6 +520,10 @@ async function generateBackground() {
         case 'corporate': await drawCorporateLayout(ctx, vbgData); break;
         case 'classic':
         default: await drawClassicLayout(ctx, vbgData); break;
+    }
+
+    if (flip) {
+        ctx.restore();
     }
 
     return canvas;
@@ -526,7 +539,7 @@ async function updateVbgPreview() {
     previewContainer.innerHTML = '<p style="color: #9ca3af; font-style: italic;">Generating preview...</p>';
 
     try {
-        const canvas = await generateBackground();
+        const canvas = await generateBackground(true);
         const previewCanvas = document.createElement('canvas');
         const maxWidth = 640;
         const scale = maxWidth / BG_WIDTH;
@@ -555,7 +568,7 @@ async function downloadVbgBackground() {
     if (btn) btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Generating...';
 
     try {
-        const canvas = await generateBackground();
+        const canvas = await generateBackground(true); // Flipped for meeting platforms
         canvas.toBlob((blob) => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -571,6 +584,41 @@ async function downloadVbgBackground() {
     } catch (error) {
         console.error('Error downloading background:', error);
         if (btn) btn.innerHTML = '<i class="fa fa-download"></i> Download Background (1920×1080)';
+    }
+}
+
+/**
+ * Download the background as PNG (non-flipped version)
+ */
+async function downloadVbgBackgroundNonFlipped() {
+    const btn = document.getElementById('download-vbg-btn-nonflipped');
+    if (btn) {
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Generating...';
+    }
+
+    try {
+        const canvas = await generateBackground(false); // Non-flipped version
+
+        // Convert to blob and download
+        canvas.toBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `vinc-background-${currentLayout}-original-${Date.now()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            if (btn) {
+                btn.innerHTML = '<i class="fa fa-download"></i> Download Original (1920×1080)';
+            }
+        }, 'image/png');
+    } catch (error) {
+        console.error('Error downloading background:', error);
+        if (btn) {
+            btn.innerHTML = '<i class="fa fa-download"></i> Download Original (1920×1080)';
+        }
     }
 }
 
@@ -720,13 +768,23 @@ function setupVbgEventListeners() {
         }
     });
 
-    // Download button
+    // Download button (flipped for meeting platforms)
     const downloadBtn = document.getElementById('download-vbg-btn');
     if (downloadBtn) {
         downloadBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
             downloadVbgBackground();
+        });
+    }
+
+    // Download button (non-flipped)
+    const downloadBtnNonFlipped = document.getElementById('download-vbg-btn-nonflipped');
+    if (downloadBtnNonFlipped) {
+        downloadBtnNonFlipped.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            downloadVbgBackgroundNonFlipped();
         });
     }
 }

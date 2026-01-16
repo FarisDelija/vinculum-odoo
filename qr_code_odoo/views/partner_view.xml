@@ -155,6 +155,17 @@
         <i class="fa fa-lock"/> <strong>Upgrade Required:</strong> Intro emails are available on Grow and Scale plans.
     </div>
     
+
+    
+    <field name="auto_show_lead_form" string="Auto-show lead collection form" 
+           invisible="show_form != True"
+           widget="boolean_toggle"
+           help="Automatically open the lead collection form when visitors open the vCard. Only works if lead collection form is enabled."/>
+    
+    <field name="auto_download_vcard" string="Auto-download vCard for visitors" 
+           widget="boolean_toggle"
+           help="Automatically start downloading the vCard file when visitors open the vCard page."/>
+    
     <field name="intro_email_template" string="Intro email template" 
            invisible="show_form != True or intro_email_enabled != True"
            widget="html"
@@ -169,6 +180,7 @@
                 help="Preview how your intro email will look with sample data"/>
     </div>
 </group>
+
 
                         <group string="Instant Lead-Back Settings" col="2" invisible="show_form != True">
     <!-- Section A: Automation Settings -->
@@ -822,13 +834,18 @@
                                             </div>
                                         </div>
                                         
-                                        <!-- Download Button -->
-                                        <div id="download-vbg-btn" style="width: 100%; padding: 14px 24px; background: linear-gradient(14deg, rgba(76, 117, 163, 1) 0%, rgba(60, 146, 232, 1) 50%, rgba(69, 126, 184, 1) 100%); color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(60, 146, 232, 0.3); text-align: center;">
+                                        <!-- Download Buttons -->
+                                        <div id="download-vbg-btn" style="width: 100%; padding: 14px 24px; background: linear-gradient(14deg, rgba(76, 117, 163, 1) 0%, rgba(60, 146, 232, 1) 50%, rgba(69, 126, 184, 1) 100%); color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(60, 146, 232, 0.3); text-align: center; margin-bottom: 10px;">
                                             <i class="fa fa-download"></i> Download Background (1920×1080)
                                         </div>
                                         
-                                        <p style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 12px;">
-                                            PNG format, works with Zoom, Teams, Google Meet
+                                        <div id="download-vbg-btn-nonflipped" style="width: 100%; padding: 14px 24px; background: #f3f4f6; color: #374151; border: 2px solid #d1d5db; border-radius: 8px; font-weight: 600; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-align: center;">
+                                            <i class="fa fa-download"></i> Download Original (1920×1080)
+                                        </div>
+                                        
+                                        <p style="text-align: center; color: #6b7280; font-size: 11px; margin-top: 10px; line-height: 1.5;">
+                                            <strong style="color: #374151;">For Meeting Platforms:</strong> Use the first button - it's pre-flipped so it appears correctly in Zoom, Teams, and Google Meet.<br/>
+                                            <strong style="color: #374151;">Original Version:</strong> Use the second button if you need the non-flipped version for other uses.
                                         </p>
                                     </div>
                                     
@@ -862,6 +879,11 @@
                                 #download-vbg-btn:hover {
                                     transform: translateY(-1px);
                                     box-shadow: 0 6px 16px rgba(60, 146, 232, 0.4);
+                                }
+                                #download-vbg-btn-nonflipped:hover {
+                                    transform: translateY(-1px);
+                                    background: #e5e7eb !important;
+                                    border-color: #9ca3af !important;
                                 }
                                 @media (max-width: 768px) {
                                     .vbg-grid-main {
