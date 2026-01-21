@@ -24,7 +24,7 @@
         <div class="row justify-content-center">
           <div class="col-lg-8" id="form-column">
             <div class="text-center mb-4">
-              <h2 class="text-primary" style="font-size: 2rem; font-weight: 600;">Complete Your Profile</h2>
+              <h2 style="font-size: 2rem; font-weight: 600; color: #4C75A3;">Complete Your Profile</h2>
               <p class="lead text-muted">Fill in your details below to create your personalized Vinc Card</p>
             </div>
             
@@ -107,11 +107,7 @@
                         <input type="text" name="company_name" class="form-control" placeholder="Your Company LLC" t-att-value="default_company or ''"/>
                         <small class="form-text text-muted">Your company or organization name (optional)</small>
                       </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Company Website</label>
-                        <input type="url" name="website" class="form-control" placeholder="https://yourwebsite.com"/>
-                        <small class="form-text text-muted">Your company's main website</small>
-                      </div>
+
                       <div class="form-group col-md-6 mb-3">
                         <label class="form-label fw-bold">Your Vinc URL <span class="text-danger">*</span></label>
                         <div class="input-group">
@@ -147,7 +143,7 @@
               <!-- Step 3: Address Information -->
               <div class="form-section" data-step="3">
                 <div class="card mb-4">
-                  <div class="card-header bg-info text-white">
+                  <div class="card-header" style="background: #4C75A3; color: white;">
                     <h4 class="mb-0"><i class="fa fa-map-marker-alt me-2"></i>Step 3: Address Information</h4>
             </div>
                   <div class="card-body">
@@ -196,7 +192,7 @@
               <!-- Step 4: Social Media Links -->
               <div class="form-section" data-step="4">
                 <div class="card mb-4">
-                  <div class="card-header bg-warning text-dark">
+                  <div class="card-header" style="background: #4C75A3; color: white;">
                     <h4 class="mb-0"><i class="fa fa-share-alt me-2"></i>Step 4: Social Media Links</h4>
                     <small class="text-muted">Connect your social media profiles to your vCard</small>
                   </div>
@@ -267,7 +263,7 @@
               <!-- Step 5: Additional Content -->
               <div class="form-section" data-step="5">
                 <div class="card mb-4">
-                  <div class="card-header bg-secondary text-white">
+                  <div class="card-header" style="background: #4C75A3; color: white;">
                     <h4 class="mb-0"><i class="fa fa-plus-circle me-2"></i>Step 5: Additional Content</h4>
                     <small class="text-muted">Add websites and videos to showcase your work</small>
                   </div>
@@ -339,7 +335,7 @@
               <!-- Step 6: Extra Features -->
               <div class="form-section" data-step="6">
                 <div class="card mb-4">
-                  <div class="card-header bg-dark text-white">
+                  <div class="card-header" style="background: #4C75A3; color: white;">
                     <h4 class="mb-0"><i class="fa fa-cog me-2"></i>Step 6: Extra Features</h4>
                     <small class="text-muted">Configure additional features for your vCard</small>
                   </div>
@@ -466,16 +462,34 @@
               <!-- Step 7: QR Code & Final Touches -->
               <div class="form-section" data-step="7">
                 <div class="card mb-4">
-                  <div class="card-header bg-primary text-white">
+                  <div class="card-header" style="background: #4C75A3; color: white;">
                     <h4 class="mb-0"><i class="fa fa-qrcode me-2"></i>Step 7: QR Code &amp; Final Touches</h4>
-                    <small class="text-muted">Customize your QR code and finalize your vCard</small>
+                    <small style="color: rgba(255,255,255,0.7);">Customize your QR code and finalize your vCard</small>
                   </div>
                   <div class="card-body">
-                    <div class="form-group col-md-6 mb-3">
-                      
-                      <label class="form-label fw-bold">QR Code Logo</label>
-                      <input type="file" name="qr_logo" class="form-control" accept="image/*"/>
-                      <small class="form-text text-muted">Add your logo to the center of your QR code (optional)</small>
+                    <div class="row">
+                      <div class="form-group col-md-6 mb-3">
+                        <label class="form-label fw-bold">QR Code Logo</label>
+                        <input type="file" name="qr_logo" id="qr_logo_input" class="form-control" accept="image/*"/>
+                        <small class="form-text text-muted">Add your logo to the center of your QR code (optional)</small>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">QR Code Preview</label>
+                        <div id="qr_code_preview_container" style="border: 2px dashed #dee2e6; border-radius: 8px; padding: 20px; text-align: center; min-height: 200px; background: #f8f9fa; position: relative; display: flex; align-items: center; justify-content: center;">
+                          <div id="qr_code_preview_placeholder" style="color: #6c757d; position: relative;">
+                            <!-- Static dummy QR code image -->
+                            <img id="qr_code_dummy" src="/qr_code_odoo/static/description/Vinc.png" alt="QR Code Preview" style="display: block; margin: 0 auto; max-width: 200px; max-height: 200px; width: auto; height: auto; position: relative;"/>
+                            <!-- Logo overlay (positioned absolutely over the QR code) -->
+                            <div id="qr_logo_overlay_container" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 50px; height: 50px; display: none; align-items: center; justify-content: center; z-index: 10;">
+                              <img id="qr_logo_image" src="" alt="Logo" style="max-width: 100%; max-height: 100%; width: auto; height: auto; display: none;"/>
+                            </div>
+                            <p class="mb-0" style="font-size: 12px; margin-top: 10px; color: #6c7280;">
+                              <i class="fa fa-info-circle"></i> This is a sample QR code preview
+                            </p>
+                          </div>
+                        </div>
+                        <small class="form-text text-muted">Preview of how your QR code will look with your logo</small>
+                      </div>
                     </div>
                   </div>
               </div>
@@ -484,7 +498,7 @@
               <!-- Step 8: Choose Template -->
               <div class="form-section" data-step="8">
                 <div class="card mb-4">
-                  <div class="card-header bg-info text-white">
+                  <div class="card-header" style="background: #4C75A3; color: white;">
                     <h4 class="mb-0"><i class="fa fa-palette me-2"></i>Step 8: Choose Your Template</h4>
                     <small class="text-muted">Select a design template for your vCard</small>
                   </div>
@@ -1350,148 +1364,100 @@
               const templateOptions = document.querySelectorAll('.template-option');
               const selectedTemplateInput = document.getElementById('selected_template');
               
-              // Function to update template preview by generating actual website
+              // Function to update template preview - CLIENT-SIDE RENDERING (instant, no server calls)
               let previewTimeout = null;
+              let profileImageDataUrl = null;
+              let bannerImageDataUrl = null;
+              
+              // Pre-load images when files are selected
+              const profilePhotoInput = document.getElementById('profile_photo_input');
+              const bannerImageInput = document.getElementById('banner_image_input');
+              
+              if (profilePhotoInput) {
+                profilePhotoInput.addEventListener('change', function(e) {
+                  const file = e.target.files[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                      profileImageDataUrl = e.target.result;
+                      const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'modern' : 'modern';
+                      updateTemplatePreview(selectedTemplate);
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                });
+              }
+              
+              if (bannerImageInput) {
+                bannerImageInput.addEventListener('change', function(e) {
+                  const file = e.target.files[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                      bannerImageDataUrl = e.target.result;
+                      const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'modern' : 'modern';
+                      updateTemplatePreview(selectedTemplate);
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                });
+              }
+              
               function updateTemplatePreview(template) {
                 const previewIframe = document.getElementById('vcard-preview-iframe');
                 const loadingIndicator = document.getElementById('preview-loading');
-                if (!previewIframe) return;
                 
-                // Show loading indicator
-                if (loadingIndicator) {
-                  loadingIndicator.style.display = 'block';
+                if (!previewIframe || !loadingIndicator) {
+                  return;
                 }
                 
-                // Debounce preview updates (wait 500ms after last change)
+                // Show loading indicator for server-side preview
+                loadingIndicator.style.display = 'flex';
+                
+                // Server-side preview with 500ms debounce (matching bulk-onboard)
                 if (previewTimeout) {
                   clearTimeout(previewTimeout);
                 }
                 
                 previewTimeout = setTimeout(function() {
-                  // Get form data
-                  const formData = new FormData(form);
-                  const data = {};
-                  
-                  // Collect all form fields
-                  for (let [key, value] of formData.entries()) {
-                    if (key !== 'csrf_token' && key !== 'image_url' && key !== 'banner_image' && key !== 'qr_logo') {
-                      // Handle array fields
-                      if (key.endsWith('[]')) {
-                        const fieldName = key.slice(0, -2);
-                        if (!data[fieldName]) {
-                          data[fieldName] = [];
-                        }
-                        data[fieldName].push(value);
-                      } else {
-                        data[key] = value;
-                      }
-                    }
-                  }
-                  
-                  // Get checkbox values directly
-                  const showFormCheckbox = document.getElementById('show_form_yes');
-                  if (showFormCheckbox) {
-                    data.show_form = showFormCheckbox.checked;
-                  }
-                  
-                  const notifyCheckbox = document.getElementById('notify_on_new_lead_yes');
-                  if (notifyCheckbox) {
-                    data.notify_on_new_lead = notifyCheckbox.checked;
-                  }
-                  
-                  const introEmailCheckbox = document.getElementById('intro_email_enabled_yes');
-                  if (introEmailCheckbox) {
-                    data.intro_email_enabled = introEmailCheckbox.checked;
-                  }
-                  
-                  const leadbackCheckbox = document.getElementById('enable_instant_leadback_yes');
-                  if (leadbackCheckbox) {
-                    data.enable_instant_leadback = leadbackCheckbox.checked;
-                  }
-                  
-                  const leadbackEmailCheckbox = document.getElementById('leadback_send_email_yes');
-                  if (leadbackEmailCheckbox) {
-                    data.leadback_send_email = leadbackEmailCheckbox.checked;
-                  }
-                  
-                  const leadbackMessagingCheckbox = document.getElementById('leadback_enable_messaging_yes');
-                  if (leadbackMessagingCheckbox) {
-                    data.leadback_enable_messaging = leadbackMessagingCheckbox.checked;
-                  }
-                  
-                  const showReviewsCheckbox = document.getElementById('show_reviews_yes');
-                  if (showReviewsCheckbox) {
-                    data.show_reviews = showReviewsCheckbox.checked;
-                  }
-                  
-                  // Collect leadback channels
-                  const leadbackChannels = [];
-                  document.querySelectorAll('input[name="leadback_channels[]"]:checked').forEach(function(checkbox) {
-                    leadbackChannels.push(checkbox.value);
-                  });
-                  if (leadbackChannels.length > 0) {
-                    data.leadback_channels = leadbackChannels;
-                  }
-                  
-                  // Ensure template is set
-                  data.website_template = template || data.website_template || 'modern';
-                  
-                  // Handle image files if present
-                  const imageFile = form.querySelector('input[name="image_url"]').files[0];
-                  const bannerFile = form.querySelector('input[name="banner_image"]').files[0];
-                  
-                  let filesToProcess = 0;
-                  let filesProcessed = 0;
-                  
-                  if (imageFile) filesToProcess++;
-                  if (bannerFile) filesToProcess++;
-                  
-                  const processFiles = function() {
-                    filesProcessed++;
-                    if (filesProcessed >= filesToProcess) {
-                      sendPreviewRequest(data, previewIframe, loadingIndicator);
-                    }
+                  // Get form values
+                  const getValue = (name) => {
+                    const field = form.querySelector('[name="' + name + '"]');
+                    return field ? field.value || '' : '';
                   };
                   
-                  if (imageFile) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                      data.image_base64 = e.target.result.split(',')[1];
-                      processFiles();
-                    };
-                    reader.readAsDataURL(imageFile);
-                  } else {
-                    processFiles();
-                  }
+                  const data = {
+                    name: getValue('name') || 'Your Name',
+                    company_name: getValue('company_name') || '',
+                    function: getValue('function') || '',
+                    email: getValue('email') || 'email@example.com',
+                    phone: getValue('phone') || '',
+                    mobile: getValue('mobile') || '',
+                    about: getValue('about') || '',
+                    primary_color: getValue('primary_color') || '#ffffff',
+                    secondary_color: getValue('secondary_color') || '#4C75A3',
+                    website_template: template || 'modern',
+                    linkedin_url: getValue('linkedin_url') || '',
+                    twitter_url: getValue('twitter_url') || '',
+                    instagram_url: getValue('instagram_url') || '',
+                    facebook_url: getValue('facebook_url') || '',
+                    youtube_url: getValue('youtube_url') || '',
+                    whatsapp_url: getValue('whatsapp_url') || '',
+                    calendly_url: getValue('calendly_url') || '',
+                    street: getValue('street') || '',
+                    street2: getValue('street2') || '',
+                    city: getValue('city') || '',
+                    zip: getValue('zip') || '',
+                    country_id: getValue('country_id') || '',
+                    state_id: getValue('state_id') || '',
+                    show_form: document.getElementById('show_form_yes') ? document.getElementById('show_form_yes').checked : false,
+                    show_reviews: document.getElementById('show_reviews_yes') ? document.getElementById('show_reviews_yes').checked : false,
+                    mailing_list_name: getValue('mailing_list_name') || 'Leads',
+                    lead_button_label: getValue('lead_button_label') || 'Get In Touch',
+                    form_thank_you_message: getValue('form_thank_you_message') || ''
+                  };
                   
-                  if (bannerFile) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                      data.banner_image_base64 = e.target.result.split(',')[1];
-                      processFiles();
-                    };
-                    reader.readAsDataURL(bannerFile);
-                  } else {
-                    processFiles();
-                  }
-                  
-                  // If no files, send immediately
-                  if (filesToProcess === 0) {
-                    sendPreviewRequest(data, previewIframe, loadingIndicator);
-                  }
-                }, 500);
-              }
-              
-              function sendPreviewRequest(data, previewIframe, loadingIndicator) {
-                // Skip preview update if slug check is in progress to avoid breaking images
-                if (window.isUpdatingPreview === true) {
-                  console.log('Skipping preview update during slug check');
-                  return;
-                }
-                
-                // Prevent any default form submission behavior
-                try {
-                  // Send AJAX request to generate preview
+                  // Call preview endpoint (matching bulk-onboard approach)
                   fetch('/vcard/preview', {
                     method: 'POST',
                     headers: {
@@ -1505,192 +1471,121 @@
                     }
                     return response.json();
                   })
-                  .catch(error => {
-                    console.error('Preview request failed:', error);
-                    if (loadingIndicator) {
-                      loadingIndicator.innerHTML = '';
-                      const errorIcon = document.createElement('i');
-                      errorIcon.className = 'fa fa-exclamation-triangle';
-                      errorIcon.style.fontSize = '24px';
-                      errorIcon.style.marginBottom = '10px';
-                      errorIcon.style.color = '#dc3545';
-                      loadingIndicator.appendChild(errorIcon);
-                      const errorText = document.createElement('p');
-                      errorText.style.fontSize = '12px';
-                      errorText.style.margin = '0';
-                      errorText.style.color = '#dc3545';
-                      errorText.textContent = 'Failed to generate preview: ' + error.message;
-                      loadingIndicator.appendChild(errorText);
+                  .then(response => {
+                    let result = response;
+                    if (response.result) {
+                      result = response.result;
                     }
-                    throw error; // Re-throw to prevent further processing
-                  })
-                .then(response => {
-                  console.log('Preview response:', response);
-                  // Handle JSON-RPC response format (Odoo wraps responses)
-                  let result = response;
-                  if (response.result) {
-                    result = response.result;
-                  }
-                  console.log('Preview result:', result);
-                  if (result && (result.success === true || result.success === 'true')) {
-                    // Load preview URL in iframe
-                    // Add a delay to ensure website is fully generated and caches are cleared
-                    setTimeout(function() {
-                      const previewUrl = result.preview_url;
-                      console.log('Loading preview URL:', previewUrl);
-                      
-                      // Set up load handlers before setting src
-                      let loadTimeout = setTimeout(function() {
-                        console.warn('Preview iframe load timeout after 10 seconds');
-                        // Check if iframe actually loaded content
-                        try {
-                          const iframeDoc = previewIframe.contentDocument || previewIframe.contentWindow.document;
-                          if (iframeDoc && iframeDoc.body && iframeDoc.body.innerHTML.trim()) {
-                            // Content loaded, just hide loading indicator
-                            if (loadingIndicator) {
-                              loadingIndicator.style.display = 'none';
-                            }
-                            return;
-                          }
-                        } catch (e) {
-                          // Cross-origin or other error - can't access iframe content
-                          console.warn('Cannot access iframe content (may be cross-origin):', e);
-                        }
-                        
-                        // Show error if still loading after timeout
-                        if (loadingIndicator) {
-                          loadingIndicator.innerHTML = '';
-                          const errorIcon = document.createElement('i');
-                          errorIcon.className = 'fa fa-exclamation-triangle';
-                          errorIcon.style.fontSize = '24px';
-                          errorIcon.style.marginBottom = '10px';
-                          errorIcon.style.color = '#dc3545';
-                          loadingIndicator.appendChild(errorIcon);
-                          const errorText = document.createElement('p');
-                          errorText.style.fontSize = '12px';
-                          errorText.style.margin = '0';
-                          errorText.style.color = '#dc3545';
-                          errorText.textContent = 'Preview failed to load. Check browser console for errors.';
-                          loadingIndicator.appendChild(errorText);
-                        }
-                      }, 10000); // Increased to 10 seconds
-                      
-                      previewIframe.onload = function() {
-                        clearTimeout(loadTimeout);
-                        console.log('Preview iframe loaded successfully');
-                        // Double-check content is actually there
-                        setTimeout(function() {
-                          try {
-                            const iframeDoc = previewIframe.contentDocument || previewIframe.contentWindow.document;
-                            if (iframeDoc && iframeDoc.body && iframeDoc.body.innerHTML.trim()) {
-                              if (loadingIndicator) {
-                                loadingIndicator.style.display = 'none';
-                              }
-                            } else {
-                              console.warn('Iframe loaded but content appears empty');
-                            }
-                          } catch (e) {
-                            // Cross-origin - assume it loaded if onload fired
-                            if (loadingIndicator) {
-                              loadingIndicator.style.display = 'none';
-                            }
-                          }
-                        }, 500);
-                      };
-                      
-                      // Handle iframe load errors (note: this doesn't always fire for iframes)
-                      previewIframe.onerror = function() {
-                        clearTimeout(loadTimeout);
-                        console.error('Iframe load error');
-                        if (loadingIndicator) {
-                          loadingIndicator.innerHTML = '';
-                          const errorIcon = document.createElement('i');
-                          errorIcon.className = 'fa fa-exclamation-triangle';
-                          errorIcon.style.fontSize = '24px';
-                          errorIcon.style.marginBottom = '10px';
-                          errorIcon.style.color = '#dc3545';
-                          loadingIndicator.appendChild(errorIcon);
-                          const errorText = document.createElement('p');
-                          errorText.style.fontSize = '12px';
-                          errorText.style.margin = '0';
-                          errorText.style.color = '#dc3545';
-                          errorText.textContent = 'Failed to load preview';
-                          loadingIndicator.appendChild(errorText);
-                        }
-                      };
-                      
-                      // Set the src to load the preview
-                      previewIframe.src = previewUrl;
-                    }, 200); // Reduced delay for faster preview loading
-                  } else {
-                    // Better error logging
-                    let errorDetails = '';
-                    if (result && result.error) {
-                      if (typeof result.error === 'string') {
-                        errorDetails = result.error;
-                      } else if (typeof result.error === 'object') {
-                        errorDetails = JSON.stringify(result.error, null, 2);
-                      }
-                    } else {
-                      errorDetails = JSON.stringify(result, null, 2);
-                    }
-                    console.error('Preview generation failed:', errorDetails);
                     
-                    // Don't show error if it's just a validation issue - preview should still work
-                    // Only show critical errors
-                    if (loadingIndicator && result && result.error) {
-                      let errorMsg = 'Preview generation failed';
-                      if (typeof result.error === 'string') {
-                        errorMsg = result.error;
-                      } else if (result.error && typeof result.error === 'object') {
-                        if (result.error.message) {
-                          errorMsg = result.error.message;
-                        } else if (result.error.data && result.error.data.message) {
-                          errorMsg = result.error.data.message;
-                        } else {
-                          // Try to extract meaningful error message
-                          errorMsg = 'Preview generation failed. Please check your form inputs.';
-                        }
+                    if (result && (result.success === true || result.success === 'true')) {
+                      setTimeout(() => {
+                        const previewUrl = result.preview_url;
+                        
+                        let loadTimeout = setTimeout(() => {
+                          if (loadingIndicator) {
+                            loadingIndicator.innerHTML = '<i class="fa fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><p style="font-size: 12px; margin: 0;">Loading preview...</p>';
+                          }
+                        }, 3000);
+                        
+                        previewIframe.onerror = () => {
+                          clearTimeout(loadTimeout);
+                          if (loadingIndicator) {
+                            loadingIndicator.innerHTML = '<i class="fa fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 10px; color: #dc3545;"></i><p style="font-size: 12px; margin: 0; color: #dc3545;">Failed to load preview</p>';
+                          }
+                        };
+                        
+                        previewIframe.onload = () => {
+                          clearTimeout(loadTimeout);
+                          if (loadingIndicator) {
+                            loadingIndicator.style.display = 'none';
+                          }
+                        };
+                        
+                        previewIframe.src = previewUrl;
+                      }, 200);
+                    } else {
+                      // Hide loading on error
+                      if (loadingIndicator) {
+                        loadingIndicator.style.display = 'none';
                       }
-                      // Suppress all error messages in preview - just hide the loading indicator
-                      // Preview should load even if there are minor errors
-                      loadingIndicator.style.display = 'none';
-                    } else if (loadingIndicator) {
-                      // No error or success - hide loading indicator
+                    }
+                  })
+                  .catch(error => {
+                    console.error('Error generating preview:', error);
+                    if (loadingIndicator) {
                       loadingIndicator.style.display = 'none';
                     }
+                  });
+                }, 500);  // 500ms debounce for server-side updates
+              }
+
+              // Make updateTemplatePreview available globally
+              window.updateTemplatePreview = updateTemplatePreview;
+              
+              // QR Code Preview function - shows static dummy QR code with logo overlay (matching bulk-onboard)
+              function updateQRPreview() {
+                const previewContainer = document.getElementById('qr_code_preview_container');
+                const previewPlaceholder = document.getElementById('qr_code_preview_placeholder');
+                const qrDummy = document.getElementById('qr_code_dummy');
+                const qrLogoOverlayContainer = document.getElementById('qr_logo_overlay_container');
+                const qrLogoImage = document.getElementById('qr_logo_image');
+                const fileInput = document.getElementById('qr_logo_input');
+                
+                if (!previewContainer || !previewPlaceholder || !qrDummy) {
+                  console.warn('QR code preview elements not found');
+                  return;
+                }
+                
+                // Always show the dummy QR code
+                previewPlaceholder.style.display = 'block';
+                qrDummy.style.display = 'block';
+                
+                // Check if logo file is uploaded
+                if (fileInput && fileInput.files && fileInput.files[0]) {
+                  const file = fileInput.files[0];
+                  const reader = new FileReader();
+                  
+                  reader.onload = function(e) {
+                    // Show logo overlay container and image
+                    if (qrLogoOverlayContainer) {
+                      qrLogoOverlayContainer.style.display = 'flex';
+                    }
+                    if (qrLogoImage) {
+                      qrLogoImage.src = e.target.result;
+                      qrLogoImage.style.display = 'block';
+                    }
+                  };
+                  
+                  reader.onerror = function() {
+                    console.error('Error reading logo file');
+                    if (qrLogoOverlayContainer) {
+                      qrLogoOverlayContainer.style.display = 'none';
+                    }
+                    if (qrLogoImage) {
+                      qrLogoImage.style.display = 'none';
+                    }
+                  };
+                  
+                  reader.readAsDataURL(file);
+                } else {
+                  // No logo uploaded, hide logo overlay
+                  if (qrLogoOverlayContainer) {
+                    qrLogoOverlayContainer.style.display = 'none';
                   }
-                })
-                .catch(error => {
-                  console.error('Error generating preview:', error);
-                  // Suppress error messages - just hide loading indicator
-                  if (loadingIndicator) {
-                    loadingIndicator.style.display = 'none';
-                  }
-                });
-                } catch (error) {
-                  console.error('Error in sendPreviewRequest:', error);
-                  if (loadingIndicator) {
-                    const errorMsg = error.message || (typeof error === 'string' ? error : 'Unknown error');
-                    loadingIndicator.innerHTML = '';
-                    const errorIcon3 = document.createElement('i');
-                    errorIcon3.className = 'fa fa-exclamation-triangle';
-                    errorIcon3.style.fontSize = '24px';
-                    errorIcon3.style.marginBottom = '10px';
-                    errorIcon3.style.color = '#dc3545';
-                    loadingIndicator.appendChild(errorIcon3);
-                    const errorText3 = document.createElement('p');
-                    errorText3.style.fontSize = '12px';
-                    errorText3.style.margin = '0';
-                    errorText3.style.color = '#dc3545';
-                    errorText3.textContent = 'Error: ' + errorMsg;
-                    loadingIndicator.appendChild(errorText3);
+                  if (qrLogoImage) {
+                    qrLogoImage.style.display = 'none';
                   }
                 }
               }
               
-              // Make updateTemplatePreview available globally
-              window.updateTemplatePreview = updateTemplatePreview;
+              // Add QR preview listener
+              const qrLogoInputForPreview = document.getElementById('qr_logo_input');
+              if (qrLogoInputForPreview) {
+                qrLogoInputForPreview.addEventListener('change', updateQRPreview);
+              }
+              
+              // Initialize QR preview after a short delay to ensure DOM is ready
+              setTimeout(updateQRPreview, 100);
               
               // Set up template selection event listeners
               if (templateOptions.length > 0 && selectedTemplateInput) {
@@ -1732,7 +1627,7 @@
               }
               
               // Update preview when form fields change
-              const previewFields = ['name', 'company_name', 'function', 'email', 'phone', 'mobile', 'primary_color', 'secondary_color', 'about', 'website', 'calendly_url', 'website_slug', 'linkedin_url', 'twitter_url', 'instagram_url', 'facebook_url', 'youtube_url', 'whatsapp_url'];
+              const previewFields = ['name', 'company_name', 'function', 'email', 'phone', 'mobile', 'primary_color', 'secondary_color', 'about', 'calendly_url', 'website_slug', 'linkedin_url', 'twitter_url', 'instagram_url', 'facebook_url', 'youtube_url', 'whatsapp_url', 'street', 'street2', 'city', 'zip'];
               previewFields.forEach(fieldName => {
                 const field = form.querySelector(`[name="${fieldName}"]`);
                 if (field) {
@@ -1764,6 +1659,28 @@
               if (secondaryColorInput) {
                 secondaryColorInput.addEventListener('input', function() {
                   const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'classic' : 'classic';
+                  if (typeof updateTemplatePreview === 'function') {
+                    updateTemplatePreview(selectedTemplate);
+                  }
+                });
+              }
+              
+              // Update preview when country/state selects change
+              const countrySelect = document.getElementById('vcard_country');
+              const stateSelect = document.getElementById('vcard_state');
+              
+              if (countrySelect) {
+                countrySelect.addEventListener('change', function() {
+                  const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'modern' : 'modern';
+                  if (typeof updateTemplatePreview === 'function') {
+                    updateTemplatePreview(selectedTemplate);
+                  }
+                });
+              }
+              
+              if (stateSelect) {
+                stateSelect.addEventListener('change', function() {
+                  const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'modern' : 'modern';
                   if (typeof updateTemplatePreview === 'function') {
                     updateTemplatePreview(selectedTemplate);
                   }
@@ -2123,8 +2040,7 @@
               }
               
               // Country/State filtering functionality
-              const countrySelect = document.getElementById('vcard_country');
-              const stateSelect = document.getElementById('vcard_state');
+              // Note: countrySelect and stateSelect already declared above for preview updates
               
               if (countrySelect && stateSelect) {
                 // Store all states for filtering
