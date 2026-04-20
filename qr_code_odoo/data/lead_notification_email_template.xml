@@ -2,7 +2,7 @@
 <odoo>
     <data>
         <record id="email_template_new_lead_notification" model="mail.template">
-            <field name="name">New Lead Notification</field>
+            <field name="name">Vinc — New Lead Notification (to card owner)</field>
             <field name="model_id" ref="model_partner_vcard"/>
             <field name="email_from">${object.email or user.email or 'noreply@localhost'}</field>
             <field name="email_to">${object.email|safe}</field>

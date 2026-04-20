@@ -806,6 +806,7 @@ class PartnerVCard(models.Model):
     website_slug = fields.Char(string='Website Slug', help='Editable part of the website URL', required=False)
     website_full_url = fields.Char(string='Website URL', compute='_compute_website_full_url', store=True)
     website_page_id = fields.Many2one('website.page', string="Website Page", readonly=True)
+    preview_template_hash = fields.Char(string='Preview Template Hash', copy=False, help='sha256 of inputs that produced the current preview arch_db; used by /vcard/preview to short-circuit no-op rebuilds')
     is_published = fields.Boolean(string='Published', compute='_compute_is_published', inverse='_inverse_is_published', store=False, help='Whether this vCard is published and accessible publicly')
     attachment_id = fields.Many2one('ir.attachment', string='Image Attachment', readonly=True)
     banner_attachment_id = fields.Many2one('ir.attachment', string='Banner Image Attachment', readonly=True)
@@ -1520,6 +1521,13 @@ class PartnerVCard(models.Model):
                 if record.website_page_id:
                     record.website_page_id.sudo().write({'is_published': True})
                     _logger.info(f"Generated and published vCard {record.id} ({record.name})")
+
+    def action_toggle_published(self):
+        """Smart-button toggle: publish or unpublish the vCard's website page.
+        Generates the page first if it doesn't exist yet."""
+        for record in self:
+            record.is_published = not record.is_published
+        return True
     
     def _get_digest_stats(self, period_start=None, period_end=None):
         """Gather statistics for digest email"""
@@ -2101,7 +2109,28 @@ class PartnerVCard(models.Model):
             # Check if at least email or messaging is configured
             has_email = self.leadback_send_email and contact_email
             has_messaging = self.leadback_enable_messaging and contact_phone and self.leadback_channels
-            
+
+            # If messaging is enabled on the card but a precondition is missing,
+            # leave a trail so it's not mysteriously silent. Common case: the
+            # visitor didn't fill the phone field, so there's nowhere to send
+            # click-to-chat URLs.
+            if self.leadback_enable_messaging and not has_messaging and opportunity:
+                if not contact_phone:
+                    reason = "visitor did not provide a phone number"
+                elif not self.leadback_channels:
+                    reason = "no messaging channels selected on this card"
+                else:
+                    reason = "messaging precondition missing"
+                import logging
+                _logger = logging.getLogger(__name__)
+                _logger.info(f"Instant lead-back messaging skipped for opportunity {opportunity.id}: {reason}")
+                opportunity.message_post(
+                    body=f"<p><strong>Messaging links not generated</strong></p>"
+                         f"<p>Reason: {reason}.</p>"
+                         f"<p>Click-to-chat URLs (WhatsApp/Viber/Telegram) need a destination phone. Ask the visitor to include a phone on the lead form, or disable messaging on this card.</p>",
+                    subject="Instant Lead-Back — messaging skipped"
+                )
+
             if not has_email and not has_messaging:
                 return {'status': 'error', 'message': 'Either email or phone messaging must be configured'}
             
@@ -2663,13 +2692,14 @@ class PartnerVCard(models.Model):
                     'scheduled_time': scheduled_time.isoformat() if scheduled_time else None
                 }
             else:
-                # Send immediately
+                # Queue for the mail cron instead of blocking on SMTP here.
+                # state='outgoing' is the default on create, so the cron picks
+                # it up within a minute without this request waiting.
                 mail = self.env['mail.mail'].sudo().create(mail_values)
-                mail.send()
-                
+
                 import logging
                 _logger = logging.getLogger(__name__)
-                _logger.info(f"Automated email sent immediately to {contact_email} for lead {opportunity.id if opportunity else 'N/A'}")
+                _logger.info(f"Automated leadback email queued (id={mail.id}) for {contact_email}, lead {opportunity.id if opportunity else 'N/A'}")
                 
                 return {
                     'status': 'success',
@@ -3250,16 +3280,18 @@ If you'd like to save my info again later, here's my card: {vcard_url}
                 existing_view = self.env['ir.ui.view'].search([('key', '=', f'website.{record.website_slug}')], limit=1)
         
                 if existing_view:
-                    # Update the existing view with the dynamic template
-                    _logger.info(f"Updating existing view for {record.website_slug}")
-                    existing_view.write({
-                        'arch_db': template,
-                    })
-                    # Clear all caches to ensure changes take effect
-                    self.env['ir.ui.view'].clear_caches()
-                    self.env['ir.qweb'].clear_caches()
                     view_id = existing_view.id
-                    _logger.info(f"View updated successfully, ID: {view_id}")
+                    if existing_view.arch_db != template:
+                        _logger.info(f"Updating existing view for {record.website_slug}")
+                        existing_view.write({
+                            'arch_db': template,
+                        })
+                        # Clear all caches to ensure changes take effect
+                        self.env['ir.ui.view'].clear_caches()
+                        self.env['ir.qweb'].clear_caches()
+                        _logger.info(f"View updated successfully, ID: {view_id}")
+                    else:
+                        _logger.info(f"View arch_db unchanged for {record.website_slug}, skipping write + cache clear (ID: {view_id})")
                 else:
                     # Create a new view with the dynamic template
                     new_view = self.env['ir.ui.view'].create({
@@ -4063,11 +4095,46 @@ If you'd like to save my info again later, here's my card: {vcard_url}
         
         return partner
 
+    # Field set whose changes should auto-regenerate the published website page.
+    # Mirrors the inputs read by _build_dynamic_template plus the image/banner
+    # attachments and the website_template selector. Adding a new template-input
+    # field elsewhere REQUIRES adding it here, or backend edits won't reflect on
+    # the published site without a manual "Generate" click.
+    _TEMPLATE_AFFECTING_FIELDS = frozenset({
+        'name', 'company_name', 'function', 'about',
+        'street', 'street2', 'city', 'zip', 'state_id', 'country_id',
+        'phone', 'mobile', 'email', 'website', 'calendly_url',
+        'primary_color', 'secondary_color', 'website_template',
+        'image_url', 'banner_image',
+        'whatsapp_url', 'linkedin_url', 'linkedin_url_company',
+        'youtube_url', 'facebook_url', 'facebook_url_company',
+        'twitter_url', 'instagram_url', 'tiktok_url', 'pinterest_url',
+        'github_url', 'snapchat_url',
+        'lead_button_label', 'form_thank_you_message', 'show_form',
+        'show_reviews', 'mailing_list_id',
+        'enable_instant_leadback', 'leadback_send_email',
+        'leadback_enable_messaging', 'leadback_channels',
+        'qr_pattern', 'qr_logo',
+    })
+
     def write(self, vals):
         res = super(PartnerVCard, self).write(vals)
         # If the pattern or logo changes, regenerate the QR code image
         if 'qr_pattern' in vals or 'qr_logo' in vals:
             self._generate_qr_code_image()
+        # Auto-regenerate the published website page when any template-affecting
+        # field changes. Skip for preview vCards (the /vcard/preview controller
+        # handles those explicitly) and for records without a published page yet
+        # (creation flow generates them on first publish). The arch_db-skip guard
+        # in action_generate_website_page makes this idempotent when the rendered
+        # template happens to be unchanged.
+        if not self.env.context.get('skip_auto_regen') and (vals.keys() & self._TEMPLATE_AFFECTING_FIELDS):
+            for record in self:
+                if record.website_page_id and not (record.website_slug or '').startswith('preview-'):
+                    try:
+                        record.with_context(skip_auto_regen=True).action_generate_website_page()
+                    except Exception as e:
+                        _logger.warning(f"Auto-regen skipped for vCard {record.id} ({record.name}): {e}")
         return res
     
     @api.depends(

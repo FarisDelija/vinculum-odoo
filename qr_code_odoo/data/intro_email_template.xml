@@ -2,7 +2,7 @@
 <odoo>
     <data>
         <record id="email_template_intro_email" model="mail.template">
-            <field name="name">Introduction Email</field>
+            <field name="name">Vinc — Introduction Email (to new lead)</field>
             <field name="model_id" ref="crm.model_crm_lead"/>
             <field name="email_from">${user.email or object.email or 'noreply@localhost'}</field>
             <field name="email_to">${ctx.get('contact_email', object.email_from or '')|safe}</field>

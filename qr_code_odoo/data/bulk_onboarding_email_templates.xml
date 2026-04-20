@@ -2,7 +2,7 @@
 <odoo>
     <!-- Bulk Onboarding Invitation Email Template -->
     <record id="bulk_onboarding_invitation_email" model="mail.template">
-        <field name="name">Bulk Onboarding Invitation</field>
+        <field name="name">Vinc — Bulk Onboarding Invitation</field>
         <field name="model_id" ref="base.model_res_users"/>
         <field name="subject">Welcome to ${ctx.get('company_name', 'Your Company')} - Complete Your Vinc Card</field>
         <field name="email_from">${user.email or 'noreply@localhost'}</field>
@@ -71,7 +71,7 @@
     
     <!-- Bulk Onboarding Completion Email Template -->
     <record id="bulk_onboarding_completion_email" model="mail.template">
-        <field name="name">Bulk Onboarding Completion</field>
+        <field name="name">Vinc — Bulk Onboarding Completion</field>
         <field name="model_id" ref="model_bulk_onboarding_batch"/>
         <field name="subject">Bulk Onboarding Batch Completed</field>
         <field name="email_from">${user.email or 'noreply@localhost'}</field>

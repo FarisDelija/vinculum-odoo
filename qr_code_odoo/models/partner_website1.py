@@ -1071,7 +1071,7 @@ class PartnerWebsite(models.Model):
                     <script type="text/javascript" src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
                     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
                     <!-- Ensure widget.js comes after jQuery and intl-tel-input -->
-                    <script type="text/javascript" t-attf-src="/qr_code/static/src/js/widget.js"></script>
+                    <script type="text/javascript" t-attf-src="/qr_code_odoo/static/src/js/widget.js"></script>
                 </div>
             </section>
            
@@ -3205,7 +3205,7 @@ class PartnerWebsite(models.Model):
             <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
             <script type="text/javascript" src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
             <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
-            <script type="text/javascript" t-attf-src="/qr_code/static/src/js/widget.js"></script>
+            <script type="text/javascript" t-attf-src="/qr_code_odoo/static/src/js/widget.js"></script>
             
             <!-- Modal and Carousel Scripts (same as Classic template) -->
             <script>
@@ -4443,7 +4443,7 @@ class PartnerWebsite(models.Model):
                         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
                         <script type="text/javascript" src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
                         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
-                        <script type="text/javascript" t-attf-src="/qr_code/static/src/js/widget.js"></script>
+                        <script type="text/javascript" t-attf-src="/qr_code_odoo/static/src/js/widget.js"></script>
                         
                         <!-- Tab Navigation Script -->
                         <script>
@@ -5514,7 +5514,7 @@ class PartnerWebsite(models.Model):
                    <script type="text/javascript" src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
                    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
                    <!-- Ensure widget.js comes after jQuery and intl-tel-input -->
-                   <script type="text/javascript" t-attf-src="/qr_code/static/src/js/widget.js"></script>
+                   <script type="text/javascript" t-attf-src="/qr_code_odoo/static/src/js/widget.js"></script>
            
            <!-- Modal and Carousel CSS -->
            <style>

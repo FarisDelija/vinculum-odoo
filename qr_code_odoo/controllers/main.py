@@ -17,6 +17,71 @@ from datetime import datetime, timedelta
 
 _logger = logging.getLogger(__name__)
 
+# Module-level cache for default preview images (loaded from disk once per process).
+# Keyed by the method name so invalidating one doesn't touch the other.
+_DEFAULT_IMAGE_CACHE = {}
+
+
+def _cached_default_image(vcard_env, kind):
+    """Return a cached base64 default image ('profile' or 'banner'), loading on first miss."""
+    if kind in _DEFAULT_IMAGE_CACHE:
+        return _DEFAULT_IMAGE_CACHE[kind]
+    getter = '_get_default_profile_image' if kind == 'profile' else '_get_default_banner_image'
+    value = getattr(vcard_env, getter)()
+    if value:
+        _DEFAULT_IMAGE_CACHE[kind] = value
+    return value
+
+
+# Scalar form fields that affect the rendered preview template. Adding a new
+# value to vals in generate_preview() that affects rendering REQUIRES adding
+# the same key here, or previews will stale-cache until something else changes.
+HASHED_SCALARS = (
+    'name', 'company_name', 'street', 'street2', 'city', 'zip', 'function',
+    'phone', 'mobile', 'email', 'website', 'calendly_url', 'about',
+    'primary_color', 'secondary_color', 'website_template', 'whatsapp_url',
+    'linkedin_url', 'linkedin_url_company', 'youtube_url', 'facebook_url',
+    'facebook_url_company', 'lead_button_label', 'form_thank_you_message',
+    'notify_on_new_lead', 'intro_email_enabled', 'enable_instant_leadback',
+    'leadback_send_email', 'leadback_enable_messaging', 'show_reviews',
+)
+
+
+def _normalize_bool(v):
+    """Match the truthy interpretation used in generate_preview's vals construction."""
+    return v == 'yes' or v is True or v == True
+
+
+def _compute_preview_hash(data, effective_show_form, mailing_list_name,
+                          channel_codes, websites, videos,
+                          image_token, banner_token):
+    """Stable sha256 of every input that affects the rendered preview template.
+    See HASHED_SCALARS for the contract on what's included."""
+    scalars = {}
+    for k in HASHED_SCALARS:
+        v = data.get(k, '')
+        # Normalize booleans so 'yes' / True / 'true' / False all hash consistently
+        if k in ('notify_on_new_lead', 'intro_email_enabled',
+                 'enable_instant_leadback', 'leadback_send_email',
+                 'leadback_enable_messaging', 'show_reviews'):
+            v = _normalize_bool(v)
+        else:
+            v = '' if v is None else v
+        scalars[k] = v
+    payload = {
+        'scalars': scalars,
+        'effective_show_form': bool(effective_show_form),
+        'mailing_list_name': mailing_list_name if effective_show_form else '',
+        'leadback_channel_codes': sorted(channel_codes),
+        'websites': websites,
+        'videos': videos,
+        'image_token': image_token,
+        'banner_token': banner_token,
+    }
+    canonical = json.dumps(payload, sort_keys=True, separators=(',', ':'),
+                           default=str)
+    return hashlib.sha256(canonical.encode('utf-8')).hexdigest()
+
 
 def _build_browser_fingerprint(req):
     """Build browser fingerprint hash from request headers"""
@@ -441,10 +506,75 @@ class NFCOnboardingController(http.Controller):
             'partner': partner
         })
 
+    # Hub + 8 sub-pages. Order in GUIDE_NAV drives both the sidebar and
+    # the prev/next pagination at the bottom of each sub-page.
+    GUIDE_NAV = [
+        {'track': 'users', 'label': 'For Users', 'topics': [
+            ('setup-card',   'Setting Up Your Card'),
+            ('share-card',   'Sharing Your Card'),
+            ('lead-capture', 'Lead Capture & Email Marketing'),
+            ('reviews',      'Collecting Reviews'),
+        ]},
+        {'track': 'admins', 'label': 'For Administrators', 'topics': [
+            ('bulk-onboard', 'Bulk Onboarding'),
+            ('crm',          'CRM & Lead Routing'),
+            ('nfc',          'NFC Card Programming'),
+            ('automations',  'Email Automations & Digests'),
+        ]},
+    ]
+    GUIDE_TOPICS = {
+        slug: {'template': f'qr_code_odoo.vinculum_guide_{slug.replace("-", "_")}',
+               'track': group['track'], 'title': title}
+        for group in GUIDE_NAV
+        for (slug, title) in group['topics']
+    }
+
+    def _guide_context(self, current_topic):
+        """Common render context for every guide page (hub + sub-pages)."""
+        ctx = {
+            'guide_nav': self.GUIDE_NAV,
+            'guide_topics': self.GUIDE_TOPICS,
+            'current_topic': current_topic,
+            'current_track': self.GUIDE_TOPICS[current_topic]['track'] if current_topic else None,
+        }
+        # Compute prev/next within the same track.
+        if current_topic:
+            track = ctx['current_track']
+            flat = [t for g in self.GUIDE_NAV if g['track'] == track for t in g['topics']]
+            slugs = [s for (s, _) in flat]
+            i = slugs.index(current_topic)
+            ctx['prev_topic'] = flat[i - 1] if i > 0 else None
+            ctx['next_topic'] = flat[i + 1] if i + 1 < len(flat) else None
+        else:
+            ctx['prev_topic'] = ctx['next_topic'] = None
+        # Hero CTA on the hub depends on whether the signed-in user already has
+        # a vCard. Mirror user_dashboard._compute_vcards (create_uid + email).
+        has_vcard = False
+        if request.session.uid:
+            VC = request.env['partner.vcard'].sudo()
+            user = request.env['res.users'].sudo().browse(request.session.uid)
+            domain = ['|', ('create_uid', '=', user.id),
+                      ('email', '=', user.partner_id.email)] if user.partner_id and user.partner_id.email \
+                     else [('create_uid', '=', user.id)]
+            has_vcard = bool(VC.search_count(domain))
+        ctx['guide_user_has_vcard'] = has_vcard
+        ctx['guide_user_signed_in'] = bool(request.session.uid)
+        return ctx
+
     @http.route('/vinculum/guide', type='http', auth='public', website=True)
-    def vinculum_guide(self):
-        """Vinc User Guide - How to Use Vinc"""
-        return request.render('qr_code_odoo.vinculum_user_guide')
+    def vinculum_guide_hub(self):
+        """Vinc Guide hub — landing page + audience picker."""
+        return request.render('qr_code_odoo.vinculum_guide_hub',
+                              self._guide_context(None))
+
+    @http.route('/vinculum/guide/<string:topic>', type='http', auth='public', website=True)
+    def vinculum_guide_topic(self, topic):
+        """Vinc Guide sub-page (one of GUIDE_TOPICS). 404 on unknown topic."""
+        import werkzeug
+        if topic not in self.GUIDE_TOPICS:
+            raise werkzeug.exceptions.NotFound()
+        return request.render(self.GUIDE_TOPICS[topic]['template'],
+                              self._guide_context(topic))
 
 
 class ReviewController(http.Controller):
@@ -588,6 +718,25 @@ class LeadController(http.Controller):
 
             _logger.info(f"Valid tag IDs to be assigned: {valid_tag_ids}")
             
+            # Resolve the card owner so the new opportunity is auto-assigned.
+            # 1) Try login match on the card's email (common when cardholder
+            #    logged in with their real email).
+            # 2) Fall back to the user who created the card record
+            #    (create_uid), but skip Odoo's built-in system/public users
+            #    (ids 1=OdooBot, 3=Default User Template, 4=Public) so a card
+            #    created via the public /get-started route doesn't end up
+            #    assigning leads to an anonymous user. Admin (id=2) IS used.
+            _SKIP_AUTOASSIGN_UIDS = (1, 3, 4)
+            owner_user_id = False
+            if partner.email:
+                owner_user = request.env['res.users'].sudo().search(
+                    [('login', '=', partner.email)], limit=1)
+                if owner_user:
+                    owner_user_id = owner_user.id
+            if (not owner_user_id and partner.create_uid
+                    and partner.create_uid.id not in _SKIP_AUTOASSIGN_UIDS):
+                owner_user_id = partner.create_uid.id
+
             # Create the opportunity and associate it with the partner and tags
             # Include all tracking data
             opportunity_vals = {
@@ -598,45 +747,48 @@ class LeadController(http.Controller):
                 'type': 'opportunity',  # This makes it an opportunity instead of a lead
                 'description': description,
                 'name': f'New vCard form submission for {partner.name}',
-                'tag_ids': [(6, 0, valid_tag_ids)] if valid_tag_ids else False
+                'tag_ids': [(6, 0, valid_tag_ids)] if valid_tag_ids else False,
             }
-            
+            if owner_user_id:
+                opportunity_vals['user_id'] = owner_user_id
+                _logger.info(f"Lead auto-assigned to user_id={owner_user_id} (card owner)")
+
             # Add all tracking data to opportunity
             opportunity_vals.update(tracking_data)
-            
+
             opportunity = request.env['crm.lead'].sudo().create(opportunity_vals)
-            
+
             _logger.info(f"Opportunity created with tracking data: IP={tracking_data.get('submission_ip')}, Country={tracking_data.get('submission_country')}, UTM={tracking_data.get('submission_utm_source')}")
             _logger.info(f"Opportunity created with ID: {opportunity.id}")
-            
+
             # Get the CRM tags that were applied to the lead
             applied_tags = partner.lead_tag_ids if partner.lead_tag_ids else None
             _logger.info(f"Partner lead_tag_ids: {partner.lead_tag_ids}")
             _logger.info(f"Applied tags to pass: {applied_tags}")
-            
+
             # Add contact to email marketing with tags
             self._add_to_mailing_list(contact_name, email_from, partner, applied_tags)
-            
-            # Send notification email to vCard owner if enabled
+
+            # Send notification email to vCard owner if enabled (queued, not
+            # sent synchronously — mail cron delivers within the minute).
             if partner.notify_on_new_lead and partner.email:
                 try:
                     self._send_lead_notification_email(partner, opportunity, contact_name, email_from, phone, description)
                 except Exception as e:
                     _logger.error(f"Error sending lead notification email: {str(e)}", exc_info=True)
 
-            # Send introduction email to lead if enabled
+            # Send introduction email to lead if enabled (queued)
             if partner.intro_email_enabled and email_from:
                 try:
                     self._send_intro_email(partner, contact_name, email_from, opportunity)
                 except Exception as e:
                     _logger.error(f"Error sending intro email: {str(e)}", exc_info=True)
 
-            # Send instant lead-back message if enabled (within 10 seconds requirement)
-            # Works with email only, phone only, or both
+            # Send instant lead-back message if enabled.
+            # Email is queued; messaging links (WhatsApp/Viber/Telegram) are
+            # generated inline and posted to the opportunity's chatter.
             if partner.enable_instant_leadback and (email_from or phone):
                 try:
-                    # Send message asynchronously to avoid blocking the response
-                    # Using sudo() to ensure proper access
                     partner.sudo()._send_instant_leadback_message(
                         contact_name=contact_name,
                         contact_phone=phone or '',
@@ -817,10 +969,11 @@ class LeadController(http.Controller):
                 'auto_delete': True,
             }
             
-            # Send the email
+            # Queue the email (state='outgoing' by default). Odoo's built-in
+            # "Mail: Send Email Queue" cron delivers it within a minute without
+            # blocking this request on SMTP.
             mail = request.env['mail.mail'].sudo().create(mail_values)
-            mail.send()
-            _logger.info(f"Lead notification email sent to {partner.email} for new lead from {contact_name} ({email_from})")
+            _logger.info(f"Lead notification email queued (id={mail.id}) for {partner.email}, new lead from {contact_name} ({email_from})")
             
         except Exception as e:
             _logger.error(f"Error sending lead notification email: {str(e)}", exc_info=True)
@@ -875,11 +1028,14 @@ class LeadController(http.Controller):
             # Send email using template (same pattern as referral email)
             # Pass Markup object to ensure HTML is not escaped
             # Override subject in email_values to ensure it renders correctly
+            # force_send=False queues the mail for the cron; we still get the
+            # mail_id so the CC/Reply-To headers can be patched below before
+            # the cron picks it up. Response time stays sub-100ms.
             mail_id = template.sudo().with_context(
                 contact_email=contact_email,
                 owner_email=partner.email or '',
                 email_body_html=Markup(email_body_html),
-            ).send_mail(opportunity.id, force_send=True, email_values={
+            ).send_mail(opportunity.id, force_send=False, email_values={
                 'email_to': contact_email,
                 'email_from': notification_email,
                 'subject': email_subject,
@@ -1339,7 +1495,60 @@ class VCardFormController(http.Controller):
             preview_vcard = request.env['partner.vcard'].sudo().search([
                 ('website_slug', '=', preview_slug)
             ], limit=1)
-            
+
+            # ---- Fast-path: short-circuit when inputs hash matches existing preview ----
+            # All hash inputs derive from `data` alone (no DB reads), so this branch
+            # can decide entirely from the request payload + the stored hash.
+            try:
+                _ml_name_raw = (data.get('mailing_list_name') or '').strip()
+                _effective_show_form = bool(data.get('show_form')) and bool(_ml_name_raw)
+                _channel_codes_in = data.get('leadback_channels') or []
+                if not isinstance(_channel_codes_in, list):
+                    _channel_codes_in = [_channel_codes_in]
+                _websites_in = list(zip(
+                    data.get('website_url') if isinstance(data.get('website_url'), list) else ([data.get('website_url')] if data.get('website_url') else []),
+                    data.get('website_name') if isinstance(data.get('website_name'), list) else ([data.get('website_name')] if data.get('website_name') else []),
+                    data.get('website_color') if isinstance(data.get('website_color'), list) else ([data.get('website_color')] if data.get('website_color') else []),
+                ))
+                _videos_in = list(zip(
+                    data.get('video_url') if isinstance(data.get('video_url'), list) else ([data.get('video_url')] if data.get('video_url') else []),
+                    data.get('video_name') if isinstance(data.get('video_name'), list) else ([data.get('video_name')] if data.get('video_name') else []),
+                ))
+                _img_b64 = data.get('image_base64')
+                _bnr_b64 = data.get('banner_image_base64')
+                _image_token = hashlib.sha256(_img_b64.encode('utf-8') if isinstance(_img_b64, str) else _img_b64).hexdigest()[:16] if _img_b64 else 'DEFAULT'
+                _banner_token = hashlib.sha256(_bnr_b64.encode('utf-8') if isinstance(_bnr_b64, str) else _bnr_b64).hexdigest()[:16] if _bnr_b64 else 'DEFAULT'
+                incoming_hash = _compute_preview_hash(
+                    data, _effective_show_form, _ml_name_raw, _channel_codes_in,
+                    _websites_in, _videos_in, _image_token, _banner_token,
+                )
+            except Exception as _e:
+                _logger.warning(f"Preview hash compute failed, falling through to slow path: {_e}", exc_info=True)
+                incoming_hash = None
+
+            if incoming_hash and preview_vcard and preview_vcard.preview_template_hash == incoming_hash:
+                website_page = request.env['website.page'].sudo().search([
+                    ('url', '=', f'/{preview_slug}')
+                ], limit=1)
+                if website_page:
+                    base_url = request.httprequest.host_url.rstrip('/')
+                    preview_url = f'{base_url}/{preview_slug}?preview=1'
+                    _logger.info(f"Preview fast-path hit for vCard {preview_vcard.id} (slug: {preview_slug})")
+                    return {
+                        'success': True,
+                        'preview_url': preview_url,
+                        'vcard_id': preview_vcard.id,
+                        'website_page_id': website_page.id,
+                    }
+                _logger.info(f"Preview hash matched but website.page missing for slug '{preview_slug}', falling through to slow path")
+            # ---- end fast-path ----
+
+            # Slow-path timing instrumentation. Sections logged at end as a single
+            # comma-separated key=ms list so it greps cleanly.
+            import time
+            _t = {}
+            _t['t_start'] = time.monotonic()
+
             # Prepare values from form data
             vals = {
                 'name': data.get('name') or 'Your Name',
@@ -1368,8 +1577,11 @@ class VCardFormController(http.Controller):
                 'lead_button_label': data.get('lead_button_label', ''),
                 'form_thank_you_message': data.get('form_thank_you_message', ''),
                 'show_form': data.get('show_form', False),
+                'preview_template_hash': incoming_hash or False,
             }
             
+            _t['vals_built'] = time.monotonic()
+
             # Handle mailing list if show_form is enabled
             if vals.get('show_form'):
                 mailing_list_name = (data.get('mailing_list_name') or '').strip()
@@ -1397,27 +1609,23 @@ class VCardFormController(http.Controller):
                     vals['show_form'] = False
                     _logger.info(f"show_form enabled but no mailing_list_name provided, disabling show_form for preview (non-blocking)")
             
+            _t['ml_resolved'] = time.monotonic()
+
             # Handle image if provided (base64 encoded)
             if data.get('image_base64'):
-                import base64
                 vals['image_url'] = data.get('image_base64')
             else:
-                # Use default profile image if no image is provided
-                default_profile = request.env['partner.vcard']._get_default_profile_image()
+                default_profile = _cached_default_image(request.env['partner.vcard'], 'profile')
                 if default_profile:
                     vals['image_url'] = default_profile
-                    _logger.info("Preview: Setting default profile image")
-            
+
             # Handle banner image if provided (base64 encoded)
             if data.get('banner_image_base64'):
-                import base64
                 vals['banner_image'] = data.get('banner_image_base64')
             else:
-                # Use default banner if no banner is provided
-                default_banner = request.env['partner.vcard']._get_default_banner_image()
+                default_banner = _cached_default_image(request.env['partner.vcard'], 'banner')
                 if default_banner:
                     vals['banner_image'] = default_banner
-                    _logger.info("Preview: Setting default banner image")
             
             # Handle extra features (checkboxes return boolean or 'yes' string)
             vals['notify_on_new_lead'] = data.get('notify_on_new_lead') == 'yes' or data.get('notify_on_new_lead') == True or data.get('notify_on_new_lead') is True
@@ -1446,9 +1654,10 @@ class VCardFormController(http.Controller):
             video_urls = data.get('video_url', []) if isinstance(data.get('video_url'), list) else (data.get('video_url') and [data.get('video_url')] or [])
             video_names = data.get('video_name', []) if isinstance(data.get('video_name'), list) else (data.get('video_name') and [data.get('video_name')] or [])
             
+            _t['channels_resolved'] = time.monotonic()
+
             # Create or update preview vCard with retry logic for concurrent updates
             import psycopg2
-            import time
             max_retries = 3
             retry_count = 0
             vcard = None
@@ -1503,6 +1712,8 @@ class VCardFormController(http.Controller):
                 _logger.error(f"Failed to create/update preview vCard for slug '{preview_slug}' after {max_retries} retries.")
                 return {'success': False, 'error': 'Failed to create/update preview due to concurrent access. Please try again.'}
             
+            _t['vcard_written'] = time.monotonic()
+
             # Ensure banner attachment is created/updated if banner_image was set (including default)
             if vals.get('banner_image'):
                 vcard.sudo()._update_banner_attachment_if_image_changed()
@@ -1553,6 +1764,8 @@ class VCardFormController(http.Controller):
                 if video_data:
                     request.env['partner.vcard.videos'].sudo().create(video_data)
             
+            _t['children_written'] = time.monotonic()
+
             # Generate the website page (optimized for preview - single commit at end)
             if hasattr(vcard, 'action_generate_website_page'):
                 try:
@@ -1563,49 +1776,45 @@ class VCardFormController(http.Controller):
                     # Don't return error - just log it and continue (suppress errors in preview)
                     pass
             
-            # Single commit at the end for better performance
-            request.env.cr.commit()
-            
-            # Verify the website page exists and is published
+            _t['page_generated'] = time.monotonic()
+
+            # Single commit at the end of the slow path. action_generate_website_page
+            # creates/updates the website.page with is_published=True, so the prior
+            # post-commit recovery branches were dead in practice.
             website_page = request.env['website.page'].sudo().search([
                 ('url', '=', f'/{preview_slug}')
             ], limit=1)
-            
-            if not website_page:
-                _logger.warning(f"Website page not found for preview slug: {preview_slug}")
-                # Don't return error - try to generate it
-                try:
-                    vcard.action_generate_website_page()
-                    request.env.cr.commit()
-                    website_page = request.env['website.page'].sudo().search([
-                        ('url', '=', f'/{preview_slug}')
-                    ], limit=1)
-                except Exception as e:
-                    _logger.error(f"Error generating website page: {e}")
-            
-            if not website_page:
-                # Still don't return error - just log it and continue (suppress errors in preview)
-                _logger.warning(f"Website page still not found for preview slug: {preview_slug}, but continuing anyway")
-                # Return a success response anyway to suppress errors
-                base_url = request.httprequest.host_url.rstrip('/')
-                preview_url = f'{base_url}/{preview_slug}?preview=1'
-                return {'success': True, 'preview_url': preview_url}
-            
-            if not website_page.is_published:
-                _logger.warning(f"Website page not published for preview slug: {preview_slug}, publishing now...")
-                website_page.sudo().write({'is_published': True})
-                request.env.cr.commit()
-            
-            # Return the preview URL (use full URL to avoid iframe issues)
+            request.env.cr.commit()
+
+            _t['committed'] = time.monotonic()
+
             base_url = request.httprequest.host_url.rstrip('/')
             preview_url = f'{base_url}/{preview_slug}?preview=1'
-            
-            _logger.info(f"Preview URL generated: {preview_url}")
+
+            # Emit timing breakdown as a single greppable line.
+            def _ms(a, b): return f"{(_t[b] - _t[a]) * 1000:.0f}"
+            _logger.info(
+                "Preview slow-path timing ms: "
+                f"vals={_ms('t_start', 'vals_built')}, "
+                f"ml={_ms('vals_built', 'ml_resolved')}, "
+                f"channels={_ms('ml_resolved', 'channels_resolved')}, "
+                f"vcard_write={_ms('channels_resolved', 'vcard_written')}, "
+                f"children={_ms('vcard_written', 'children_written')}, "
+                f"page_gen={_ms('children_written', 'page_generated')}, "
+                f"commit={_ms('page_generated', 'committed')}, "
+                f"total={_ms('t_start', 'committed')}"
+            )
+
+            if not website_page:
+                _logger.warning(f"Website page not found for preview slug: {preview_slug}, returning URL anyway")
+                return {'success': True, 'preview_url': preview_url}
+
+            _logger.info(f"Preview slow-path generated for vCard {vcard.id} (slug: {preview_slug})")
             return {
                 'success': True,
                 'preview_url': preview_url,
                 'vcard_id': vcard.id,
-                'website_page_id': website_page.id
+                'website_page_id': website_page.id,
             }
             
         except Exception as e:

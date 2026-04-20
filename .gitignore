@@ -205,3 +205,20 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Vinc — license enforcement layer. Intentionally excluded from the public
+# repo; these files live only in the distributed build so the enforcement
+# mechanism isn't trivially bypassable by reading the source.
+qr_code_odoo/controllers/license_guard.py
+qr_code_odoo/models/license_guard.py
+qr_code_odoo/models/vinc_license.py
+qr_code_odoo/data/license_cron.xml
+qr_code_odoo/views/vinc_license_views.xml
+qr_code_odoo/views/license_banner_views.xml
+qr_code_odoo/views/license_required_template.xml
+
+# Internal design docs — not part of the shippable product
+qr_code_odoo/docs/
+
+# Build artifact
+qr_code_odoo.zip

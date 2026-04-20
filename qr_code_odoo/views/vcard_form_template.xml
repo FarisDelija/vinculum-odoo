@@ -1366,6 +1366,7 @@
               
               // Function to update template preview - CLIENT-SIDE RENDERING (instant, no server calls)
               let previewTimeout = null;
+              let lastPreviewPayload = null;
               let profileImageDataUrl = null;
               let bannerImageDataUrl = null;
               
@@ -1456,14 +1457,35 @@
                     lead_button_label: getValue('lead_button_label') || 'Get In Touch',
                     form_thank_you_message: getValue('form_thank_you_message') || ''
                   };
-                  
+
+                  // Include uploaded image data (raw base64, no data URL prefix) so the
+                  // server preview renders with the user's photo instead of the default.
+                  if (profileImageDataUrl) {
+                    const idx = profileImageDataUrl.indexOf(',');
+                    data.image_base64 = idx >= 0 ? profileImageDataUrl.slice(idx + 1) : profileImageDataUrl;
+                  }
+                  if (bannerImageDataUrl) {
+                    const idx = bannerImageDataUrl.indexOf(',');
+                    data.banner_image_base64 = idx >= 0 ? bannerImageDataUrl.slice(idx + 1) : bannerImageDataUrl;
+                  }
+
+                  // Short-circuit if payload hasn't changed since last successful fetch
+                  const payloadStr = JSON.stringify(data);
+                  if (payloadStr === lastPreviewPayload) {
+                    if (loadingIndicator) {
+                      loadingIndicator.style.display = 'none';
+                    }
+                    return;
+                  }
+                  lastPreviewPayload = payloadStr;
+
                   // Call preview endpoint (matching bulk-onboard approach)
                   fetch('/vcard/preview', {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(data)
+                    body: payloadStr
                   })
                   .then(response => {
                     if (!response.ok) {
@@ -1478,31 +1500,29 @@
                     }
                     
                     if (result && (result.success === true || result.success === 'true')) {
-                      setTimeout(() => {
-                        const previewUrl = result.preview_url;
-                        
-                        let loadTimeout = setTimeout(() => {
-                          if (loadingIndicator) {
-                            loadingIndicator.innerHTML = '<i class="fa fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><p style="font-size: 12px; margin: 0;">Loading preview...</p>';
-                          }
-                        }, 3000);
-                        
-                        previewIframe.onerror = () => {
-                          clearTimeout(loadTimeout);
-                          if (loadingIndicator) {
-                            loadingIndicator.innerHTML = '<i class="fa fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 10px; color: #dc3545;"></i><p style="font-size: 12px; margin: 0; color: #dc3545;">Failed to load preview</p>';
-                          }
-                        };
-                        
-                        previewIframe.onload = () => {
-                          clearTimeout(loadTimeout);
-                          if (loadingIndicator) {
-                            loadingIndicator.style.display = 'none';
-                          }
-                        };
-                        
-                        previewIframe.src = previewUrl;
-                      }, 200);
+                      const previewUrl = result.preview_url;
+
+                      let loadTimeout = setTimeout(() => {
+                        if (loadingIndicator) {
+                          loadingIndicator.innerHTML = '<i class="fa fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><p style="font-size: 12px; margin: 0;">Loading preview...</p>';
+                        }
+                      }, 3000);
+
+                      previewIframe.onerror = () => {
+                        clearTimeout(loadTimeout);
+                        if (loadingIndicator) {
+                          loadingIndicator.innerHTML = '<i class="fa fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 10px; color: #dc3545;"></i><p style="font-size: 12px; margin: 0; color: #dc3545;">Failed to load preview</p>';
+                        }
+                      };
+
+                      previewIframe.onload = () => {
+                        clearTimeout(loadTimeout);
+                        if (loadingIndicator) {
+                          loadingIndicator.style.display = 'none';
+                        }
+                      };
+
+                      previewIframe.src = previewUrl;
                     } else {
                       // Hide loading on error
                       if (loadingIndicator) {
@@ -1516,7 +1536,7 @@
                       loadingIndicator.style.display = 'none';
                     }
                   });
-                }, 500);  // 500ms debounce for server-side updates
+                }, 800);  // 800ms debounce for server-side updates
               }
 
               // Make updateTemplatePreview available globally

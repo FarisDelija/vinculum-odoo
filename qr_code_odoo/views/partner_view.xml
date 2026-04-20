@@ -18,6 +18,21 @@
                     <button name="action_view_tenant_mailing_lists" type="object" class="oe_stat_button" icon="fa-list-ul" string="Mailing Lists"/>
                     <!-- View Card button -->
                     <button name="action_open_website" type="object" class="oe_stat_button smart-button-primary-color" icon="fa-globe" string="View Card"/>
+                    <!-- Hidden fields required by smart-button modifiers -->
+                    <field name="website_page_id" invisible="1"/>
+                    <field name="is_published" invisible="1"/>
+                    <!-- Publish / Unpublish smart button -->
+                    <button name="action_toggle_published" type="object" class="oe_stat_button" invisible="not website_page_id">
+                        <div class="o_stat_info">
+                            <span class="o_stat_text text-success" invisible="not is_published">
+                                <i class="fa fa-check-circle"/> Published
+                            </span>
+                            <span class="o_stat_text text-muted" invisible="is_published">
+                                <i class="fa fa-eye-slash"/> Unpublished
+                            </span>
+                            <span class="o_stat_value">Click to toggle</span>
+                        </div>
+                    </button>
                     <!-- Scans button -->
                     <button class="oe_stat_button" icon="fa-barcode">
                         <field name="qr_code_scan_count" widget="statinfo" string=" Scans"/>
@@ -952,7 +967,7 @@
         </field>
     </record>
 
-    <!-- Action to view Cards (vCards list view) -->
+    <!-- Action to view Cards (vCards list view) — kept for references -->
     <record id="action_view_vcards_menu" model="ir.actions.act_window">
         <field name="name">Cards</field>
         <field name="res_model">partner.vcard</field>
@@ -973,7 +988,7 @@
         </field>
     </record>
 
-    <!-- Action to view Leads (all opportunities in CRM pipeline) -->
+    <!-- Action to view Leads (all opportunities in CRM pipeline) — kept for references -->
     <record id="action_view_leads_menu" model="ir.actions.act_window">
         <field name="name">Leads</field>
         <field name="res_model">crm.lead</field>
@@ -986,6 +1001,49 @@
             <p>
                 Leads are automatically captured when someone fills out a form on your vCard.
             </p>
+        </field>
+    </record>
+
+    <!-- License-gated server actions for menu items -->
+    <record id="action_view_vcards_gated" model="ir.actions.server">
+        <field name="name">Cards</field>
+        <field name="model_id" ref="model_partner_vcard"/>
+        <field name="state">code</field>
+        <field name="code">
+lic = env['vinc.license'].sudo()._get_license_record()
+if lic.license_status not in ('active', 'warning'):
+    action = {
+        'type': 'ir.actions.act_window',
+        'name': 'Vinc License',
+        'res_model': 'vinc.license',
+        'view_mode': 'form',
+        'res_id': lic.id,
+        'target': 'current',
+        'views': [(env.ref('qr_code_odoo.vinc_license_form_view').id, 'form')],
+    }
+else:
+    action = env.ref('qr_code_odoo.action_view_vcards_menu').read()[0]
+        </field>
+    </record>
+
+    <record id="action_view_leads_gated" model="ir.actions.server">
+        <field name="name">Leads</field>
+        <field name="model_id" ref="model_partner_vcard"/>
+        <field name="state">code</field>
+        <field name="code">
+lic = env['vinc.license'].sudo()._get_license_record()
+if lic.license_status not in ('active', 'warning'):
+    action = {
+        'type': 'ir.actions.act_window',
+        'name': 'Vinc License',
+        'res_model': 'vinc.license',
+        'view_mode': 'form',
+        'res_id': lic.id,
+        'target': 'current',
+        'views': [(env.ref('qr_code_odoo.vinc_license_form_view').id, 'form')],
+    }
+else:
+    action = env.ref('qr_code_odoo.action_view_leads_menu').read()[0]
         </field>
     </record>
 
@@ -1040,19 +1098,19 @@
         <field name="sequence">10</field>
     </record>
 
-    <!-- Cards submenu -->
+    <!-- Cards submenu (license-gated) -->
     <record id="partner_vcard_cards_menu" model="ir.ui.menu">
         <field name="name">Cards</field>
         <field name="parent_id" ref="qr_code_odoo.partner_vcard_menu"/>
-        <field name="action" ref="qr_code_odoo.action_view_vcards_menu"/>
+        <field name="action" ref="qr_code_odoo.action_view_vcards_gated"/>
         <field name="sequence">20</field>
     </record>
 
-    <!-- Leads submenu -->
+    <!-- Leads submenu (license-gated) -->
     <record id="partner_vcard_leads_menu" model="ir.ui.menu">
         <field name="name">Leads</field>
         <field name="parent_id" ref="qr_code_odoo.partner_vcard_menu"/>
-        <field name="action" ref="qr_code_odoo.action_view_leads_menu"/>
+        <field name="action" ref="qr_code_odoo.action_view_leads_gated"/>
         <field name="sequence">30</field>
     </record>
 

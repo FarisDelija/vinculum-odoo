@@ -984,12 +984,13 @@
                 
                 // Preview update function for bulk onboarding
                 let previewUpdateTimeout;
+                let lastPreviewPayload = null;
                 function updateBulkPreview() {
                     // Debounce preview updates
                     clearTimeout(previewUpdateTimeout);
                     previewUpdateTimeout = setTimeout(() => {
                         _executeBulkPreviewUpdate();
-                    }, 500);
+                    }, 800);
                 }
                 
                 function _executeBulkPreviewUpdate() {
@@ -1056,6 +1057,13 @@
                     const qrLogoFile = document.querySelector('input[name="qr_logo"]')?.files?.[0];
                     
                     const processFiles = () => {
+                        // Short-circuit if payload hasn't changed since last successful request
+                        const payloadKey = JSON.stringify(formData);
+                        if (payloadKey === lastPreviewPayload) {
+                            if (loadingIndicator) loadingIndicator.style.display = 'none';
+                            return;
+                        }
+                        lastPreviewPayload = payloadKey;
                         // Call preview endpoint
                         fetch('/vcard/preview', {
                             method: 'POST',
@@ -1077,32 +1085,30 @@
                             }
                             
                             if (result && (result.success === true || result.success === 'true')) {
-                                setTimeout(() => {
-                                    const previewUrl = result.preview_url;
-                                    
-                                    let loadTimeout = setTimeout(() => {
-                                        if (loadingIndicator) {
-                                            loadingIndicator.innerHTML = '<i class="fa fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><p style="font-size: 12px; margin: 0;">Loading preview...</p>';
-                                        }
-                                    }, 3000);
-                                    
-                                    previewIframe.onerror = () => {
-                                        clearTimeout(loadTimeout);
-                                        if (loadingIndicator) {
-                                            loadingIndicator.innerHTML = '<i class="fa fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 10px; color: #dc3545;"></i><p style="font-size: 12px; margin: 0; color: #dc3545;">Failed to load preview</p>';
-                                        }
-                                    };
-                                    
-                                    previewIframe.onload = () => {
-                                        clearTimeout(loadTimeout);
-                                        if (loadingIndicator) {
-                                            loadingIndicator.style.display = 'none';
-                                        }
-                                    };
-                                    
-                                    const separator = previewUrl.includes('?') ? '&' : '?';
-                                    previewIframe.src = previewUrl + separator + 't=' + Date.now();
-                                }, 1000);
+                                const previewUrl = result.preview_url;
+
+                                let loadTimeout = setTimeout(() => {
+                                    if (loadingIndicator) {
+                                        loadingIndicator.innerHTML = '<i class="fa fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><p style="font-size: 12px; margin: 0;">Loading preview...</p>';
+                                    }
+                                }, 3000);
+
+                                previewIframe.onerror = () => {
+                                    clearTimeout(loadTimeout);
+                                    if (loadingIndicator) {
+                                        loadingIndicator.innerHTML = '<i class="fa fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 10px; color: #dc3545;"></i><p style="font-size: 12px; margin: 0; color: #dc3545;">Failed to load preview</p>';
+                                    }
+                                };
+
+                                previewIframe.onload = () => {
+                                    clearTimeout(loadTimeout);
+                                    if (loadingIndicator) {
+                                        loadingIndicator.style.display = 'none';
+                                    }
+                                };
+
+                                const separator = previewUrl.includes('?') ? '&' : '?';
+                                previewIframe.src = previewUrl + separator + 't=' + Date.now();
                             } else {
                                 if (loadingIndicator) {
                                     loadingIndicator.innerHTML = '<i class="fa fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 10px; color: #dc3545;"></i><p style="font-size: 12px; margin: 0; color: #dc3545;">Preview unavailable</p>';

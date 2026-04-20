@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Vinc Guide — User track (4 sub-pages).
+        Owns: how an end user sets up, shares, and runs their own card.
+        Each page t-calls qr_code_odoo.vinculum_guide_layout.
+    -->
+
+    <!-- ========================== SETUP CARD ========================== -->
+    <template id="vinculum_guide_setup_card" name="Setting Up Your Card">
+        <t t-call="qr_code_odoo.vinculum_guide_layout">
+            <div class="vg-breadcrumb">
+                <a href="/vinculum/guide">Guide</a>
+                <span class="vg-bc-sep">/</span>
+                <span>For Users</span>
+                <span class="vg-bc-sep">/</span>
+                <span class="vg-bc-current">Setting Up Your Card</span>
+            </div>
+            <div class="vg-page-header">
+                <h1 class="vg-display">Setting up <em>your</em> card.</h1>
+                <p class="vg-summary">From a fresh install to a published vCard in under five minutes. Five decisions, one publish click.</p>
+            </div>
+            <div class="vg-content">
+
+                <h2><span class="vg-h2-num">01</span>Pick a slug you'll be proud to print</h2>
+                <p>Your slug is the part of the URL after your domain — <code>yoursite.com/<em class="vg-mark">your-name</em></code>. It shows up in QR scans, NFC taps, and email signatures, so make it readable and memorable. Lowercase, hyphenated, ideally your name or initials.</p>
+                <p>You can change it later, but old links break — nobody you've already given a card to will get redirected. Pick once, well.</p>
+                <div class="vg-note">
+                    Slugs are checked for uniqueness as you type. If <code>jane-doe</code> is taken, the form suggests <code>jane-doe-2</code>. We recommend something more distinct, like adding a middle initial or your company.
+                </div>
+
+                <h2><span class="vg-h2-num">02</span>Add your photo and branding</h2>
+                <p>Three image inputs do most of the visual work:</p>
+                <ol>
+                    <li><strong>Profile photo.</strong> Square, at least 400×400px. Faces convert dramatically better than logos for individual cards — use a real headshot.</li>
+                    <li><strong>Banner image.</strong> Wide aspect (3:1 or wider), 1200px+ across. This is the band behind your name. A muted brand background tends to outperform busy stock photography.</li>
+                    <li><strong>QR logo overlay.</strong> Optional. A small mark inside your QR code; useful when the QR is printed alongside other brands.</li>
+                </ol>
+                <p>The two color pickers — primary and secondary — drive every accent on your card. Primary is the page background; secondary is the action color (buttons, links, highlights). Pick a high-contrast pair.</p>
+                <figure class="vg-figure">
+                    <img src="/qr_code_odoo/static/src/img/guide/setup-form-photo-and-colors.png"
+                         alt="The profile-photo, banner, and color-picker section of the /get-started form"
+                         loading="lazy"/>
+                    <figcaption><strong>Fig. 1</strong>Branding inputs on the card setup form — profile, banner, primary + secondary color.</figcaption>
+                </figure>
+
+                <h2><span class="vg-h2-num">03</span>Fill the contact details that matter</h2>
+                <p>You can fill every field, but you don't need to. The fields that get used:</p>
+                <ul>
+                    <li><strong>Name, role, company.</strong> Always shown.</li>
+                    <li><strong>Mobile.</strong> Tap-to-call works on phones — most card scans happen on phones.</li>
+                    <li><strong>Email.</strong> Tap-to-mail.</li>
+                    <li><strong>One website.</strong> Your company URL. Not five.</li>
+                    <li><strong>One or two social links.</strong> LinkedIn for B2B, Instagram for B2C, Calendly if you want bookings. Pick the two people will actually click.</li>
+                </ul>
+                <p>Resist the temptation to add every social network you've ever joined. A card with two clear actions converts better than a card with twelve.</p>
+
+                <h2><span class="vg-h2-num">04</span>Choose a template</h2>
+                <p>Vinc ships with five layout templates. They differ in how prominent the photo, banner, and lead form are — not in what data they show. Switch templates anytime; your data is preserved.</p>
+                <ul>
+                    <li><strong>Modern</strong> (default) — balanced layout with banner, profile photo, and prominent lead CTA. The safe pick if you're unsure.</li>
+                    <li><strong>Classic</strong> — photo-forward, traditional vCard feel. Best for people-first cards (consultants, agents, founders).</li>
+                    <li><strong>Minimal</strong> — pared down to name, role, and contact methods. For cards going on densely-printed materials where the QR carries most of the design.</li>
+                    <li><strong>Corporate</strong> — banner-led, company-forward. Best for cards where the brand outweighs the individual.</li>
+                    <li><strong>Creative</strong> — colour-led, photography-heavy. For brands with strong visual identity (designers, agencies, hospitality).</li>
+                </ul>
+                <figure class="vg-figure">
+                    <img src="/qr_code_odoo/static/src/img/guide/setup-form-templates.png"
+                         alt="The five template thumbnails from the /get-started template picker"
+                         loading="lazy"/>
+                    <figcaption><strong>Fig. 2</strong>The five templates shipped with Vinc, shown in the picker.</figcaption>
+                </figure>
+
+                <h2><span class="vg-h2-num">05</span>Publish, preview, share</h2>
+                <p>The right side of the form shows a live preview as you type. When you're happy, hit <strong>Submit</strong>. Vinc creates a real Odoo <code>website.page</code> at your slug — visit it directly, share the URL, or download your QR.</p>
+                <p>From your card's form view in the backend, the <em class="vg-mark">Publish / Unpublish</em> smart button toggles whether the page is live. Backend edits to any visible field auto-regenerate the published page — you don't need to click "Generate" again.</p>
+                <p>Next: <a href="/vinculum/guide/share-card">how to actually distribute your card</a> so the work pays off.</p>
+
+            </div>
+        </t>
+    </template>
+
+
+    <!-- ========================== SHARE CARD ========================== -->
+    <template id="vinculum_guide_share_card" name="Sharing Your Card">
+        <t t-call="qr_code_odoo.vinculum_guide_layout">
+            <div class="vg-breadcrumb">
+                <a href="/vinculum/guide">Guide</a>
+                <span class="vg-bc-sep">/</span>
+                <span>For Users</span>
+                <span class="vg-bc-sep">/</span>
+                <span class="vg-bc-current">Sharing Your Card</span>
+            </div>
+            <div class="vg-page-header">
+                <h1 class="vg-display">Distribution patterns that <em>actually convert</em>.</h1>
+                <p class="vg-summary">Four channels — QR, NFC, URL, email signature. Each has a job. Use the right one for the moment.</p>
+            </div>
+            <div class="vg-content">
+
+                <h2><span class="vg-h2-num">01</span>The QR code — your everywhere asset</h2>
+                <p>From your card's backend form view, click <em class="vg-mark">Download QR Code</em>. You get a high-resolution PNG you can drop on:</p>
+                <ul>
+                    <li>Printed business cards (the original use case)</li>
+                    <li>Conference badges and lanyards</li>
+                    <li>Trade-show booth backdrops</li>
+                    <li>Slide deck title pages and last-slide CTAs</li>
+                    <li>Restaurant tabletops, retail signage, vehicle wraps</li>
+                </ul>
+                <p>Print it big enough that someone two meters away can scan it. As a rule of thumb, the QR should be at least 1/10th the distance between the QR and the eye of the person scanning it.</p>
+                <div class="vg-note">
+                    The QR includes a small Vinc-blue logo overlay by default. You can swap it for your own brand mark in the card's settings — see <a href="/vinculum/guide/setup-card">Setting Up Your Card</a>.
+                </div>
+
+                <h2><span class="vg-h2-num">02</span>NFC for the in-person moment</h2>
+                <p>NFC cards are the upgrade over QR for face-to-face. The other person taps your card to their phone, your URL opens — no camera, no app, no QR-scanning friction.</p>
+                <p>The full programming walkthrough lives in the <a href="/vinculum/guide/nfc">NFC Card Programming</a> guide. The short version: buy a writable NTAG215 card, install NFC Tools on your phone, write your card's URL, done.</p>
+
+                <h2><span class="vg-h2-num">03</span>The URL — small, flexible, underrated</h2>
+                <p>Your card has a normal web URL. Use it everywhere a link goes:</p>
+                <ul>
+                    <li><strong>SMS / WhatsApp:</strong> "Here's my card: <code>yoursite.com/jane-doe</code>"</li>
+                    <li><strong>LinkedIn "Featured" section</strong> — pin it as a featured link</li>
+                    <li><strong>Instagram / TikTok bio</strong> — replace your linktree</li>
+                    <li><strong>Calendly intake page</strong> — link your card from "About me"</li>
+                    <li><strong>Slack / Notion profile</strong> — for distributed teams</li>
+                </ul>
+
+                <h2><span class="vg-h2-num">04</span>Drop it into your email signature</h2>
+                <p>Vinc includes an email signature generator. From the backend, open your user record and use the signature builder to produce HTML you can paste into your email client's signature settings — the same flow whether you use Gmail, Outlook, Apple Mail, or anything else.</p>
+                <p>Email signatures are the most-used and most-undervalued distribution channel. Every email you send is a card share. Set this up once and forget it.</p>
+
+            </div>
+        </t>
+    </template>
+
+
+    <!-- ========================= LEAD CAPTURE ========================= -->
+    <template id="vinculum_guide_lead_capture" name="Lead Capture &amp; Email Marketing">
+        <t t-call="qr_code_odoo.vinculum_guide_layout">
+            <div class="vg-breadcrumb">
+                <a href="/vinculum/guide">Guide</a>
+                <span class="vg-bc-sep">/</span>
+                <span>For Users</span>
+                <span class="vg-bc-sep">/</span>
+                <span class="vg-bc-current">Lead Capture &amp; Email Marketing</span>
+            </div>
+            <div class="vg-page-header">
+                <h1 class="vg-display">Turn card visits into <em>qualified leads</em>.</h1>
+                <p class="vg-summary">Five settings stand between an anonymous scan and a CRM-ready opportunity. This is how to configure them.</p>
+            </div>
+            <div class="vg-content">
+
+                <h2><span class="vg-h2-num">01</span>Turn on the form</h2>
+                <p>By default, your card is read-only — visitors see your contact info, that's it. To capture leads, toggle <em class="vg-mark">Show form</em> on. A "Get In Touch" button appears on your card; tapping it opens a modal with the lead form.</p>
+                <p>You can rename the button to match your goal — <code>Book a meeting</code>, <code>Get my pricing PDF</code>, <code>Join the waitlist</code>. The button label sets the user's expectation; match what happens after submission.</p>
+
+                <h2><span class="vg-h2-num">02</span>Tag every lead at the source</h2>
+                <p>Lead tags travel with each captured lead into your CRM, where they become filterable, sortable, and reportable. Use them as your top-level segmentation:</p>
+                <ul>
+                    <li><strong>Source tags</strong> — <code>conference-q2</code>, <code>print-card</code>, <code>linkedin-bio</code></li>
+                    <li><strong>Intent tags</strong> — <code>demo-requested</code>, <code>info-only</code>, <code>partner-inquiry</code></li>
+                    <li><strong>Owner tags</strong> — <code>jane-territory</code>, <code>enterprise-team</code></li>
+                </ul>
+                <p>Tags applied at capture time are far more reliable than tags applied later, when context is lost.</p>
+
+                <h2><span class="vg-h2-num">03</span>Pick the right mailing list</h2>
+                <p>Every lead captured gets added to a mailing list automatically. Pick a focused list rather than your master "Newsletter" — the more specific the list, the more permission you have to send specific follow-up.</p>
+                <p>If the list doesn't exist yet, type its name into the field; Vinc creates it on the fly when the first lead lands.</p>
+                <div class="vg-warn">
+                    Visitors don't see the mailing list name, but they do see (per Odoo's mass mailing rules) a footer when they receive emails. Pick a name you'd be comfortable showing.
+                </div>
+
+                <h2><span class="vg-h2-num">04</span>Write the CTA and thank-you that convert</h2>
+                <p>Two short copy fields — under-tuned by most users, high-leverage when you do.</p>
+                <ol>
+                    <li><strong>Lead button label:</strong> verb + outcome. "Get my pricing" beats "Submit". "See a demo" beats "Contact us".</li>
+                    <li><strong>Thank-you message:</strong> appears after submission. Set expectations: <em>"Thanks. Jane will email you within one business day with your industry benchmarks."</em> A specific promise outperforms "Thanks for reaching out!"</li>
+                </ol>
+
+                <h2><span class="vg-h2-num">05</span>Where leads end up in your CRM</h2>
+                <p>Each form submission creates a <code>crm.lead</code> opportunity in the default pipeline stage. The lead has:</p>
+                <ul>
+                    <li>Contact name, email, phone — captured directly from the form</li>
+                    <li>The originating <code>partner.vcard</code> linked back, so you can see "this lead came from Jane's card"</li>
+                    <li>Any tags you configured at capture time</li>
+                    <li>Free-text notes if the form's notes field is enabled</li>
+                </ul>
+                <p>Leads land in your CRM's default pipeline stage (the first stage in your pipeline — typically "New") and get auto-assigned to the card's owner: Vinc looks up the user whose login matches the card's email, and falls back to the user who created the card record. For team-level routing rules beyond that, see the admin guide: <a href="/vinculum/guide/crm">CRM &amp; Lead Routing</a>.</p>
+                <figure class="vg-figure">
+                    <img src="/qr_code_odoo/static/src/img/guide/crm-lead-submission-tracking.png"
+                         alt="The Submission Tracking tab on a captured lead's form view"
+                         loading="lazy"/>
+                    <figcaption><strong>Fig. 3</strong>A captured lead's Submission Tracking tab — IP, location, device, browser, OS.</figcaption>
+                </figure>
+
+            </div>
+        </t>
+    </template>
+
+
+    <!-- ============================= REVIEWS ============================= -->
+    <template id="vinculum_guide_reviews" name="Collecting Reviews">
+        <t t-call="qr_code_odoo.vinculum_guide_layout">
+            <div class="vg-breadcrumb">
+                <a href="/vinculum/guide">Guide</a>
+                <span class="vg-bc-sep">/</span>
+                <span>For Users</span>
+                <span class="vg-bc-sep">/</span>
+                <span class="vg-bc-current">Collecting Reviews</span>
+            </div>
+            <div class="vg-page-header">
+                <h1 class="vg-display">Social proof, <em>without leaving Odoo</em>.</h1>
+                <p class="vg-summary">Reviews on your card become a structured asset in your database — moderate, surface, and reuse them across your stack.</p>
+            </div>
+            <div class="vg-content">
+
+                <h2><span class="vg-h2-num">01</span>Enable reviews on your card</h2>
+                <p>From the backend form view, toggle <em class="vg-mark">Show reviews</em> on. A reviews block appears on your card with a "Leave a review" call-to-action and any approved reviews so far.</p>
+                <p>Visitors leave reviews via a modal: name, rating (1–5), and a free-text comment. The modal is the same one used for the lead form, so tone-of-voice stays consistent.</p>
+
+                <h2><span class="vg-h2-num">02</span>The moderation flow</h2>
+                <p>New reviews don't appear publicly until you approve them — every submission lands with <code>is_published = false</code> by default. From the backend, the <em class="vg-mark">Reviews</em> menu shows pending submissions with reviewer name, rating, comment, and timestamp. Toggle <em class="vg-mark">Published</em> to approve, or delete the row to reject.</p>
+                <p>A handful of approved reviews is more credible than a wall of them. Five strong reviews beat fifty mediocre ones.</p>
+
+                <h2><span class="vg-h2-num">03</span>Where reviews surface</h2>
+                <p>Approved reviews show up in three places:</p>
+                <ul>
+                    <li><strong>On your published card</strong> — in the reviews block, ordered most-recent-first.</li>
+                    <li><strong>In Odoo backend</strong> — under the Reviews menu, filterable by rating and card.</li>
+                    <li><strong>In your weekly digest email</strong> — see <a href="/vinculum/guide/automations">Email Automations &amp; Digests</a>.</li>
+                </ul>
+                <p>For org-wide review reporting (e.g., average rating across your team), see the admin track's <a href="/vinculum/guide/crm">CRM &amp; Lead Routing</a> guide.</p>
+
+            </div>
+        </t>
+    </template>
+
+</odoo>

@@ -1,285 +1,582 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- NFC Card Programming Onboarding Template -->
+    <!--
+        /nfc/setup/<partner_id> — NFC card programming walkthrough.
+        Design: "Soft Editorial" — Fraunces + DM Sans, navy/sand/blue.
+        Coexists visually with the Vinculum guide and the dashboard aesthetic.
+
+        Template id is unchanged (qr_code_odoo.nfc_onboarding_page) so the
+        controller in main.py:504 still renders it.
+    -->
     <template id="nfc_onboarding_page" name="NFC Card Programming Guide">
         <t t-call="website.layout">
-            <div id="wrap" class="oe_structure">
-                <div class="container mt-5 mb-5">
-                    <div class="row justify-content-center">
-                        <div class="col-md-8">
-                            <h1 class="text-center mb-4">Program Your Vinc Card</h1>
-                            <p class="text-center text-muted mb-5">Follow these simple steps to program your Vinc card with your vCard</p>
+            <div id="wrap" class="oe_structure vg-shell nfc-shell">
+                <style>
+/* ---------- font system (shared with guide) ---------- */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,0..100&amp;family=DM+Sans:opsz,wght@9..40,400..600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap');
 
-                            <!-- Progress Steps -->
-                            <div class="progress mb-5" style="height: 3px;">
-                                <div class="progress-bar" id="progressBar" role="progressbar" style="width: 20%"></div>
-                            </div>
+/* ---------- design tokens (mirror vinculum_guide_layout) ---------- */
+.nfc-shell{
+  --vg-bg: #FFFFFF;
+  --vg-bg-soft: #F7F5EF;
+  --vg-ink: #0E1B3A;
+  --vg-ink-soft: #4A557A;
+  --vg-ink-faint: #8088A6;
+  --vg-line: rgba(14, 27, 58, 0.08);
+  --vg-line-soft: rgba(14, 27, 58, 0.04);
+  --vg-sand: #E8D9B7;
+  --vg-sand-soft: #F0E8D2;
+  --vg-blue: #3B82F6;
+  --vg-blue-deep: #1E40AF;
+  --vg-green: #059669;
+  --vg-shadow-card: 0 1px 2px rgba(14,27,58,.04), 0 8px 24px rgba(14,27,58,.06);
+  --vg-shadow-soft: 0 1px 2px rgba(14,27,58,.03);
+  --vg-radius: 16px;
+  --vg-radius-sm: 10px;
 
-                            <!-- Step 1: Copy URL -->
-                            <div class="card mb-4 step-card" id="step1" style="display: block;">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center mb-3">
-                                        <span class="badge badge-primary badge-pill mr-3" style="font-size: 20px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">1</span>
-                                        <h3 class="mb-0">Copy Your Vinc URL</h3>
-                                    </div>
-                                    <p>This is the URL that will be written to your Vinc card:</p>
-                                    <div class="input-group mb-3">
-                                        <input type="text" class="form-control form-control-lg" id="vcardUrl" t-att-value="vcard_url" readonly="readonly" style="font-size: 16px;"/>
-                                        <div class="input-group-append">
-                                            <button class="btn btn-primary" type="button" id="copyUrlBtn">
-                                                <i class="fa fa-copy"></i> Copy
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="alert alert-success" id="copySuccess" style="display: none;">
-                                        <i class="fa fa-check"></i> URL copied to clipboard!
-                                    </div>
-                                    <div class="text-right">
-                                        <button class="btn btn-success btn-lg" onclick="goToStep(2)">
-                                            Next <i class="fa fa-arrow-right"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+  background: var(--vg-bg);
+  color: var(--vg-ink);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-feature-settings: 'ss01' on, 'cv11' on;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100vh;
+  position: relative;
+}
+.nfc-shell *, .nfc-shell *::before, .nfc-shell *::after{ box-sizing: border-box; }
+.nfc-shell::before{
+  content:""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: radial-gradient(rgba(14,27,58,.035) 1px, transparent 1px);
+  background-size: 4px 4px; opacity: .22; mix-blend-mode: multiply;
+}
 
-                            <!-- Step 2: Install App -->
-                            <div class="card mb-4 step-card" id="step2" style="display: none;">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center mb-3">
-                                        <span class="badge badge-primary badge-pill mr-3" style="font-size: 20px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">2</span>
-                                        <h3 class="mb-0">Install NFC Tools App</h3>
-                                    </div>
-                                    <p>Download the free NFC Tools app on your phone:</p>
-                                    
-                                    <div class="row mb-4">
-                                        <div class="col-md-6 mb-3">
-                                            <a href="https://apps.apple.com/us/app/nfc-tools/id1252962749" target="_blank" class="btn btn-dark btn-block btn-lg" style="padding: 20px;">
-                                                <i class="fa fa-apple fa-2x"></i>
-                                                <div>Download for iOS</div>
-                                                <small>iPhone 7 or newer</small>
-                                            </a>
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <a href="https://play.google.com/store/apps/details?id=com.wakdev.wdnfc" target="_blank" class="btn btn-success btn-block btn-lg" style="padding: 20px;">
-                                                <i class="fa fa-android fa-2x"></i>
-                                                <div>Download for Android</div>
-                                                <small>Most Android devices</small>
-                                            </a>
-                                        </div>
-                                    </div>
+/* ---------- top bar ---------- */
+.nfc-topbar{
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 40px;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: saturate(140%) blur(14px);
+  -webkit-backdrop-filter: saturate(140%) blur(14px);
+  border-bottom: 1px solid var(--vg-line-soft);
+}
+.nfc-topbar .nfc-wordmark{
+  font-family: 'Fraunces', serif; font-weight: 600;
+  font-variation-settings: "opsz" 28, "SOFT" 30;
+  font-size: 22px; letter-spacing: -0.02em; color: var(--vg-ink);
+  text-decoration: none;
+}
+.nfc-topbar .nfc-wordmark::after{
+  content: " ·"; color: var(--vg-sand); margin-left: 4px; font-weight: 300;
+}
+.nfc-topbar .nfc-topbar-meta{
+  font-size: 13px; color: var(--vg-ink-soft);
+}
+.nfc-topbar .nfc-topbar-meta a{
+  color: var(--vg-ink); text-decoration: none;
+  border-bottom: 1px solid var(--vg-sand); padding-bottom: 1px;
+  transition: border-color .2s, color .2s;
+}
+.nfc-topbar .nfc-topbar-meta a:hover{ color: var(--vg-blue); border-color: var(--vg-blue); }
 
-                                    <div class="alert alert-info">
-                                        <i class="fa fa-info-circle"></i> <strong>Note:</strong> Make sure NFC is enabled in your phone settings
-                                    </div>
+/* ---------- layout ---------- */
+.nfc-main{
+  max-width: 760px; margin: 0 auto;
+  padding: 64px 32px 96px; position: relative; z-index: 1;
+}
 
-                                    <div class="d-flex justify-content-between">
-                                        <button class="btn btn-secondary btn-lg" onclick="goToStep(1)">
-                                            <i class="fa fa-arrow-left"></i> Back
-                                        </button>
-                                        <button class="btn btn-success btn-lg" onclick="goToStep(3)">
-                                            Next <i class="fa fa-arrow-right"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+/* ---------- hero ---------- */
+.nfc-hero{ margin-bottom: 48px; position: relative; }
+.nfc-hero::before{
+  content:""; position: absolute; inset: -60px -80px auto -80px; height: 320px;
+  z-index: -1; pointer-events: none; border-radius: 28px;
+  background:
+    radial-gradient(55% 80% at 15% 20%, rgba(232, 217, 183, 0.55) 0%, transparent 60%),
+    radial-gradient(50% 70% at 85% 30%, rgba(59, 130, 246, 0.16) 0%, transparent 65%),
+    radial-gradient(70% 90% at 50% 100%, rgba(245, 242, 234, 0.9) 0%, transparent 70%);
+  filter: blur(0.5px);
+}
+.nfc-hero .nfc-eyebrow{
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--vg-ink-faint); font-weight: 500;
+  display: inline-flex; align-items: center; gap: 10px; margin-bottom: 22px;
+}
+.nfc-hero .nfc-eyebrow::before{
+  content:""; width: 24px; height: 1px; background: var(--vg-sand);
+}
+.nfc-hero h1{
+  font-family: 'Fraunces', serif;
+  font-size: clamp(44px, 6vw, 64px); line-height: 1.02;
+  font-variation-settings: "opsz" 144, "SOFT" 80, "wght" 400;
+  letter-spacing: -0.02em; margin: 0 0 18px; color: var(--vg-ink);
+}
+.nfc-hero h1 em{
+  font-style: italic; color: var(--vg-blue-deep);
+  font-variation-settings: "opsz" 144, "SOFT" 90, "wght" 370;
+}
+.nfc-hero .nfc-sub{
+  font-size: 18px; line-height: 1.55; color: var(--vg-ink-soft);
+  max-width: 560px; margin: 0;
+}
 
-                            <!-- Step 3: Write to Card -->
-                            <div class="card mb-4 step-card" id="step3" style="display: none;">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center mb-3">
-                                        <span class="badge badge-primary badge-pill mr-3" style="font-size: 20px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">3</span>
-                                        <h3 class="mb-0">Program Your Vinc Card</h3>
-                                    </div>
-                                    
-                                    <p class="lead mb-4">Follow these steps in the NFC Tools app to program your Vinc card:</p>
+/* ---------- progress pills ---------- */
+.nfc-progress{
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  margin: 40px 0 48px; padding-bottom: 14px;
+  position: relative;
+}
+.nfc-progress .nfc-pill{
+  position: relative; padding: 14px 4px 10px;
+  border-top: 2px solid var(--vg-line);
+  transition: border-color .3s;
+}
+.nfc-progress .nfc-pill.is-active{ border-top-color: var(--vg-blue); }
+.nfc-progress .nfc-pill.is-done{ border-top-color: var(--vg-sand); }
+.nfc-progress .nfc-pill-num{
+  font-family: 'JetBrains Mono', 'DM Sans', monospace;
+  font-size: 10px; color: var(--vg-ink-faint); letter-spacing: 0.08em;
+  font-weight: 500; transition: color .2s;
+}
+.nfc-progress .nfc-pill.is-active .nfc-pill-num{ color: var(--vg-blue); }
+.nfc-progress .nfc-pill-label{
+  font-family: 'DM Sans', sans-serif; font-size: 13px;
+  color: var(--vg-ink-soft); font-weight: 500; margin-top: 4px;
+  transition: color .2s;
+}
+.nfc-progress .nfc-pill.is-active .nfc-pill-label{ color: var(--vg-ink); }
+.nfc-progress .nfc-pill.is-done .nfc-pill-label{ color: var(--vg-ink); }
 
-                                    <div class="list-group mb-4">
-                                        <div class="list-group-item">
-                                            <div class="d-flex align-items-start">
-                                                <span class="badge badge-info mr-3" style="font-size: 16px;">1</span>
-                                                <div>
-                                                    <h5 class="mb-1">Open NFC Tools</h5>
-                                                    <p class="mb-0 text-muted">Launch the app on your phone</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="list-group-item">
-                                            <div class="d-flex align-items-start">
-                                                <span class="badge badge-info mr-3" style="font-size: 16px;">2</span>
-                                                <div>
-                                                    <h5 class="mb-1">Tap "Write"</h5>
-                                                    <p class="mb-0 text-muted">Select the Write tab at the bottom</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="list-group-item">
-                                            <div class="d-flex align-items-start">
-                                                <span class="badge badge-info mr-3" style="font-size: 16px;">3</span>
-                                                <div>
-                                                    <h5 class="mb-1">Tap "Add a record"</h5>
-                                                    <p class="mb-0 text-muted">Choose what type of data to write</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="list-group-item">
-                                            <div class="d-flex align-items-start">
-                                                <span class="badge badge-info mr-3" style="font-size: 16px;">4</span>
-                                                <div>
-                                                    <h5 class="mb-1">Select "URL/URI"</h5>
-                                                    <p class="mb-0 text-muted">Choose the URL option</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="list-group-item bg-light">
-                                            <div class="d-flex align-items-start">
-                                                <span class="badge badge-warning mr-3" style="font-size: 16px;">5</span>
-                                                <div>
-                                                    <h5 class="mb-1">Paste Your URL</h5>
-                                                    <div class="input-group mt-2">
-                                                        <input type="text" class="form-control" t-att-value="vcard_url" readonly="readonly"/>
-                                                        <div class="input-group-append">
-                                                            <button class="btn btn-sm btn-primary" type="button" onclick="copyUrl()">
-                                                                <i class="fa fa-copy"></i>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="list-group-item">
-                                            <div class="d-flex align-items-start">
-                                                <span class="badge badge-info mr-3" style="font-size: 16px;">6</span>
-                                                <div>
-                                                    <h5 class="mb-1">Tap "Write"</h5>
-                                                    <p class="mb-0 text-muted">Confirm and prepare to write</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="list-group-item">
-                                            <div class="d-flex align-items-start">
-                                                <span class="badge badge-success mr-3" style="font-size: 16px;">7</span>
-                                                <div>
-                                                    <h5 class="mb-1">Hold Vinc Card to Phone</h5>
-                                                    <p class="mb-0 text-muted">Place your Vinc card on the back of your phone until you see "Write successful"</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+/* ---------- step card ---------- */
+.nfc-step{ display: none; }
+.nfc-step.is-active{ display: block; animation: fadeUp .35s ease; }
+@keyframes fadeUp{
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.nfc-step-header{ margin-bottom: 24px; }
+.nfc-step-header .nfc-step-kicker{
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  color: var(--vg-blue); letter-spacing: 0.12em; font-weight: 500;
+}
+.nfc-step-header h2{
+  font-family: 'Fraunces', serif;
+  font-size: 34px; line-height: 1.1; margin: 6px 0 10px;
+  font-variation-settings: "opsz" 60, "SOFT" 50, "wght" 460;
+  letter-spacing: -0.015em; color: var(--vg-ink);
+}
+.nfc-step-header p{
+  color: var(--vg-ink-soft); font-size: 17px; line-height: 1.55;
+  margin: 0; max-width: 580px;
+}
 
-                                    <div class="d-flex justify-content-between">
-                                        <button class="btn btn-secondary btn-lg" onclick="goToStep(2)">
-                                            <i class="fa fa-arrow-left"></i> Back
-                                        </button>
-                                        <button class="btn btn-success btn-lg" onclick="goToStep(4)">
-                                            Next <i class="fa fa-arrow-right"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+/* ---------- URL field ---------- */
+.nfc-url{
+  display: flex; gap: 0; margin: 28px 0;
+  border: 1px solid var(--vg-line); border-radius: var(--vg-radius-sm);
+  overflow: hidden; background: white;
+  box-shadow: var(--vg-shadow-soft);
+}
+.nfc-url input{
+  flex: 1; padding: 14px 18px; border: none; outline: none;
+  font-family: 'JetBrains Mono', monospace; font-size: 14px;
+  color: var(--vg-ink); background: transparent;
+  min-width: 0;
+}
+.nfc-url button{
+  padding: 0 22px; background: var(--vg-ink); color: var(--vg-bg);
+  border: none; font-family: 'DM Sans', sans-serif; font-size: 14px;
+  font-weight: 500; cursor: pointer; display: inline-flex;
+  align-items: center; gap: 6px; transition: background .15s;
+}
+.nfc-url button:hover{ background: var(--vg-blue-deep); }
+.nfc-url button.is-copied{ background: var(--vg-green); }
 
-                            <!-- Step 4: Test Card -->
-                            <div class="card mb-4 step-card" id="step4" style="display: none;">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center mb-3">
-                                        <span class="badge badge-primary badge-pill mr-3" style="font-size: 20px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">4</span>
-                                        <h3 class="mb-0">Test Your Vinc Card</h3>
-                                    </div>
-                                    
-                                    <div class="text-center mb-4">
-                                        <i class="fa fa-check-circle text-success" style="font-size: 80px;"></i>
-                                    </div>
+.nfc-copy-toast{
+  display: none; padding: 10px 16px; margin: -10px 0 24px;
+  background: rgba(5, 150, 105, 0.1); color: var(--vg-green);
+  border-radius: var(--vg-radius-sm); font-size: 13.5px;
+  align-items: center; gap: 8px;
+}
+.nfc-copy-toast.is-visible{ display: inline-flex; }
 
-                                    <h4 class="text-center mb-4">Almost Done!</h4>
-                                    
-                                    <p class="lead text-center mb-4">Test your Vinc card by tapping it to any NFC-enabled phone. It should open your vCard page automatically!</p>
+/* ---------- app tiles ---------- */
+.nfc-apps{
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+  margin: 28px 0;
+}
+@media (max-width: 600px){ .nfc-apps{ grid-template-columns: 1fr; } }
+.nfc-app{
+  display: block; text-decoration: none; color: var(--vg-ink);
+  padding: 24px 22px; border-radius: var(--vg-radius);
+  background: white; border: 1px solid var(--vg-line);
+  transition: transform .15s, border-color .15s, box-shadow .2s;
+  position: relative;
+}
+.nfc-app:hover{ transform: translateY(-2px); border-color: var(--vg-sand); box-shadow: var(--vg-shadow-card); }
+.nfc-app .nfc-app-platform{
+  font-size: 10px; color: var(--vg-ink-faint); text-transform: uppercase;
+  letter-spacing: 0.16em; font-weight: 500; margin-bottom: 10px;
+}
+.nfc-app h3{
+  font-family: 'Fraunces', serif; font-size: 22px; margin: 0 0 4px;
+  font-variation-settings: "opsz" 36, "SOFT" 40, "wght" 500;
+  letter-spacing: -0.012em;
+}
+.nfc-app .nfc-app-meta{
+  font-size: 13px; color: var(--vg-ink-soft);
+}
+.nfc-app::after{
+  content: "→"; position: absolute; top: 24px; right: 22px;
+  color: var(--vg-ink-faint); transition: transform .2s, color .2s;
+}
+.nfc-app:hover::after{ color: var(--vg-blue); transform: translateX(3px); }
 
-                                    <div class="alert alert-success">
-                                        <h5><i class="fa fa-lightbulb-o"></i> Pro Tips:</h5>
-                                        <ul class="mb-0">
-                                            <li>Your Vinc card works best when you tap it to the back center of the phone</li>
-                                            <li>You can program multiple Vinc cards with the same URL</li>
-                                            <li>Your Vinc card works on both iPhone and Android devices</li>
-                                            <li>No app is needed for someone to scan your Vinc card - it opens in their browser</li>
-                                        </ul>
-                                    </div>
+/* ---------- numbered instructions list ---------- */
+.nfc-instructions{
+  list-style: none; padding: 0; margin: 28px 0;
+  counter-reset: nfc-li;
+  border-top: 1px solid var(--vg-line-soft);
+}
+.nfc-instructions li{
+  counter-increment: nfc-li;
+  position: relative; padding: 18px 0 18px 52px;
+  border-bottom: 1px solid var(--vg-line-soft);
+}
+.nfc-instructions li::before{
+  content: counter(nfc-li, decimal-leading-zero);
+  position: absolute; left: 0; top: 20px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  color: var(--vg-blue); font-weight: 500; letter-spacing: 0.08em;
+}
+.nfc-instructions li strong{
+  display: block; font-weight: 500; color: var(--vg-ink);
+  font-family: 'Fraunces', serif; font-size: 17px;
+  font-variation-settings: "opsz" 24, "SOFT" 30, "wght" 500;
+  margin-bottom: 2px;
+}
+.nfc-instructions li p{
+  margin: 0; font-size: 14.5px; color: var(--vg-ink-soft); line-height: 1.55;
+}
+.nfc-instructions li.nfc-highlight{
+  background: var(--vg-bg-soft); margin: 0 -20px; padding-left: 72px;
+  padding-right: 20px; border-radius: var(--vg-radius-sm);
+  border-bottom: 1px solid var(--vg-line-soft);
+}
+.nfc-instructions li.nfc-highlight::before{ left: 20px; }
 
-                                    <div class="text-center mt-4">
-                                        <button class="btn btn-secondary btn-lg mr-2" onclick="goToStep(3)">
-                                            <i class="fa fa-arrow-left"></i> Back
-                                        </button>
-                                        <button class="btn btn-success btn-lg" onclick="completeTutorial()">
-                                            <i class="fa fa-check"></i> Finish Tutorial
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+/* ---------- success panel ---------- */
+.nfc-success{
+  text-align: center; padding: 40px 20px;
+  background: linear-gradient(180deg, var(--vg-bg-soft) 0%, var(--vg-bg) 100%);
+  border-radius: var(--vg-radius); margin: 28px 0;
+  border: 1px solid var(--vg-line-soft);
+}
+.nfc-success .nfc-success-mark{
+  width: 76px; height: 76px; border-radius: 999px;
+  background: var(--vg-green); color: white;
+  font-size: 40px; line-height: 76px;
+  margin: 0 auto 20px; box-shadow: 0 8px 24px rgba(5,150,105,.25);
+  font-family: 'DM Sans', sans-serif;
+}
+.nfc-success h3{
+  font-family: 'Fraunces', serif; font-size: 32px; margin: 0 0 10px;
+  font-variation-settings: "opsz" 60, "SOFT" 60, "wght" 460;
+  letter-spacing: -0.012em;
+}
+.nfc-success p{
+  color: var(--vg-ink-soft); font-size: 16px; max-width: 460px;
+  margin: 0 auto 24px; line-height: 1.55;
+}
 
-                            <!-- Need Help Section -->
-                            <div class="card mt-4 bg-light">
-                                <div class="card-body text-center">
-                                    <h5><i class="fa fa-question-circle"></i> Need Help?</h5>
-                                    <p>Having trouble programming your Vinc card?</p>
-                                    <a href="/contactus" class="btn btn-primary">Contact Vinc Support</a>
-                                </div>
-                            </div>
+/* ---------- tips ---------- */
+.nfc-tips{
+  background: var(--vg-bg-soft); border-radius: var(--vg-radius-sm);
+  padding: 20px 24px; margin: 20px 0;
+  border-left: 3px solid var(--vg-sand);
+}
+.nfc-tips::before{
+  content: "Field tips"; font-family: 'DM Sans', sans-serif;
+  font-size: 10px; font-weight: 600; color: var(--vg-ink-faint);
+  letter-spacing: 0.16em; text-transform: uppercase; display: block;
+  margin-bottom: 10px;
+}
+.nfc-tips ul{ list-style: none; padding: 0; margin: 0; }
+.nfc-tips li{ padding: 4px 0 4px 18px; position: relative; color: var(--vg-ink); font-size: 14.5px; line-height: 1.55; }
+.nfc-tips li::before{ content: ""; position: absolute; left: 0; top: 13px; width: 8px; height: 1px; background: var(--vg-sand); }
 
+/* ---------- step nav ---------- */
+.nfc-nav{
+  display: flex; justify-content: space-between; gap: 16px;
+  margin-top: 36px; padding-top: 28px; border-top: 1px solid var(--vg-line);
+}
+.nfc-btn{
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 22px; border-radius: 999px;
+  font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 14.5px;
+  text-decoration: none; cursor: pointer; border: 1px solid transparent;
+  transition: transform .15s, box-shadow .2s, background .15s, border-color .15s;
+}
+.nfc-btn-primary{ background: var(--vg-ink); color: var(--vg-bg); }
+.nfc-btn-primary:hover{ transform: translateY(-1px); box-shadow: 0 8px 24px rgba(14,27,58,.25); }
+.nfc-btn-secondary{ background: transparent; color: var(--vg-ink); border-color: var(--vg-line); }
+.nfc-btn-secondary:hover{ border-color: var(--vg-sand); background: var(--vg-bg-soft); }
+.nfc-btn.is-invisible{ visibility: hidden; }
+
+/* ---------- help card ---------- */
+.nfc-help{
+  margin-top: 56px; padding: 28px 32px;
+  background: white; border: 1px solid var(--vg-line);
+  border-radius: var(--vg-radius); box-shadow: var(--vg-shadow-soft);
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 20px; flex-wrap: wrap;
+}
+.nfc-help h4{
+  font-family: 'Fraunces', serif; font-size: 18px; margin: 0 0 4px;
+  font-variation-settings: "opsz" 24, "SOFT" 30, "wght" 500;
+}
+.nfc-help p{ margin: 0; font-size: 14px; color: var(--vg-ink-soft); }
+
+/* ---------- footer ---------- */
+.nfc-footer{
+  position: relative; z-index: 1;
+  border-top: 1px solid var(--vg-line); padding: 32px 40px 56px;
+  max-width: 1000px; margin: 0 auto; text-align: center;
+  font-size: 13px; color: var(--vg-ink-soft);
+}
+.nfc-footer a{ color: var(--vg-ink); text-decoration: none; border-bottom: 1px solid var(--vg-sand); padding-bottom: 1px; }
+.nfc-footer a:hover{ color: var(--vg-blue); border-color: var(--vg-blue); }
+                </style>
+
+                <!-- ===== top bar ===== -->
+                <header class="nfc-topbar">
+                    <a href="/vinculum/guide" class="nfc-wordmark">Vinc Setup</a>
+                    <div class="nfc-topbar-meta">
+                        <t t-if="request.session.uid">
+                            <a href="/web">← Back to Vinc</a>
+                        </t>
+                        <t t-else="">
+                            <a t-attf-href="/#{partner.website_slug or ''}">View my card</a>
+                        </t>
+                    </div>
+                </header>
+
+                <!-- ===== main ===== -->
+                <main class="nfc-main">
+                    <!-- HERO -->
+                    <section class="nfc-hero">
+                        <div class="nfc-eyebrow">NFC Programming</div>
+                        <h1>Program <em>your</em> Vinc card.</h1>
+                        <p class="nfc-sub">Four steps, about ten minutes end-to-end. You'll copy a URL, install a free app, tap-write your card, then test. The card is yours forever — the URL it points at updates whenever you update your Vinc.</p>
+                    </section>
+
+                    <!-- PROGRESS -->
+                    <div class="nfc-progress" id="nfcProgress">
+                        <div class="nfc-pill is-active" data-step="1">
+                            <div class="nfc-pill-num">01</div>
+                            <div class="nfc-pill-label">Copy URL</div>
+                        </div>
+                        <div class="nfc-pill" data-step="2">
+                            <div class="nfc-pill-num">02</div>
+                            <div class="nfc-pill-label">Install app</div>
+                        </div>
+                        <div class="nfc-pill" data-step="3">
+                            <div class="nfc-pill-num">03</div>
+                            <div class="nfc-pill-label">Write card</div>
+                        </div>
+                        <div class="nfc-pill" data-step="4">
+                            <div class="nfc-pill-num">04</div>
+                            <div class="nfc-pill-label">Test</div>
                         </div>
                     </div>
-                </div>
+
+                    <!-- ===== STEP 1 ===== -->
+                    <section class="nfc-step is-active" id="nfcStep1">
+                        <div class="nfc-step-header">
+                            <div class="nfc-step-kicker">STEP 01 / COPY</div>
+                            <h2>This is the URL your card will carry.</h2>
+                            <p>When someone taps their phone to your Vinc card, this is where it takes them. Keep it in your clipboard — you'll paste it into the NFC app in step 3.</p>
+                        </div>
+                        <div class="nfc-url">
+                            <input type="text" id="vcardUrl" t-att-value="vcard_url" readonly="readonly"/>
+                            <button type="button" id="copyUrlBtn">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                Copy URL
+                            </button>
+                        </div>
+                        <div class="nfc-copy-toast" id="copySuccess">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Copied to clipboard.
+                        </div>
+                        <div class="nfc-nav">
+                            <button type="button" class="nfc-btn nfc-btn-secondary is-invisible">← Back</button>
+                            <button type="button" class="nfc-btn nfc-btn-primary" onclick="nfcGo(2)">Next step →</button>
+                        </div>
+                    </section>
+
+                    <!-- ===== STEP 2 ===== -->
+                    <section class="nfc-step" id="nfcStep2">
+                        <div class="nfc-step-header">
+                            <div class="nfc-step-kicker">STEP 02 / INSTALL</div>
+                            <h2>Install NFC Tools.</h2>
+                            <p>A free, trusted app that lets your phone write URLs to NFC cards. Pick your platform. Takes under a minute.</p>
+                        </div>
+                        <div class="nfc-apps">
+                            <a class="nfc-app" href="https://apps.apple.com/us/app/nfc-tools/id1252962749" target="_blank" rel="noopener">
+                                <div class="nfc-app-platform">For iOS</div>
+                                <h3>NFC Tools</h3>
+                                <div class="nfc-app-meta">App Store · iPhone 7 or newer</div>
+                            </a>
+                            <a class="nfc-app" href="https://play.google.com/store/apps/details?id=com.wakdev.wdnfc" target="_blank" rel="noopener">
+                                <div class="nfc-app-platform">For Android</div>
+                                <h3>NFC Tools</h3>
+                                <div class="nfc-app-meta">Google Play · Most Android phones</div>
+                            </a>
+                        </div>
+                        <div class="nfc-tips">
+                            <ul>
+                                <li>Make sure NFC is enabled in your phone's system settings before you launch the app.</li>
+                                <li>On iPhone, the NFC sensor is near the top of the back — aim there when writing.</li>
+                                <li>On Android, the sensor location varies by model; the app will tell you when to hold the card.</li>
+                            </ul>
+                        </div>
+                        <div class="nfc-nav">
+                            <button type="button" class="nfc-btn nfc-btn-secondary" onclick="nfcGo(1)">← Back</button>
+                            <button type="button" class="nfc-btn nfc-btn-primary" onclick="nfcGo(3)">Next step →</button>
+                        </div>
+                    </section>
+
+                    <!-- ===== STEP 3 ===== -->
+                    <section class="nfc-step" id="nfcStep3">
+                        <div class="nfc-step-header">
+                            <div class="nfc-step-kicker">STEP 03 / WRITE</div>
+                            <h2>Write the URL to your card.</h2>
+                            <p>Inside the NFC Tools app, these are the exact taps. Go slow on the last one — hold the card still until you see the confirmation.</p>
+                        </div>
+                        <ol class="nfc-instructions">
+                            <li><strong>Open NFC Tools</strong><p>Launch the app on your phone.</p></li>
+                            <li><strong>Tap "Write"</strong><p>The Write tab is in the bottom nav.</p></li>
+                            <li><strong>Tap "Add a record"</strong><p>You're about to attach a single record to the card.</p></li>
+                            <li><strong>Select "URL / URI"</strong><p>Of all the record types, this is the one that opens a web page on tap.</p></li>
+                            <li class="nfc-highlight"><strong>Paste your Vinc URL</strong>
+                                <div class="nfc-url" style="margin: 10px 0 0;">
+                                    <input type="text" t-att-value="vcard_url" readonly="readonly"/>
+                                    <button type="button" onclick="nfcCopyUrl()">Copy</button>
+                                </div>
+                            </li>
+                            <li><strong>Tap "Write"</strong><p>Confirms the record and prepares the phone to transmit.</p></li>
+                            <li><strong>Hold the card flat to the back of the phone</strong><p>Keep it there — don't pull away — until the app shows "Write successful".</p></li>
+                        </ol>
+                        <div class="nfc-nav">
+                            <button type="button" class="nfc-btn nfc-btn-secondary" onclick="nfcGo(2)">← Back</button>
+                            <button type="button" class="nfc-btn nfc-btn-primary" onclick="nfcGo(4)">Next step →</button>
+                        </div>
+                    </section>
+
+                    <!-- ===== STEP 4 ===== -->
+                    <section class="nfc-step" id="nfcStep4">
+                        <div class="nfc-step-header">
+                            <div class="nfc-step-kicker">STEP 04 / TEST</div>
+                            <h2>Tap to test.</h2>
+                            <p>Hand the card to someone (or pick up a second phone) and tap. Your vCard page should open. That's it — you're programmed.</p>
+                        </div>
+                        <div class="nfc-success">
+                            <div class="nfc-success-mark">✓</div>
+                            <h3>Your card is live.</h3>
+                            <p>The URL is now written to the card's chip. Every tap — this card, forever — opens your Vinc. Update your card content in the Vinc backend and the very next tap reflects it.</p>
+                            <a t-attf-href="#{vcard_url or '/'}" target="_blank" class="nfc-btn nfc-btn-primary">Preview my card →</a>
+                        </div>
+                        <div class="nfc-tips">
+                            <ul>
+                                <li>Works on iOS 13+ and Android 4.4+ without any app install on the visitor's phone.</li>
+                                <li>Taps are fastest when the card is flat against the back center of the phone.</li>
+                                <li>Program multiple cards with the same URL — useful for giving spares, or branding cards per event.</li>
+                                <li>If a tap shows nothing, re-run steps 3 and 7 — sometimes the first write doesn't commit.</li>
+                            </ul>
+                        </div>
+                        <div class="nfc-nav">
+                            <button type="button" class="nfc-btn nfc-btn-secondary" onclick="nfcGo(3)">← Back</button>
+                            <a href="/web" class="nfc-btn nfc-btn-primary">Done — back to Vinc</a>
+                        </div>
+                    </section>
+
+                    <!-- HELP -->
+                    <div class="nfc-help">
+                        <div>
+                            <h4>Stuck somewhere?</h4>
+                            <p>We've programmed thousands of these. Odds are we've seen it.</p>
+                        </div>
+                        <a href="mailto:support@getvinc.com" class="nfc-btn nfc-btn-secondary">Email support →</a>
+                    </div>
+                </main>
+
+                <footer class="nfc-footer">
+                    Programmed by <a href="/vinculum/guide/nfc">the NFC chapter of the Vinc guide</a>
+                    <span style="color: var(--vg-sand); margin: 0 10px;">·</span>
+                    <a href="mailto:support@getvinc.com">support@getvinc.com</a>
+                </footer>
+
+                <script>
+                (function(){
+                    function setStep(n){
+                        document.querySelectorAll('.nfc-step').forEach(function(el){
+                            el.classList.remove('is-active');
+                        });
+                        var active = document.getElementById('nfcStep' + n);
+                        if (active) active.classList.add('is-active');
+                        document.querySelectorAll('.nfc-pill').forEach(function(el){
+                            var step = parseInt(el.getAttribute('data-step'), 10);
+                            el.classList.remove('is-active', 'is-done');
+                            if (step === n) el.classList.add('is-active');
+                            else if (step &lt; n) el.classList.add('is-done');
+                        });
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                    window.nfcGo = setStep;
+
+                    function copy(value){
+                        if (navigator.clipboard &amp;&amp; window.isSecureContext) {
+                            return navigator.clipboard.writeText(value);
+                        }
+                        return new Promise(function(resolve, reject){
+                            try {
+                                var ta = document.createElement('textarea');
+                                ta.value = value; ta.style.position = 'fixed';
+                                ta.style.left = '-9999px';
+                                document.body.appendChild(ta);
+                                ta.select(); document.execCommand('copy');
+                                document.body.removeChild(ta); resolve();
+                            } catch(e){ reject(e); }
+                        });
+                    }
+                    function showToast(){
+                        var t = document.getElementById('copySuccess');
+                        if (!t) return;
+                        t.classList.add('is-visible');
+                        setTimeout(function(){ t.classList.remove('is-visible'); }, 2200);
+                    }
+                    window.nfcCopyUrl = function(){
+                        var input = document.getElementById('vcardUrl');
+                        if (!input) return;
+                        copy(input.value).then(showToast);
+                    };
+                    var btn = document.getElementById('copyUrlBtn');
+                    if (btn){
+                        btn.addEventListener('click', function(){
+                            var input = document.getElementById('vcardUrl');
+                            copy(input.value).then(function(){
+                                btn.classList.add('is-copied');
+                                btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Copied';
+                                showToast();
+                                setTimeout(function(){
+                                    btn.classList.remove('is-copied');
+                                    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy URL';
+                                }, 2000);
+                            });
+                        });
+                    }
+                })();
+                </script>
             </div>
-
-            <!-- JavaScript for interactivity -->
-            <script>
-                function goToStep(step) {
-                    // Hide all steps
-                    $('.step-card').hide();
-                    
-                    // Show selected step
-                    $('#step' + step).show();
-                    
-                    // Update progress bar
-                    var progress = (step / 4) * 100;
-                    $('#progressBar').css('width', progress + '%');
-                    
-                    // Scroll to top
-                    $('html, body').animate({ scrollTop: 0 }, 300);
-                }
-
-                function copyUrl() {
-                    var urlInput = document.getElementById('vcardUrl');
-                    urlInput.select();
-                    urlInput.setSelectionRange(0, 99999); // For mobile
-                    
-                    navigator.clipboard.writeText(urlInput.value).then(function() {
-                        $('#copySuccess').fadeIn().delay(2000).fadeOut();
-                    });
-                }
-
-                function completeTutorial() {
-                    alert('Tutorial completed! Your Vinc card is ready to use.');
-                    window.location.href = '/web';
-                }
-
-                // Copy button functionality
-                $(document).ready(function() {
-                    $('#copyUrlBtn').click(function() {
-                        copyUrl();
-                    });
-                });
-            </script>
-
-            <style>
-                .step-card {
-                    border-left: 4px solid #007bff;
-                }
-                .list-group-item {
-                    border-left: none;
-                    border-right: none;
-                }
-                .badge-pill {
-                    font-weight: normal;
-                }
-            </style>
         </t>
     </template>
 </odoo>

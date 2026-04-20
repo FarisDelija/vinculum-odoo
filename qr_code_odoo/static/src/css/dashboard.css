@@ -1,0 +1,355 @@
+/*
+ * Vinc Dashboard — Soft Editorial polish.
+ * Scoped to .vg-dashboard so it doesn't leak into other backend views.
+ * Fonts are injected via a <link> tag in the view XML (see user_dashboard.xml)
+ * because Odoo's CSS bundler mangles @import rules that contain ; in the URL.
+ */
+
+.vg-dashboard {
+    --vg-page: #F6F3EC;
+    --vg-bg: #FFFFFF;
+    --vg-bg-soft: #F0EBDD;
+    --vg-bg-chip: #EEF2FF;
+    --vg-ink: #0B162E;
+    --vg-ink-soft: #3A4569;
+    --vg-ink-faint: #6B7494;
+    --vg-line: rgba(14, 27, 58, 0.10);
+    --vg-line-strong: rgba(14, 27, 58, 0.16);
+    --vg-line-soft: rgba(14, 27, 58, 0.05);
+    --vg-sand: #E8D9B7;
+    --vg-sand-soft: #F0E8D2;
+    --vg-sand-deep: #C9B37A;
+    --vg-blue: #2D5BFF;
+    --vg-blue-deep: #1E40AF;
+    --vg-green: #047857;
+    --vg-amber: #B45309;
+    --vg-shadow-card: 0 1px 3px rgba(14,27,58,.06), 0 12px 32px rgba(14,27,58,.10);
+    --vg-shadow-soft: 0 1px 2px rgba(14,27,58,.05), 0 4px 14px rgba(14,27,58,.06);
+    --vg-shadow-lift: 0 2px 4px rgba(14,27,58,.07), 0 20px 48px rgba(14,27,58,.14);
+    --vg-radius: 16px;
+    --vg-radius-sm: 10px;
+    --vg-font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --vg-font-serif: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+    --vg-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+    font-family: var(--vg-font-sans);
+    font-feature-settings: 'ss01' on, 'cv11' on;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--vg-ink);
+    -webkit-font-smoothing: antialiased;
+    background: var(--vg-page);
+    padding: 16px 16px 32px 16px;
+    border-radius: 0;
+    margin: 0 -1px;
+}
+.vg-dashboard * { box-sizing: border-box; }
+
+/* ==========  Hero / welcome banner  ========== */
+.vg-dashboard .vg-hero {
+    position: relative;
+    margin: 0 0 32px;
+    padding: 40px 48px 44px;
+    border-radius: var(--vg-radius);
+    overflow: hidden;
+    background: linear-gradient(135deg, #0E1B3A 0%, #1E3A5F 55%, #3B5A87 100%);
+    color: #fff;
+    box-shadow: 0 18px 40px rgba(14,27,58,.22);
+}
+.vg-dashboard .vg-hero::before {
+    content: ""; position: absolute; inset: -40% -20% auto auto;
+    width: 560px; height: 560px; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(closest-side, rgba(232,217,183,0.28), transparent 70%);
+}
+.vg-dashboard .vg-hero::after {
+    content: ""; position: absolute; inset: auto -10% -60% 30%;
+    width: 480px; height: 480px; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(closest-side, rgba(59,130,246,0.28), transparent 70%);
+}
+.vg-dashboard .vg-hero-content {
+    position: relative; z-index: 1;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 24px; flex-wrap: wrap;
+}
+.vg-dashboard .vg-hero-eyebrow {
+    font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: rgba(255,255,255,0.65); font-weight: 500;
+    display: inline-flex; align-items: center; gap: 10px; margin-bottom: 16px;
+}
+.vg-dashboard .vg-hero-eyebrow::before {
+    content: ""; width: 24px; height: 1px; background: rgba(232,217,183,0.7);
+}
+.vg-dashboard .vg-hero h2 {
+    font-family: var(--vg-font-serif);
+    font-size: 40px; line-height: 1.05;
+    font-variation-settings: "opsz" 120, "SOFT" 60, "wght" 420;
+    letter-spacing: -0.02em; color: #fff; margin: 0 0 12px;
+    font-weight: 420;
+}
+.vg-dashboard .vg-hero h2 em {
+    font-style: italic;
+    font-variation-settings: "opsz" 120, "SOFT" 80, "wght" 400;
+    color: #E8D9B7;
+}
+.vg-dashboard .vg-hero-sub {
+    font-size: 15px; line-height: 1.6; color: rgba(255,255,255,0.85);
+    margin: 0 0 24px; max-width: 600px;
+}
+.vg-dashboard .vg-hero-sub strong { color: #fff; font-weight: 600; }
+
+.vg-dashboard .vg-hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+/* Higher specificity + !important on color to defeat Odoo's .btn defaults
+   that otherwise make our primary hero button white-on-white. */
+.vg-dashboard .vg-hero .vg-hero-btn,
+.vg-dashboard .vg-hero button.vg-hero-btn,
+.vg-dashboard .vg-hero a.vg-hero-btn {
+    display: inline-flex !important; align-items: center; gap: 8px;
+    padding: 11px 22px !important; border-radius: 999px !important;
+    font-family: var(--vg-font-sans) !important; font-size: 14px !important;
+    font-weight: 500 !important;
+    text-decoration: none !important; cursor: pointer;
+    transition: transform .15s, box-shadow .2s, background .15s, color .15s;
+    box-shadow: none;
+    line-height: 1.2 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+    outline: none !important;
+}
+.vg-dashboard .vg-hero button.vg-hero-btn.is-primary,
+.vg-dashboard .vg-hero a.vg-hero-btn.is-primary {
+    background: #ffffff !important;
+    color: #0B162E !important;
+    border: 1px solid rgba(255,255,255,0.6) !important;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.22) !important;
+}
+.vg-dashboard .vg-hero button.vg-hero-btn.is-primary:hover,
+.vg-dashboard .vg-hero a.vg-hero-btn.is-primary:hover {
+    transform: translateY(-1px);
+    background: #fff !important;
+    color: #0B162E !important;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.3) !important;
+}
+.vg-dashboard .vg-hero button.vg-hero-btn.is-ghost,
+.vg-dashboard .vg-hero a.vg-hero-btn.is-ghost {
+    background: rgba(255,255,255,0.08) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255,255,255,0.32) !important;
+}
+.vg-dashboard .vg-hero button.vg-hero-btn.is-ghost:hover,
+.vg-dashboard .vg-hero a.vg-hero-btn.is-ghost:hover {
+    background: rgba(255,255,255,0.16) !important;
+    color: #ffffff !important;
+    border-color: rgba(232,217,183,0.6) !important;
+}
+.vg-dashboard .vg-hero .vg-hero-btn i { font-size: 12px; opacity: 0.8; }
+
+/* ==========  KPI tiles  ========== */
+.vg-dashboard .vg-kpi-row {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 16px; margin: 0 0 32px;
+}
+@media (max-width: 1100px) {
+    .vg-dashboard .vg-kpi-row { grid-template-columns: repeat(2, 1fr); }
+}
+.vg-dashboard .vg-kpi {
+    background: var(--vg-bg); border: 1px solid var(--vg-line);
+    border-radius: var(--vg-radius); padding: 22px 24px;
+    box-shadow: var(--vg-shadow-soft);
+    transition: transform .2s, border-color .2s, box-shadow .25s;
+    position: relative; overflow: hidden;
+}
+/* top sand accent, subtle but always visible */
+.vg-dashboard .vg-kpi::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--vg-sand-deep) 0%, var(--vg-sand) 45%, transparent 90%);
+    opacity: .55; transition: opacity .25s;
+}
+/* bottom-right subtle radial to give depth */
+.vg-dashboard .vg-kpi::after {
+    content: ""; position: absolute; inset: auto -40% -60% auto;
+    width: 220px; height: 220px; pointer-events: none; z-index: 0;
+    background: radial-gradient(closest-side, rgba(232,217,183,0.18), transparent 70%);
+    transition: opacity .25s;
+}
+.vg-dashboard .vg-kpi:hover {
+    transform: translateY(-3px); border-color: var(--vg-sand-deep);
+    box-shadow: var(--vg-shadow-lift);
+}
+.vg-dashboard .vg-kpi:hover::before { opacity: 1; }
+.vg-dashboard .vg-kpi > * { position: relative; z-index: 1; }
+
+.vg-dashboard .vg-kpi-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+}
+.vg-dashboard .vg-kpi-label {
+    font-family: var(--vg-font-sans);
+    font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--vg-ink-soft); font-weight: 600;
+}
+.vg-dashboard .vg-kpi-chip {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+    border: 1px solid rgba(45,91,255,0.12);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--vg-blue-deep); font-size: 15px;
+}
+/* vary chip hue per KPI position so the row has visual rhythm */
+.vg-dashboard .vg-kpi:nth-child(1) .vg-kpi-chip { background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); color: #1E40AF; border-color: rgba(45,91,255,.14); }
+.vg-dashboard .vg-kpi:nth-child(2) .vg-kpi-chip { background: linear-gradient(135deg, #FDF5E5 0%, #F5E4BD 100%); color: #92660E; border-color: rgba(201,179,122,.35); }
+.vg-dashboard .vg-kpi:nth-child(3) .vg-kpi-chip { background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); color: #047857; border-color: rgba(4,120,87,.18); }
+.vg-dashboard .vg-kpi:nth-child(4) .vg-kpi-chip { background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%); color: #B91C1C; border-color: rgba(185,28,28,.18); }
+.vg-dashboard .vg-kpi-value {
+    font-family: var(--vg-font-serif);
+    font-size: 38px; line-height: 1;
+    font-variation-settings: "opsz" 72, "SOFT" 60, "wght" 460;
+    letter-spacing: -0.02em; color: var(--vg-ink); margin-bottom: 8px;
+    display: flex; align-items: baseline; gap: 6px;
+}
+.vg-dashboard .vg-kpi-foot {
+    font-size: 13px; color: var(--vg-ink-soft);
+    font-family: var(--vg-font-sans);
+    letter-spacing: 0;
+    font-weight: 500;
+}
+.vg-dashboard .vg-kpi-foot.is-positive { color: var(--vg-green); }
+.vg-dashboard .vg-kpi-foot.is-negative { color: var(--vg-amber); }
+
+/* ==========  Section cards (analytics, activity, downloads)  ========== */
+.vg-dashboard .vg-section {
+    background: var(--vg-bg); border: 1px solid var(--vg-line);
+    border-radius: var(--vg-radius); padding: 28px 30px;
+    box-shadow: var(--vg-shadow-soft);
+    margin-bottom: 20px;
+    transition: box-shadow .25s;
+}
+.vg-dashboard .vg-section:hover { box-shadow: var(--vg-shadow-card); }
+.vg-dashboard .vg-section-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 22px; padding-bottom: 18px; border-bottom: 1px solid var(--vg-line-soft);
+    gap: 16px; flex-wrap: wrap;
+}
+.vg-dashboard .vg-section-title {
+    font-family: var(--vg-font-serif);
+    font-size: 22px; line-height: 1.15; color: var(--vg-ink); margin: 0;
+    font-variation-settings: "opsz" 36, "SOFT" 40, "wght" 500;
+    letter-spacing: -0.012em;
+    display: flex; align-items: center; gap: 12px;
+}
+.vg-dashboard .vg-section-title::before {
+    content: ""; width: 4px; height: 18px; background: var(--vg-sand);
+    border-radius: 2px; display: inline-block;
+}
+.vg-dashboard .vg-section-link {
+    color: var(--vg-blue); background: none; border: none; cursor: pointer;
+    font-family: var(--vg-font-sans); font-size: 13px; font-weight: 500;
+    padding: 0; border-bottom: 1px solid transparent;
+    transition: border-color .2s;
+}
+.vg-dashboard .vg-section-link:hover { border-color: var(--vg-blue); }
+
+.vg-dashboard .vg-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;
+}
+@media (max-width: 900px) { .vg-dashboard .vg-row { grid-template-columns: 1fr; } }
+
+.vg-dashboard .vg-split {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+}
+.vg-dashboard .vg-split-item .vg-split-label {
+    font-family: var(--vg-font-sans);
+    font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--vg-ink-soft); font-weight: 600; margin-bottom: 8px;
+}
+.vg-dashboard .vg-split-item .vg-split-value {
+    font-family: var(--vg-font-serif);
+    font-size: 30px; line-height: 1;
+    font-variation-settings: "opsz" 60, "SOFT" 30, "wght" 520;
+    color: var(--vg-ink); margin-bottom: 6px;
+    letter-spacing: -0.015em;
+    font-weight: 520;
+}
+.vg-dashboard .vg-split-item .vg-split-delta {
+    font-size: 13px; color: var(--vg-ink-soft);
+    font-family: var(--vg-font-sans);
+    font-weight: 500;
+}
+.vg-dashboard .vg-split-item .vg-split-delta.is-positive { color: var(--vg-green); }
+
+/* ==========  Download stats sub-grid  ========== */
+.vg-dashboard .vg-stat-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px; margin-bottom: 24px;
+}
+.vg-dashboard .vg-stat {
+    background: linear-gradient(180deg, #FBF8F0 0%, #F4EEDC 100%);
+    border: 1px solid rgba(201,179,122,0.28);
+    border-radius: var(--vg-radius-sm);
+    padding: 20px 22px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+    position: relative; overflow: hidden;
+}
+.vg-dashboard .vg-stat::before{
+    content: ""; position: absolute; inset: -2px auto auto -2px;
+    width: 80px; height: 80px; pointer-events: none;
+    background: radial-gradient(closest-side, rgba(232,217,183,0.5), transparent 70%);
+}
+.vg-dashboard .vg-stat > * { position: relative; z-index: 1; }
+.vg-dashboard .vg-stat-label {
+    font-family: var(--vg-font-sans);
+    font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--vg-ink-soft); font-weight: 600; margin-bottom: 10px;
+}
+.vg-dashboard .vg-stat-value {
+    font-family: var(--vg-font-serif);
+    font-size: 32px; line-height: 1;
+    font-variation-settings: "opsz" 60, "SOFT" 30, "wght" 520;
+    color: var(--vg-ink); letter-spacing: -0.015em;
+    font-weight: 520;
+}
+
+/* ==========  Recent activity / lists  ========== */
+.vg-dashboard .vg-section .o_list_renderer,
+.vg-dashboard .vg-section .o_list_view {
+    background: transparent !important;
+    border: none !important;
+}
+.vg-dashboard .vg-section .o_list_renderer table {
+    font-family: var(--vg-font-sans); font-size: 13px;
+}
+.vg-dashboard .vg-section .o_list_renderer thead th {
+    font-family: var(--vg-font-sans) !important;
+    font-size: 11.5px !important; letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+    color: var(--vg-ink-soft) !important;
+    font-weight: 600 !important;
+    border-bottom: 1px solid var(--vg-line) !important;
+    background: transparent !important;
+    padding: 10px 12px !important;
+}
+.vg-dashboard .vg-section .o_list_renderer tbody td {
+    color: var(--vg-ink) !important;
+    font-size: 13.5px !important;
+}
+
+.vg-dashboard .vg-activity-empty {
+    padding: 24px 0; color: var(--vg-ink-faint); font-size: 14px;
+    text-align: center; font-style: italic;
+}
+
+/* Scrollable list max-height, subtle scrollbar */
+.vg-dashboard .vg-scroll-max {
+    max-height: 400px; overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: var(--vg-sand) transparent;
+}
+.vg-dashboard .vg-scroll-max::-webkit-scrollbar { width: 6px; }
+.vg-dashboard .vg-scroll-max::-webkit-scrollbar-thumb {
+    background: var(--vg-sand); border-radius: 3px;
+}
+
+/* ==========  Header buttons (top of form)  ========== */
+.vg-dashboard-form .o_form_view .o_form_statusbar .o_statusbar_buttons .btn-secondary {
+    border-radius: 999px; font-family: var(--vg-font-sans);
+    font-size: 13px; font-weight: 500;
+    border-color: var(--vg-line, rgba(14,27,58,.08));
+}

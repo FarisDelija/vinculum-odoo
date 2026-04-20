@@ -2,7 +2,7 @@
 <odoo>
     <!-- Digest Email Template -->
     <record id="email_template_digest" model="mail.template">
-        <field name="name">vCard Digest Email</field>
+        <field name="name">Vinc — Digest Email</field>
         <field name="model_id" ref="model_partner_vcard"/>
         <field name="subject">${'Today' if object.digest_frequency == 'daily' else ('This Week' if object.digest_frequency == 'weekly' else 'This Month')}'s Digest - ${object.name or 'Your vCard'}</field>
         <field name="email_from">${(object.email_formatted or user.email_formatted)}</field>

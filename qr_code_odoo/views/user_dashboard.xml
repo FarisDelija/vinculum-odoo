@@ -1,244 +1,189 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- User Dashboard View -->
+    <!--
+        User Dashboard — Soft Editorial refresh.
+        Visual polish via static/src/css/dashboard.css (Fraunces + DM Sans,
+        navy/sand/blue). Data bindings and button actions are unchanged.
+    -->
     <record id="view_user_dashboard" model="ir.ui.view">
         <field name="name">My Dashboard</field>
         <field name="model">user.dashboard</field>
         <field name="arch" type="xml">
-            <form string="My Dashboard" create="0" delete="0">
+            <form string="My Dashboard" create="0" delete="0" class="vg-dashboard-form">
                 <header>
                     <button name="action_open_nfc_setup" string="NFC Setup Guide" type="object" class="btn-secondary"/>
                     <button name="action_open_vinculum_guide" string="How to Use Vinc" type="object" class="btn-secondary"/>
                 </header>
 
-                <!-- Main dashboard content -->
-                <div class="container-fluid" style="padding: 0 8px 24px 8px;">
-                    <!-- Welcome Banner -->
-                    <div class="row" style="margin-bottom: 24px;">
-                        <div class="col-12">
-                            <div class="welcome-banner-gradient" 
-                                 style="background: #77ace0; background: linear-gradient(14deg, rgba(119, 172, 224, 1) 0%, rgba(60, 146, 232, 1) 33%, rgba(69, 126, 184, 1) 100%); border-radius: 16px; padding: 32px 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 20px;">
-                                    <div style="flex: 1; min-width: 300px;">
-                                        <h2 style="font-size: 28px; font-weight: 700; color: white; margin: 0 0 12px 0;">
-                                            Welcome back, <field name="current_user_name" readonly="1" nolabel="1" style="display: inline; color: white;"/>! 👋
-                                        </h2>
-                                        <p style="font-size: 15px; color: rgba(255,255,255,0.9); margin: 0 0 20px 0; line-height: 1.6;">
-                                            Here's what's happening with your Cards today. You have <strong style="color: white;"><field name="recent_leads_count" readonly="1" nolabel="1"/></strong> new leads this week and <strong style="color: white;"><field name="total_vcards" readonly="1" nolabel="1"/></strong> active <span invisible="total_vcards == 1">Card</span><span invisible="total_vcards != 1">Cards</span>.
-                                        </p>
-                                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                                            <button name="action_view_opportunities" type="object" 
-                                                    style="background: white; color: #3b82f6; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: transform 0.2s;"
-                                                    onmouseover="this.style.transform='translateY(-2px)'"
-                                                    onmouseout="this.style.transform='translateY(0)'">
-                                                View Leads <i class="fa fa-arrow-right" style="margin-left: 8px;"></i>
-                                            </button>
-                                            <button name="action_view_vcards" type="object" 
-                                                    style="background: white; color: #3b82f6; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: transform 0.2s;"
-                                                    onmouseover="this.style.transform='translateY(-2px)'"
-                                                    onmouseout="this.style.transform='translateY(0)'">
-                                                View Cards <i class="fa fa-arrow-right" style="margin-left: 8px;"></i>
-                                            </button>
-                                            <button name="action_view_bulk_onboarding" type="object" 
-                                                    groups="base.group_system,base.group_erp_manager"
-                                                    style="background: white; color: #3b82f6; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: transform 0.2s;"
-                                                    onmouseover="this.style.transform='translateY(-2px)'"
-                                                    onmouseout="this.style.transform='translateY(0)'">
-                                                Bulk Onboarding <i class="fa fa-users" style="margin-left: 8px;"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="vg-dashboard">
 
-                    <!-- KPI tiles row -->
-                    <div class="row" style="margin-bottom: 24px; display: flex; flex-wrap: nowrap;">
-                        <div class="col" style="margin-bottom: 16px; padding: 0 8px; flex: 1 1 0;">
-                            <div style="background: #ffffff; border-radius: 16px; padding: 16px; box-shadow: 0 4px 12px rgba(15,23,42,0.08); border: 1px solid #e5e7eb; height: 100%; transition: transform 0.2s;"
-                                 onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(15,23,42,0.12)'"
-                                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(15,23,42,0.08)'">
-                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                                    <span style="font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #9ca3af; font-weight: 600;">Total Cards</span>
-                                    <div style="width: 32px; height: 32px; border-radius: 8px; background: #eef2ff; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fa fa-address-card" style="color: #6366f1; font-size: 14px;"></i>
-                                    </div>
-                                </div>
-                                <div style="font-size: 24px; font-weight: 700; color: #111827; margin-bottom: 6px;">
-                                    <field name="total_vcards" readonly="1" nolabel="1"/>
-                                </div>
-                                <div style="font-size: 11px; color: #6b7280;">published vCards</div>
-                            </div>
-                        </div>
-
-                        <div class="col" style="margin-bottom: 16px; padding: 0 8px; flex: 1 1 0;">
-                            <div style="background: #ffffff; border-radius: 16px; padding: 16px; box-shadow: 0 4px 12px rgba(15,23,42,0.08); border: 1px solid #e5e7eb; height: 100%; transition: transform 0.2s;"
-                                 onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(15,23,42,0.12)'"
-                                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(15,23,42,0.08)'">
-                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                                    <span style="font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #9ca3af; font-weight: 600;">Total Leads</span>
-                                    <div style="width: 32px; height: 32px; border-radius: 8px; background: #f0fdf4; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fa fa-users" style="color: #22c55e; font-size: 14px;"></i>
-                                    </div>
-                                </div>
-                                <div style="font-size: 24px; font-weight: 700; color: #111827; margin-bottom: 6px;">
-                                    <field name="total_opportunities" readonly="1" nolabel="1"/>
-                                </div>
-                                <div style="font-size: 11px; color: #6b7280;">all time</div>
-                            </div>
-                        </div>
-
-                        <div class="col" style="margin-bottom: 16px; padding: 0 8px; flex: 1 1 0;">
-                            <div style="background: #ffffff; border-radius: 16px; padding: 16px; box-shadow: 0 4px 12px rgba(15,23,42,0.08); border: 1px solid #e5e7eb; height: 100%; transition: transform 0.2s;"
-                                 onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(15,23,42,0.12)'"
-                                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(15,23,42,0.08)'">
-                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                                    <span style="font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #9ca3af; font-weight: 600;">QR Scans</span>
-                                    <div style="width: 32px; height: 32px; border-radius: 8px; background: #ecfeff; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fa fa-qrcode" style="color: #06b6d4; font-size: 14px;"></i>
-                                    </div>
-                                </div>
-                                <div style="font-size: 24px; font-weight: 700; color: #111827; margin-bottom: 6px;">
-                                    <field name="total_qr_scans" readonly="1" nolabel="1"/>
-                                </div>
-                                <div style="font-size: 11px; color: #6b7280;">all time</div>
-                            </div>
-                        </div>
-
-                        <div class="col" style="margin-bottom: 16px; padding: 0 8px; flex: 1 1 0;">
-                            <div style="background: #ffffff; border-radius: 16px; padding: 16px; box-shadow: 0 4px 12px rgba(15,23,42,0.08); border: 1px solid #e5e7eb; height: 100%; transition: transform 0.2s;"
-                                 onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(15,23,42,0.12)'"
-                                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(15,23,42,0.08)'">
-                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                                    <span style="font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #9ca3af; font-weight: 600;">Card Views</span>
-                                    <div style="width: 32px; height: 32px; border-radius: 8px; background: #fef3c7; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fa fa-eye" style="color: #f59e0b; font-size: 14px;"></i>
-                                    </div>
-                                </div>
-                                <div style="font-size: 24px; font-weight: 700; color: #111827; margin-bottom: 6px;">
-                                    <field name="total_page_views" readonly="1" nolabel="1"/>
-                                </div>
-                                <div style="font-size: 11px; color: #6b7280;">all Cards</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Download Analytics Section -->
-                    <div class="row" style="margin-bottom: 24px;">
-                        <div class="col-12" style="margin-bottom: 16px;">
-                            <div style="background: #ffffff; border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(15,23,42,0.08); border: 1px solid #e5e7eb;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                                    <h3 style="font-size: 18px; font-weight: 600; margin: 0; color: #111827;">
-                                        <i class="fa fa-download" style="margin-right: 8px; color: #6366f1;"></i>Download Analytics
-                                    </h3>
-                                </div>
-                                
-                                <!-- Download Statistics Grid -->
-                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-                                    <div style="background: #f8f9fa; border-radius: 12px; padding: 16px;">
-                                        <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Total Downloads</div>
-                                        <div style="font-size: 32px; font-weight: 700; color: #111827;">
-                                            <field name="total_vcard_downloads" readonly="1" nolabel="1"/>
-                                        </div>
-                                    </div>
-                                    <div style="background: #f8f9fa; border-radius: 12px; padding: 16px;">
-                                        <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Recent (7 Days)</div>
-                                        <div style="font-size: 32px; font-weight: 700; color: #111827;">
-                                            <field name="recent_downloads_count" readonly="1" nolabel="1"/>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Recent Downloads List -->
-                                <div>
-                                    <h4 style="font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 12px;">Recent Downloads</h4>
-                                    <div style="max-height: 400px; overflow-y: auto;">
-                                        <field name="download_tracking_ids" nolabel="1" readonly="1">
-                                            <tree limit="20" decoration-muted="download_country == False" decoration-info="download_utm_source != False">
-                                                <field name="download_date" widget="datetime"/>
-                                                <field name="download_country" string="Country"/>
-                                                <field name="download_city" string="City"/>
-                                                <field name="download_device_type" string="Device"/>
-                                                <field name="download_browser" string="Browser"/>
-                                                <field name="download_utm_source" string="UTM Source"/>
-                                            </tree>
-                                        </field>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Analytics and Activity Row -->
-                    <div class="row" style="margin-bottom: 24px;">
-                        <div class="col-md-6" style="margin-bottom: 16px;">
-                            <div style="background: #ffffff; border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(15,23,42,0.08); border: 1px solid #e5e7eb; height: 100%;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                                    <h3 style="font-size: 16px; font-weight: 600; margin: 0; color: #111827;">Lead Analytics</h3>
-                                </div>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                                    <div>
-                                        <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">This Month</div>
-                                        <div style="font-size: 24px; font-weight: 700; color: #111827; margin-bottom: 4px;">
-                                            <field name="monthly_opportunities" readonly="1" nolabel="1"/>
-                                        </div>
-                                        <div style="font-size: 11px; color: #22c55e;">
-                                            <field name="leads_mom_delta" readonly="1" nolabel="1"/> from last month
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Last 7 Days</div>
-                                        <div style="font-size: 24px; font-weight: 700; color: #111827; margin-bottom: 4px;">
-                                            <field name="recent_leads_count" readonly="1" nolabel="1"/>
-                                        </div>
-                                        <div style="font-size: 11px; color: #6b7280;">new leads</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6" style="margin-bottom: 16px;">
-                            <div style="background: #ffffff; border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(15,23,42,0.08); border: 1px solid #e5e7eb; height: 100%;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                                    <h3 style="font-size: 16px; font-weight: 600; margin: 0; color: #111827;">Recent Activity</h3>
-                                    <button name="action_view_opportunities" type="object" 
-                                           style="color: #3b82f6; text-decoration: none; font-size: 13px; font-weight: 500; background: none; border: none; cursor: pointer;">
-                                        View All
+                    <!-- ====== HERO ====== -->
+                    <section class="vg-hero">
+                        <div class="vg-hero-content">
+                            <div style="flex: 1; min-width: 280px; position: relative; z-index: 1;">
+                                <div class="vg-hero-eyebrow">Welcome back</div>
+                                <h2>Hi, <field name="current_user_name" readonly="1" nolabel="1" class="d-inline"/>. <em>Here's</em> where you stand.</h2>
+                                <p class="vg-hero-sub">
+                                    <strong><field name="recent_leads_count" readonly="1" nolabel="1" class="d-inline"/></strong> new lead<span invisible="recent_leads_count == 1">s</span> this week across <strong><field name="total_vcards" readonly="1" nolabel="1" class="d-inline"/></strong> active <span invisible="total_vcards == 1">cards</span><span invisible="total_vcards != 1">card</span>.
+                                </p>
+                                <div class="vg-hero-actions">
+                                    <button name="action_view_opportunities" type="object" class="vg-hero-btn is-primary">
+                                        View leads <i class="fa fa-arrow-right"/>
+                                    </button>
+                                    <button name="action_view_vcards" type="object" class="vg-hero-btn is-ghost">
+                                        View cards
+                                    </button>
+                                    <button name="action_create_new_card" type="object" class="vg-hero-btn is-ghost">
+                                        <i class="fa fa-plus"/> Create new card
+                                    </button>
+                                    <button name="action_view_bulk_onboarding" type="object" class="vg-hero-btn is-ghost"
+                                            groups="base.group_system,base.group_erp_manager">
+                                        <i class="fa fa-users"/> Bulk onboarding
                                     </button>
                                 </div>
-                                <div style="max-height: 300px; overflow-y: auto;">
-                                    <field name="recent_leads_ids" nolabel="1" invisible="1"/>
-                                    <div style="font-size: 13px; color: #6b7280; padding: 12px 0;">
-                                        <field name="recent_leads_count" readonly="1" nolabel="1"/> new lead<span invisible="recent_leads_count == 1">s</span> in the last 7 days.
-                                    </div>
-                                </div>
                             </div>
                         </div>
+                    </section>
+
+                    <!-- ====== KPI ROW ====== -->
+                    <div class="vg-kpi-row">
+                        <div class="vg-kpi">
+                            <div class="vg-kpi-head">
+                                <span class="vg-kpi-label">Total Cards</span>
+                                <span class="vg-kpi-chip"><i class="fa fa-address-card"/></span>
+                            </div>
+                            <div class="vg-kpi-value"><field name="total_vcards" readonly="1" nolabel="1"/></div>
+                            <div class="vg-kpi-foot">published</div>
+                        </div>
+
+                        <div class="vg-kpi">
+                            <div class="vg-kpi-head">
+                                <span class="vg-kpi-label">Total Leads</span>
+                                <span class="vg-kpi-chip"><i class="fa fa-users"/></span>
+                            </div>
+                            <div class="vg-kpi-value"><field name="total_opportunities" readonly="1" nolabel="1"/></div>
+                            <div class="vg-kpi-foot">all time</div>
+                        </div>
+
+                        <div class="vg-kpi">
+                            <div class="vg-kpi-head">
+                                <span class="vg-kpi-label">QR Scans</span>
+                                <span class="vg-kpi-chip"><i class="fa fa-qrcode"/></span>
+                            </div>
+                            <div class="vg-kpi-value"><field name="total_qr_scans" readonly="1" nolabel="1"/></div>
+                            <div class="vg-kpi-foot">all time</div>
+                        </div>
+
+                        <div class="vg-kpi">
+                            <div class="vg-kpi-head">
+                                <span class="vg-kpi-label">Card Views</span>
+                                <span class="vg-kpi-chip"><i class="fa fa-eye"/></span>
+                            </div>
+                            <div class="vg-kpi-value"><field name="total_page_views" readonly="1" nolabel="1"/></div>
+                            <div class="vg-kpi-foot">all cards</div>
+                        </div>
+                    </div>
+
+                    <!-- ====== DOWNLOAD ANALYTICS ====== -->
+                    <section class="vg-section">
+                        <div class="vg-section-head">
+                            <h3 class="vg-section-title">Download Analytics</h3>
+                        </div>
+
+                        <div class="vg-stat-grid">
+                            <div class="vg-stat">
+                                <div class="vg-stat-label">Total Downloads</div>
+                                <div class="vg-stat-value"><field name="total_vcard_downloads" readonly="1" nolabel="1"/></div>
+                            </div>
+                            <div class="vg-stat">
+                                <div class="vg-stat-label">Recent (7 Days)</div>
+                                <div class="vg-stat-value"><field name="recent_downloads_count" readonly="1" nolabel="1"/></div>
+                            </div>
+                        </div>
+
+                        <div style="font-family: 'DM Sans', sans-serif; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--vg-ink-faint); font-weight: 500; margin: 4px 0 10px;">Recent Downloads</div>
+                        <div class="vg-scroll-max">
+                            <field name="download_tracking_ids" nolabel="1" readonly="1">
+                                <tree limit="20" decoration-muted="download_country == False" decoration-info="download_utm_source != False">
+                                    <field name="download_date" widget="datetime"/>
+                                    <field name="download_country" string="Country"/>
+                                    <field name="download_city" string="City"/>
+                                    <field name="download_device_type" string="Device"/>
+                                    <field name="download_browser" string="Browser"/>
+                                    <field name="download_utm_source" string="UTM Source"/>
+                                </tree>
+                            </field>
+                        </div>
+                    </section>
+
+                    <!-- ====== LEAD ANALYTICS + RECENT ACTIVITY ====== -->
+                    <div class="vg-row">
+                        <section class="vg-section">
+                            <div class="vg-section-head">
+                                <h3 class="vg-section-title">Lead Analytics</h3>
+                            </div>
+                            <div class="vg-split">
+                                <div class="vg-split-item">
+                                    <div class="vg-split-label">This Month</div>
+                                    <div class="vg-split-value"><field name="monthly_opportunities" readonly="1" nolabel="1"/></div>
+                                    <div class="vg-split-delta is-positive">
+                                        <field name="leads_mom_delta" readonly="1" nolabel="1" class="d-inline"/> vs last month
+                                    </div>
+                                </div>
+                                <div class="vg-split-item">
+                                    <div class="vg-split-label">Last 7 Days</div>
+                                    <div class="vg-split-value"><field name="recent_leads_count" readonly="1" nolabel="1"/></div>
+                                    <div class="vg-split-delta">new leads</div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="vg-section">
+                            <div class="vg-section-head">
+                                <h3 class="vg-section-title">Recent Activity</h3>
+                                <button name="action_view_opportunities" type="object" class="vg-section-link">View all →</button>
+                            </div>
+                            <div class="vg-scroll-max">
+                                <field name="recent_leads_ids" nolabel="1" invisible="1"/>
+                                <div class="vg-activity-empty">
+                                    <field name="recent_leads_count" readonly="1" nolabel="1" class="d-inline"/> new lead<span invisible="recent_leads_count == 1">s</span> in the last 7 days.
+                                </div>
+                            </div>
+                        </section>
                     </div>
                 </div>
             </form>
         </field>
     </record>
 
-    <!-- Server Action to open dashboard -->
+    <!-- Server Action to open dashboard (redirects to license if unlicensed) -->
     <record id="action_user_dashboard" model="ir.actions.server">
         <field name="name">My Dashboard</field>
         <field name="model_id" ref="model_user_dashboard"/>
         <field name="state">code</field>
         <field name="code">
-dashboard = env['user.dashboard'].get_dashboard()
-action = {
-    'type': 'ir.actions.act_window',
-    'name': 'My Dashboard',
-    'res_model': 'user.dashboard',
-    'view_mode': 'form',
-    'view_id': env.ref('qr_code_odoo.view_user_dashboard').id,
-    'res_id': dashboard.id,
-    'target': 'current',
-    'flags': {'form': {'create': False, 'delete': False}},
-}
+result = env['user.dashboard'].get_dashboard()
+if result._name == 'vinc.license':
+    action = {
+        'type': 'ir.actions.act_window',
+        'name': 'Vinc License',
+        'res_model': 'vinc.license',
+        'view_mode': 'form',
+        'res_id': result.id,
+        'target': 'current',
+        'views': [(env.ref('qr_code_odoo.vinc_license_form_view').id, 'form')],
+    }
+else:
+    action = {
+        'type': 'ir.actions.act_window',
+        'name': 'My Dashboard',
+        'res_model': 'user.dashboard',
+        'view_mode': 'form',
+        'view_id': env.ref('qr_code_odoo.view_user_dashboard').id,
+        'res_id': result.id,
+        'target': 'current',
+        'flags': {'form': {'create': False, 'delete': False}},
+    }
         </field>
     </record>
-
 </odoo>

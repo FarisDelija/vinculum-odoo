@@ -198,6 +198,16 @@ class UserDashboard(models.TransientModel):
             'domain': [('id', 'in', self.vcard_ids.ids)],
             'target': 'current',
         }
+
+    def action_create_new_card(self):
+        """Open the public /get-started flow so the user is walked through the
+        card creation steps the same way new users are."""
+        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f"{base_url}/get-started",
+            'target': 'new',
+        }
     
     def action_view_opportunities(self):
         """Open Leads kanban view"""
