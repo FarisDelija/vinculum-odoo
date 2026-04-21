@@ -18,7 +18,9 @@ class PartnerWebsite(models.Model):
     def _onchange_website_slug(self):
         self._compute_website_full_url()
 
-    @api.depends('image_url')
+    # Imperative side-effect method (no field assignment), invoked from the
+    # matching @api.onchange and from controllers. Do NOT decorate with
+    # @api.depends — it misleads the registry into treating this as a compute.
     def _update_attachment_if_image_changed(self):
         """Create or update the attachment when image_url is changed."""
         for record in self:
@@ -54,7 +56,7 @@ class PartnerWebsite(models.Model):
         if self.website_slug:
             self.action_generate_website_page()
 
-    @api.depends('banner_image')
+    # Imperative side-effect method. See note above _update_attachment_if_image_changed.
     def _update_banner_attachment_if_image_changed(self):
         """Create or update the attachment when banner_image is changed."""
         for record in self:

@@ -818,7 +818,14 @@ class PartnerVCard(models.Model):
     banner_attachment_id = fields.Many2one('ir.attachment', string='Banner Image Attachment', readonly=True)
     primary_color = fields.Char(string="Primary Color", help="This color is used as the background color for all vCard templates.", default="#ffffff")
     secondary_color = fields.Char(string="Brand Color", help="This color is used for all accent elements (buttons, sections, highlights) across all templates.", default="#4C75A3")
-    about = fields.Html(string="About", help="HTML content to describe the partner.")
+    # Sanitised on write. Published-card templates render `about` into the
+    # HTML served to every visitor, so unsanitised input here is a stored-XSS
+    # vector for anyone who can edit the card (creator or Vinc Manager).
+    about = fields.Html(
+        string="About",
+        sanitize=True, sanitize_tags=True, sanitize_attributes=True,
+        help="HTML description (sanitised on save).",
+    )
     
     # Social media URLs
     whatsapp_url = fields.Char(string="WhatsApp URL", help="Enter the WhatsApp click-to-chat URL, e.g., https://wa.me/1XXXXXXXXXX")
@@ -1929,7 +1936,7 @@ class PartnerVCard(models.Model):
         email_template = self.intro_email_template or "<p>Hi {contact_name},</p><p>Great meeting you today. I'm {owner_name} (cc'd), here's my info and how to reach me:</p><p><strong>Email:</strong> {owner_email}<br/><strong>Phone:</strong> {owner_phone}<br/><strong>My vCard:</strong> <a href='{vcard_url}'>{vcard_url}</a></p><p>Looking forward to connecting!<br/>{owner_name}</p>"
         
         # Process template with fallbacks and conditionals
-        body_html = self._process_template(email_template, template_vars)
+        body_html = self._process_template(email_template, template_vars, escape_html=True)
         subject = f'Great meeting you today - {self.name or "Your Name"}'
         
         # Create preview record
@@ -1980,8 +1987,8 @@ class PartnerVCard(models.Model):
         }
         
         # Process templates
-        subject = self._process_template(self.leadback_email_subject or 'Test Email', template_vars)
-        body_html = self._process_template(self.leadback_email_template or '<p>Test email</p>', template_vars)
+        subject = self._process_template(self.leadback_email_subject or 'Test Email', template_vars, escape_html=False)
+        body_html = self._process_template(self.leadback_email_template or '<p>Test email</p>', template_vars, escape_html=True)
         
         # Create preview record
         preview = self.env['leadback.preview'].create({
@@ -2325,25 +2332,39 @@ class PartnerVCard(models.Model):
             
             return {'status': 'error', 'message': str(e)}
     
-    def _process_template(self, template, template_vars):
+    def _process_template(self, template, template_vars, escape_html=False):
         """
         Process template with fallback syntax and conditional blocks.
-        
+
         Supports:
         - Fallbacks: {placeholder|fallback} - uses fallback if placeholder is empty
         - Conditionals: {if field}...{/if} - shows content only if field exists and is not empty
-        
-        :param template: Template string with placeholders
-        :param template_vars: Dictionary of variable values
-        :return: Processed template string
+
+        :param template: Template string with placeholders.
+        :param template_vars: Dictionary of variable values.
+        :param escape_html: When True, substituted values are HTML-escaped
+            before they are injected into the template. Pass True whenever the
+            output is sent as ``body_html`` or rendered as HTML — otherwise an
+            attacker-controlled field (e.g. a lead's ``contact_name``) can
+            inject phishing links or markup into the owner's trusted intro
+            email. Fallback strings and template literal content are kept as
+            authored so owners can still write HTML templates.
+        :return: Processed template string.
         """
         import re
-        
+        from markupsafe import escape as _esc
+
+        def _fmt(value):
+            if value is None:
+                return ''
+            s = str(value)
+            return str(_esc(s)) if escape_html else s
+
         # First, process conditional blocks {if field}...{/if}
         def process_conditionals(text):
             # Pattern to match {if field}...{/if}
             pattern = r'\{if\s+(\w+)\}(.*?)\{/if\}'
-            
+
             def replace_conditional(match):
                 field_name = match.group(1)
                 content = match.group(2)
@@ -2352,32 +2373,33 @@ class PartnerVCard(models.Model):
                 if field_value and str(field_value).strip():
                     return content
                 return ''
-            
+
             return re.sub(pattern, replace_conditional, text, flags=re.DOTALL)
-        
+
         # Process conditionals first
         processed = process_conditionals(template)
-        
+
         # Then process fallbacks {placeholder|fallback}
         def process_fallbacks(text):
             # Pattern to match {placeholder|fallback}
             pattern = r'\{(\w+)\|([^}]+)\}'
-            
+
             def replace_fallback(match):
                 placeholder = match.group(1)
                 fallback = match.group(2)
                 value = template_vars.get(placeholder, '')
                 if value and str(value).strip():
-                    return str(value)
+                    return _fmt(value)
                 return fallback
-            
+
             return re.sub(pattern, replace_fallback, text)
-        
+
         processed = process_fallbacks(processed)
-        
-        # Finally, replace remaining placeholders
+
+        # Finally, replace remaining placeholders. Escape values when asked.
+        safe_vars = {k: _fmt(v) for k, v in template_vars.items()} if escape_html else template_vars
         try:
-            return processed.format(**template_vars)
+            return processed.format(**safe_vars)
         except KeyError as e:
             # If placeholder doesn't exist, leave it as is
             import logging
@@ -2641,7 +2663,7 @@ class PartnerVCard(models.Model):
                             "<p>Hi {contact_name|there}!</p><p>Great meeting you earlier! Here's my digital card: <a href='{vcard_url}'>{vcard_url}</a></p>")
             
             # Process template with fallbacks and conditionals
-            email_body_html = self._process_template(email_template, template_vars)
+            email_body_html = self._process_template(email_template, template_vars, escape_html=True)
             
             # Get email subject and process it
             email_subject = self.leadback_email_subject or "Great meeting you!"
@@ -3178,7 +3200,9 @@ If you'd like to save my info again later, here's my card: {vcard_url}
     def _onchange_website_slug(self):
         self._compute_website_full_url()
 
-    @api.depends('image_url')
+    # Imperative side-effect method (no field assignment). @api.depends is
+    # incorrect and was removed — the live override in partner_website1.py
+    # also dropped it. See that file for the authoritative version.
     def _update_attachment_if_image_changed(self):
         """Create or update the attachment when image_url is changed."""
         for record in self:
@@ -3214,7 +3238,8 @@ If you'd like to save my info again later, here's my card: {vcard_url}
         if self.website_slug:
             self.action_generate_website_page()
 
-    @api.depends('banner_image')
+    # Imperative side-effect method (no field assignment). See note on
+    # _update_attachment_if_image_changed.
     def _update_banner_attachment_if_image_changed(self):
         """Create or update the attachment when banner_image is changed."""
         for record in self:
@@ -4143,14 +4168,11 @@ If you'd like to save my info again later, here's my card: {vcard_url}
                         _logger.warning(f"Auto-regen skipped for vCard {record.id} ({record.name}): {e}")
         return res
     
-    @api.depends(
-    'whatsapp_url', 'linkedin_url', 'youtube_url', 'facebook_url', 'telegram_url',
-    'instagram_url', 'tumblr_url', 'xing_url', 'github_url', 'vimeo_url',
-    'messenger_url', 'dribbble_url', 'skype_url', 'doordash_url', 'tripadvisor_url',
-    'yelp_url', 'twitter_url', 'google_reviews_url', 'ubereats_url', 'line_url',
-    'vkontakte_url', 'reddit_url', 'viber_url', 'pinterest_url', 'tiktok_url',
-    'snapchat_url', 'signal_url'
-)
+    # Imperative normaliser invoked from the @api.onchange methods on each
+    # social-URL field. It mutates `self` via setattr(...) to prepend the
+    # correct prefix when the user types a slug — which is NOT a compute's
+    # job and would recurse if the @api.depends actually triggered. Kept here
+    # as a regular method; decorator removed.
     def _compute_social_media_urls(self):
         """Automatically format the social media URLs if the user enters a slug (or correct the format)."""
         url_patterns = {

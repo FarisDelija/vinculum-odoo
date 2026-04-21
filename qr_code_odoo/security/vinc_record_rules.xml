@@ -188,11 +188,12 @@
             <field name="groups" eval="[(4, ref('qr_code_odoo.group_vinc_manager'))]"/>
         </record>
 
-        <!-- vcard.download.tracking -->
+        <!-- vcard.download.tracking: rows are created by the public scanner,
+             so scope by the parent card's create_uid rather than the row's own. -->
         <record id="rule_vcard_download_tracking_user" model="ir.rule">
             <field name="name">vCard download tracking: own parent</field>
             <field name="model_id" ref="model_vcard_download_tracking"/>
-            <field name="domain_force">[('create_uid', '=', user.id)]</field>
+            <field name="domain_force">[('partner_vcard_id.create_uid', '=', user.id)]</field>
             <field name="groups" eval="[(4, ref('base.group_user'))]"/>
         </record>
         <record id="rule_vcard_download_tracking_manager" model="ir.rule">

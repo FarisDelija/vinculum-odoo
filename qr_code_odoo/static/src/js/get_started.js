@@ -645,8 +645,6 @@
             if (slugManuallyEdited) { return; }
             const base = generateSlug(nameField.value);
             if (!base) { return; }
-            // If slug already matches the generated name, leave it
-            if (slugField.value && slugField.value !== base && !slugField.value.startsWith(base + "-")) { return; }
             paintSlugStatus("checking");
             const result = await checkSlug(base);
             if (result && result.available === true) {
@@ -963,7 +961,14 @@
                 });
                 // Re-sync swatch selection from native color
                 if (nativeColor) { pickSwatch(nativeColor.value, false); }
+                // refreshStates() rebuilds the state <option> list based on the
+                // restored country, which wipes any selection. Cache the drafted
+                // state_id and reassign after the rebuild.
+                const draftedStateId = data.state_id;
                 refreshStates();
+                if (draftedStateId && stateSelect) {
+                    stateSelect.value = draftedStateId;
+                }
             } catch (err) { /* ignore parse errors */ }
         }
         loadDraft();

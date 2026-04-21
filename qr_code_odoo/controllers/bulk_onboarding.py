@@ -231,20 +231,35 @@ class BulkOnboardingController(http.Controller):
         )
         return response
 
+    # Hard caps for bulk onboarding uploads. These limit both accidental misuse
+    # and compromised-admin scenarios (a single run can spawn thousands of
+    # res.users + attachments, which is expensive for licensed Odoo deployments).
+    _BULK_UPLOAD_MAX_BYTES = 2 * 1024 * 1024  # 2 MB raw file
+    _BULK_UPLOAD_MAX_ROWS = 500               # rows per batch
+
     @http.route('/bulk-onboard/upload', type='http', auth='user', website=True, csrf=False, methods=['POST'])
     def upload_file(self, **kwargs):
         """Handle file upload (CSV/Excel)"""
         if not self._check_admin_access():
             return json.dumps({'error': 'Access denied'})
-        
+
         try:
             uploaded_file = request.httprequest.files.get('file')
             if not uploaded_file:
                 return json.dumps({'error': 'No file uploaded'})
-            
+
+            # Enforce file-size cap before reading the whole thing into RAM.
+            uploaded_file.seek(0, 2)
+            file_size = uploaded_file.tell()
+            uploaded_file.seek(0)
+            if file_size > self._BULK_UPLOAD_MAX_BYTES:
+                return json.dumps({
+                    'error': f'File is too large. Maximum size is {self._BULK_UPLOAD_MAX_BYTES // (1024 * 1024)} MB.',
+                })
+
             file_content = uploaded_file.read()
             file_name = uploaded_file.filename.lower()
-            
+
             # Parse file based on extension
             if file_name.endswith('.csv'):
                 rows = request.env['bulk.onboarding.batch'].parse_csv_file(file_content)
@@ -252,7 +267,13 @@ class BulkOnboardingController(http.Controller):
                 rows = request.env['bulk.onboarding.batch'].parse_excel_file(file_content)
             else:
                 return json.dumps({'error': 'Unsupported file format. Please use CSV or Excel (.xlsx, .xls)'})
-            
+
+            # Cap the number of rows to prevent runaway user-creation.
+            if len(rows) > self._BULK_UPLOAD_MAX_ROWS:
+                return json.dumps({
+                    'error': f'Too many rows ({len(rows)}). Maximum is {self._BULK_UPLOAD_MAX_ROWS} per batch; split the file and re-upload.',
+                })
+
             # Validate required columns
             required_columns = ['name', 'email']
             if rows:
@@ -260,7 +281,7 @@ class BulkOnboardingController(http.Controller):
                 missing_columns = [col for col in required_columns if col not in first_row]
                 if missing_columns:
                     return json.dumps({'error': f'Missing required columns: {", ".join(missing_columns)}'})
-            
+
             return json.dumps({
                 'success': True,
                 'rows': rows[:10],  # Return first 10 rows for preview
@@ -348,6 +369,15 @@ class BulkOnboardingController(http.Controller):
                             'function': rep_functions[i] if i < len(rep_functions) else '',
                         })
             
+            # Enforce the same row cap as /bulk-onboard/upload so a hostile
+            # admin can't bypass via direct POST of rep_data_json.
+            if len(rep_data_list) > self._BULK_UPLOAD_MAX_ROWS:
+                countries = request.env['res.country'].sudo().search([], order='name')
+                return request.render('qr_code_odoo.bulk_onboard_form', {
+                    'countries': countries,
+                    'error': f'Too many reps ({len(rep_data_list)}). Maximum is {self._BULK_UPLOAD_MAX_ROWS} per batch.',
+                })
+
             # Validate that we have rep data
             if not rep_data_list:
                 countries = request.env['res.country'].sudo().search([], order='name')
@@ -784,15 +814,37 @@ class BulkOnboardingController(http.Controller):
         # Update Card with user-provided data
         vals = {}
         
-        # Profile photo (required)
+        # Profile photo (required).
+        # Validate MIME/extension and size BEFORE reading into memory — the
+        # public /vcard/submit enforces the same rules and this endpoint must
+        # not be a softer path around them.
         image_file = request.httprequest.files.get('image_url')
-        if image_file:
+        if image_file and image_file.filename:
+            import os
+            _allowed_image_ext = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'}
+            file_extension = os.path.splitext(image_file.filename.lower())[1]
+            if file_extension not in _allowed_image_ext:
+                return request.render('qr_code_odoo.complete_vcard_page', {
+                    'error': 'Please upload a valid image (JPG, PNG, GIF, BMP, or WebP).',
+                    'vcard': vcard,
+                    'rep': rep,
+                })
+            # 5 MB cap, matching the public submit endpoint.
+            image_file.seek(0, 2)
+            file_size = image_file.tell()
+            image_file.seek(0)
+            if file_size > 5 * 1024 * 1024:
+                return request.render('qr_code_odoo.complete_vcard_page', {
+                    'error': 'Image file is too large. Maximum size is 5 MB.',
+                    'vcard': vcard,
+                    'rep': rep,
+                })
             vals['image_url'] = base64.b64encode(image_file.read())
         elif not vcard.image_url:
             return request.render('qr_code_odoo.complete_vcard_page', {
                 'error': 'Please upload a profile photo',
                 'vcard': vcard,
-                'rep': rep
+                'rep': rep,
             })
         
         # About section

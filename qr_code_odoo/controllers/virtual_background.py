@@ -1,6 +1,6 @@
 from odoo import http
 from odoo.http import request
-from odoo.modules import get_module_resource
+from odoo.tools.misc import file_path
 import os
 import logging
 
@@ -12,10 +12,14 @@ class VirtualBackgroundController(http.Controller):
     def list_backgrounds(self):
         """List available virtual backgrounds dynamically from the filesystem."""
         try:
-            # Define the path to the virtual backgrounds directory
-            # Using get_module_resource is safer than relative paths
-            bg_path = get_module_resource('qr_code_odoo', 'static', 'src', 'img', 'virtual_bg')
-            
+            # Resolve the virtual-background directory via file_path — the
+            # Odoo 17+ replacement for get_module_resource (which is deprecated
+            # and will be removed in a future major release).
+            try:
+                bg_path = file_path('qr_code_odoo/static/src/img/virtual_bg')
+            except (FileNotFoundError, ValueError):
+                bg_path = None
+
             if not bg_path or not os.path.exists(bg_path):
                 _logger.warning("Virtual background directory not found.")
                 return {'error': 'Background directory not found'}

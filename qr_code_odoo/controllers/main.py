@@ -8,6 +8,7 @@ Unauthorized copying, modification, or distribution prohibited.
 """
 from odoo import http
 from odoo.http import request
+from markupsafe import escape as _html_escape
 import json
 import logging
 import base64
@@ -36,12 +37,22 @@ def _cached_default_image(vcard_env, kind):
 # Scalar form fields that affect the rendered preview template. Adding a new
 # value to vals in generate_preview() that affects rendering REQUIRES adding
 # the same key here, or previews will stale-cache until something else changes.
+# Keep aligned with models/partner.py:PartnerVCard._TEMPLATE_AFFECTING_FIELDS
+# (address + every social URL the preview templates can render).
 HASHED_SCALARS = (
-    'name', 'company_name', 'street', 'street2', 'city', 'zip', 'function',
+    'name', 'company_name', 'street', 'street2', 'city', 'zip',
+    'country_id', 'state_id', 'function',
     'phone', 'mobile', 'email', 'website', 'calendly_url', 'about',
-    'primary_color', 'secondary_color', 'website_template', 'whatsapp_url',
-    'linkedin_url', 'linkedin_url_company', 'youtube_url', 'facebook_url',
-    'facebook_url_company', 'lead_button_label', 'form_thank_you_message',
+    'primary_color', 'secondary_color', 'website_template',
+    'whatsapp_url',
+    'linkedin_url', 'linkedin_url_company',
+    'twitter_url', 'twitter_url_company',
+    'instagram_url', 'instagram_url_company',
+    'youtube_url',
+    'facebook_url', 'facebook_url_company',
+    'tiktok_url', 'pinterest_url', 'github_url', 'snapchat_url',
+    'lead_button_label', 'form_thank_you_message',
+    'show_form', 'mailing_list_name',
     'notify_on_new_lead', 'intro_email_enabled', 'enable_instant_leadback',
     'leadback_send_email', 'leadback_enable_messaging', 'show_reviews',
 )
@@ -349,13 +360,16 @@ class QRCodeController(http.Controller):
 
         # Prepare the QR code image for download
         qr_code_data = base64.b64decode(partner.qr_code)
-        
-        # Return the image as a downloadable file
+
+        # Sanitize + quote the filename. Owner-controlled name could otherwise
+        # contain `"` or `;` sequences that break Content-Disposition parsing
+        # or forge the extension shown to downloaders.
+        safe_name = re.sub(r'[^\w.-]', '_', partner.name or 'vcard') or 'vcard'
         return request.make_response(
             qr_code_data,
             headers=[
                 ('Content-Type', 'image/png'),
-                ('Content-Disposition', f'attachment; filename={partner.name.replace(" ", "_")}_qr_code.png')
+                ('Content-Disposition', f'attachment; filename="{safe_name}_qr_code.png"'),
             ]
         )
 
@@ -480,14 +494,17 @@ class VCardController(http.Controller):
         _logger.info(f"vCard downloaded for partner ID {partner_id}. Total downloads: {old_count} -> {partner.vcard_download_count}")
 
         vcard_content = partner._generate_vcf()
-        vcard_filename = f"{partner.name.replace(' ', '_')}.vcf"
+        # Sanitize + quote. Unsanitised owner-controlled names could forge the
+        # extension shown to downloaders or break the header.
+        safe_name = re.sub(r'[^\w.-]', '_', partner.name or 'vcard') or 'vcard'
+        vcard_filename = f"{safe_name}.vcf"
 
         # Return the vCard as a downloadable file
         return request.make_response(
             vcard_content,
             headers=[
                 ('Content-Type', 'text/vcard'),
-                ('Content-Disposition', f'attachment; filename={vcard_filename}')
+                ('Content-Disposition', f'attachment; filename="{vcard_filename}"'),
             ]
         )
 
@@ -920,38 +937,43 @@ class LeadController(http.Controller):
     def _send_lead_notification_email(self, partner, opportunity, contact_name, email_from, phone, description):
         """Send notification email to vCard owner when a new lead is submitted"""
         try:
-            # Build email HTML body
-            phone_display = phone or 'Not provided'
-            description_display = description or 'No message provided'
+            # Build email HTML body.
+            # Attacker-controlled values (everything from the public /create_lead
+            # POST) are HTML-escaped before interpolation so a hostile visitor
+            # can't inject phishing HTML into the owner's notification email.
+            name_safe = _html_escape(contact_name or '')
+            email_safe = _html_escape(email_from or '')
+            phone_safe = _html_escape(phone or 'Not provided')
+            description_safe = _html_escape(description or 'No message provided')
             vcard_url = partner.website_full_url or '#'
             lead_url = f"{request.httprequest.host_url}web#id={opportunity.id}&model=crm.lead&view_type=form"
-            
+
             email_body = f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
                 <div style="background-color: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     <h2 style="color: #333; margin-top: 0; border-bottom: 2px solid #457eb8; padding-bottom: 10px;">
                         🎉 New Lead Received!
                     </h2>
-                    
+
                     <p style="color: #666; font-size: 16px; line-height: 1.6;">
                         You've received a new lead submission on your Vinc Card:
                     </p>
-                    
+
                     <div style="background-color: #f8f9fa; border-left: 4px solid #457eb8; padding: 20px; margin: 20px 0; border-radius: 4px;">
-                        <p style="margin: 8px 0;"><strong style="color: #333;">Name:</strong> <span style="color: #666;">{contact_name}</span></p>
-                        <p style="margin: 8px 0;"><strong style="color: #333;">Email:</strong> <span style="color: #666;">{email_from}</span></p>
-                        <p style="margin: 8px 0;"><strong style="color: #333;">Phone:</strong> <span style="color: #666;">{phone_display}</span></p>
+                        <p style="margin: 8px 0;"><strong style="color: #333;">Name:</strong> <span style="color: #666;">{name_safe}</span></p>
+                        <p style="margin: 8px 0;"><strong style="color: #333;">Email:</strong> <span style="color: #666;">{email_safe}</span></p>
+                        <p style="margin: 8px 0;"><strong style="color: #333;">Phone:</strong> <span style="color: #666;">{phone_safe}</span></p>
                         <p style="margin: 8px 0;"><strong style="color: #333;">Message:</strong></p>
-                        <p style="margin: 8px 0; color: #666; white-space: pre-wrap;">{description_display}</p>
+                        <p style="margin: 8px 0; color: #666; white-space: pre-wrap;">{description_safe}</p>
                     </div>
-                    
+
                     <div style="margin: 30px 0; text-align: center;">
-                        <a href="{lead_url}" 
+                        <a href="{lead_url}"
                            style="display: inline-block; background-color: #457eb8; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
                             View Lead in CRM
                         </a>
                     </div>
-                    
+
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 14px; color: #999;">
                         <p style="margin: 5px 0;">This lead was submitted through your Vinc Card: <a href="{vcard_url}" style="color: #457eb8;">{vcard_url}</a></p>
                         <p style="margin: 5px 0;">You can manage lead notifications in your Vinc Card settings.</p>
@@ -959,10 +981,12 @@ class LeadController(http.Controller):
                 </div>
             </div>
             """
-            
-            # Create mail message
+
+            # Create mail message. Subject uses the escaped name to avoid
+            # tricks like `"Name" <phish@evil>` in the header (escape neutralises
+            # quotes into entities).
             mail_values = {
-                'subject': f'New Lead: {contact_name} submitted a form on your Vinc Card',
+                'subject': f'New Lead: {name_safe} submitted a form on your Vinc Card',
                 'body_html': email_body,
                 'email_from': request.env['partner.vcard']._get_notification_email(user=request.env.user),
                 'email_to': partner.email,
@@ -1008,7 +1032,7 @@ class LeadController(http.Controller):
             email_template = partner.intro_email_template or "<p>Hi {contact_name},</p><p>Great meeting you today. I'm {owner_name} (cc'd), here's my info and how to reach me:</p><p><strong>Email:</strong> {owner_email}<br/><strong>Phone:</strong> {owner_phone}<br/><strong>My vCard:</strong> <a href='{vcard_url}'>{vcard_url}</a></p><p>Looking forward to connecting!<br/>{owner_name}</p>"
             
             # Process template with fallbacks and conditionals
-            email_body_html = partner._process_template(email_template, template_vars)
+            email_body_html = partner._process_template(email_template, template_vars, escape_html=True)
             
             # Import Markup to ensure HTML is properly rendered
             from markupsafe import Markup
@@ -1252,42 +1276,48 @@ class LeadController(http.Controller):
     def _send_service_request_notification_email(self, partner, opportunity, service, contact_name, email_from, phone, notes):
         """Send notification email to vCard owner when a service request is submitted"""
         try:
-            # Build email HTML body
-            phone_display = phone or 'Not provided'
-            notes_display = notes or 'No additional details provided'
+            # Build email HTML body.
+            # Attacker-controlled values (from /create_service_request POST) are
+            # HTML-escaped to block phishing HTML injection into the owner's mail.
+            service_name_safe = _html_escape(service.name or '')
+            service_description_safe = _html_escape(service.description or '')
+            name_safe = _html_escape(contact_name or '')
+            email_safe = _html_escape(email_from or '')
+            phone_safe = _html_escape(phone or 'Not provided')
+            notes_safe = _html_escape(notes or 'No additional details provided')
             vcard_url = partner.website_full_url or '#'
             lead_url = f"{request.httprequest.host_url}web#id={opportunity.id}&model=crm.lead&view_type=form"
-            
+
             email_body = f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
                 <div style="background-color: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     <h2 style="color: #333; margin-top: 0; border-bottom: 2px solid #457eb8; padding-bottom: 10px;">
                         🎯 New Service Request!
                     </h2>
-                    
+
                     <p style="color: #666; font-size: 16px; line-height: 1.6;">
                         You've received a new service request on your Vinc Card:
                     </p>
-                    
+
                     <div style="background-color: #f8f9fa; border-left: 4px solid #457eb8; padding: 20px; margin: 20px 0; border-radius: 4px;">
-                        <p style="margin: 8px 0;"><strong style="color: #333;">Service:</strong> <span style="color: #666;">{service.name}</span></p>
+                        <p style="margin: 8px 0;"><strong style="color: #333;">Service:</strong> <span style="color: #666;">{service_name_safe}</span></p>
                         <p style="margin: 8px 0;"><strong style="color: #333;">Service Description:</strong></p>
-                        <p style="margin: 8px 0; color: #666; white-space: pre-wrap;">{service.description}</p>
+                        <p style="margin: 8px 0; color: #666; white-space: pre-wrap;">{service_description_safe}</p>
                         <p style="margin: 20px 0 8px 0; border-top: 1px solid #ddd; padding-top: 12px;"><strong style="color: #333;">Contact Information:</strong></p>
-                        <p style="margin: 8px 0;"><strong style="color: #333;">Name:</strong> <span style="color: #666;">{contact_name}</span></p>
-                        <p style="margin: 8px 0;"><strong style="color: #333;">Email:</strong> <span style="color: #666;">{email_from}</span></p>
-                        <p style="margin: 8px 0;"><strong style="color: #333;">Phone:</strong> <span style="color: #666;">{phone_display}</span></p>
+                        <p style="margin: 8px 0;"><strong style="color: #333;">Name:</strong> <span style="color: #666;">{name_safe}</span></p>
+                        <p style="margin: 8px 0;"><strong style="color: #333;">Email:</strong> <span style="color: #666;">{email_safe}</span></p>
+                        <p style="margin: 8px 0;"><strong style="color: #333;">Phone:</strong> <span style="color: #666;">{phone_safe}</span></p>
                         <p style="margin: 8px 0;"><strong style="color: #333;">Additional Details:</strong></p>
-                        <p style="margin: 8px 0; color: #666; white-space: pre-wrap;">{notes_display}</p>
+                        <p style="margin: 8px 0; color: #666; white-space: pre-wrap;">{notes_safe}</p>
                     </div>
-                    
+
                     <div style="margin: 30px 0; text-align: center;">
-                        <a href="{lead_url}" 
+                        <a href="{lead_url}"
                            style="display: inline-block; background-color: #457eb8; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
                             View Lead in CRM
                         </a>
                     </div>
-                    
+
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 14px; color: #999;">
                         <p style="margin: 5px 0;">This service request was submitted through your Vinc Card: <a href="{vcard_url}" style="color: #457eb8;">{vcard_url}</a></p>
                         <p style="margin: 5px 0;">You can manage service request notifications in your Vinc Card settings.</p>
@@ -1295,10 +1325,10 @@ class LeadController(http.Controller):
                 </div>
             </div>
             """
-            
-            # Create mail message
+
+            # Subject uses the escaped service name + contact name.
             mail_values = {
-                'subject': f'New Service Request: {service.name} - {contact_name}',
+                'subject': f'New Service Request: {service_name_safe} - {name_safe}',
                 'body_html': email_body,
                 'email_from': request.env['partner.vcard']._get_notification_email(user=request.env.user),
                 'email_to': partner.email,

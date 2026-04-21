@@ -19,7 +19,14 @@ class PartnerReviews(models.Model):
     
     # Review fields
     reviewer_name = fields.Char(string="Reviewer Name", help="Optional name of the reviewer")
-    review_text = fields.Html(string="Review Text", required=True, help="Review text with HTML formatting support")
+    # Sanitised on write: reviews are submitted by unauthenticated visitors via
+    # /create_review, so the field must strip scripts / handlers / unsafe tags
+    # before the value ever lands in a published-card template.
+    review_text = fields.Html(
+        string="Review Text", required=True,
+        sanitize=True, sanitize_tags=True, sanitize_attributes=True,
+        help="Review text (HTML sanitised on save to strip scripts and unsafe attributes).",
+    )
     rating = fields.Selection([
         ('1', '1 Star'),
         ('2', '2 Stars'),
