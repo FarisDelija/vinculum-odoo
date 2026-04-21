@@ -318,35 +318,39 @@
         </notebook>
     </div>
     
-    <!-- Section C: Available Placeholders -->
+    <!-- Section C: Available Placeholders.
+         Using a single full-width cell with our own CSS grid instead of the
+         Odoo form <group col="3"> layout — Odoo's form gutters leave huge gaps
+         between columns, squeezing each list into an unreadable sliver. -->
     <newline invisible="enable_instant_leadback != True" colspan="2"/>
-    <group string="C) Available Placeholders" col="3" invisible="enable_instant_leadback != True">
-        <div>
-            <strong>Contact Information:</strong>
-            <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.9em;">
-                <li><code>{contact_name}</code> - Full name</li>
-                <li><code>{first_name}</code> - First name only</li>
-            </ul>
+    <group string="C) Available Placeholders" colspan="2" invisible="enable_instant_leadback != True">
+        <div colspan="2" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
+            <div style="min-width: 0;">
+                <strong>Contact Information:</strong>
+                <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.9em;">
+                    <li><code>{contact_name}</code> - Full name</li>
+                    <li><code>{first_name}</code> - First name only</li>
+                </ul>
+            </div>
+            <div style="min-width: 0;">
+                <strong>Your Information:</strong>
+                <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.9em;">
+                    <li><code>{owner_name}</code> - Your name</li>
+                    <li><code>{owner_phone}</code> - Your phone</li>
+                    <li><code>{owner_email}</code> - Your email</li>
+                    <li><code>{owner_title}</code> - Your job title</li>
+                    <li><code>{company_name}</code> - Your company</li>
+                </ul>
+            </div>
+            <div style="min-width: 0;">
+                <strong>Links:</strong>
+                <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.9em;">
+                    <li><code>{vcard_url}</code> - Your vCard link</li>
+                    <li><code>{booking_url}</code> - Booking/Calendly link</li>
+                </ul>
+            </div>
         </div>
-        <div>
-            <strong>Your Information:</strong>
-            <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.9em;">
-                <li><code>{owner_name}</code> - Your name</li>
-                <li><code>{owner_phone}</code> - Your phone</li>
-                <li><code>{owner_email}</code> - Your email</li>
-                <li><code>{owner_title}</code> - Your job title</li>
-                <li><code>{company_name}</code> - Your company</li>
-            </ul>
-        </div>
-        <div>
-            <strong>Links:</strong>
-            <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.9em;">
-                <li><code>{vcard_url}</code> - Your vCard link</li>
-                <li><code>{booking_url}</code> - Booking/Calendly link</li>
-            </ul>
-        </div>
-        <newline colspan="3"/>
-        <div colspan="3" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #ddd;">
+        <div colspan="2" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #ddd;">
             <strong>Advanced Features:</strong>
             <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.9em;">
                 <li><strong>Fallbacks:</strong> Use <code>{contact_name|there}</code> to show "there" if contact_name is empty</li>
@@ -667,15 +671,15 @@
                         <!-- Digest Email Settings Tab -->
                         <page string="Digest Settings">
                             <group string="Email Digest Settings">
-                                <field name="digest_enabled" string="Enable Digest Emails?" 
+                                <field name="digest_enabled" string="Enable Digest Emails"
                                        widget="boolean_toggle"
                                        help="Receive periodic digest emails with your vCard statistics"/>
                                 
-                                <field name="digest_frequency" string="Digest Frequency?"
+                                <field name="digest_frequency" string="Digest Frequency"
                                        invisible="digest_enabled != True"
                                        help="How often to receive digest emails. Daily emails are only sent if there's new activity."/>
                                 
-                                <field name="last_digest_sent" string="Last Digest Sent?" 
+                                <field name="last_digest_sent" string="Last Digest Sent"
                                        readonly="1"
                                        invisible="digest_enabled != True"
                                        help="When the last digest email was sent"/>

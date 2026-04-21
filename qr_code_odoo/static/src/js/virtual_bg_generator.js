@@ -530,7 +530,12 @@ async function generateBackground(flip = true) {
 }
 
 /**
- * Update the preview canvas
+ * Update the preview canvas.
+ * The preview shows the NON-FLIPPED (human-readable) version so you can see
+ * what your background actually looks like. The pre-flipped "for Zoom/Teams"
+ * variant is available via the download button. We display the full-size
+ * 1920x1080 source canvas directly via CSS at width: 100%, which fills the
+ * preview column crisply on any screen without an extra resample step.
  */
 async function updateVbgPreview() {
     const previewContainer = document.getElementById('vbg-preview');
@@ -539,21 +544,15 @@ async function updateVbgPreview() {
     previewContainer.innerHTML = '<p style="color: #9ca3af; font-style: italic;">Generating preview...</p>';
 
     try {
-        const canvas = await generateBackground(true);
-        const previewCanvas = document.createElement('canvas');
-        const maxWidth = 640;
-        const scale = maxWidth / BG_WIDTH;
-        previewCanvas.width = maxWidth;
-        previewCanvas.height = BG_HEIGHT * scale;
-        previewCanvas.style.maxWidth = '100%';
-        previewCanvas.style.borderRadius = '8px';
-        previewCanvas.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-
-        const ctx = previewCanvas.getContext('2d');
-        ctx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
+        const canvas = await generateBackground(false);
+        canvas.style.width = '100%';
+        canvas.style.height = 'auto';
+        canvas.style.display = 'block';
+        canvas.style.borderRadius = '8px';
+        canvas.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
 
         previewContainer.innerHTML = '';
-        previewContainer.appendChild(previewCanvas);
+        previewContainer.appendChild(canvas);
     } catch (error) {
         console.error('Error generating preview:', error);
         previewContainer.innerHTML = '<p style="color: #ef4444;">Error generating preview</p>';
