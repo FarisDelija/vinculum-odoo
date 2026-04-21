@@ -1,23 +1,34 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_partner_vcard,access_partner_vcard,model_partner_vcard,base.group_user,1,1,1,1
-access_partner_vcard_website,access_partner_vcard_website,model_partner_vcard_website,base.group_user,1,1,1,1
-access_partner_vcard_videos,access_partner_vcard_videos,model_partner_vcard_videos,base.group_user,1,1,1,1
-access_partner_vcard_reviews,access_partner_vcard_reviews,model_partner_vcard_reviews,base.group_user,1,1,1,1
-access_partner_vcard_speciality,access_partner_vcard_speciality,model_partner_vcard_speciality,base.group_user,1,1,1,1
-access_partner_vcard_service,access_partner_vcard_service,model_partner_vcard_service,base.group_user,1,1,1,1
-access_partner_vcard_service_question,access_partner_vcard_service_question,model_partner_vcard_service_question,base.group_user,1,1,1,1
-access_lead_tag_user,access_lead_tag_user,model_lead_tag,base.group_user,1,1,1,1
-access_lead_tag_public,access_lead_tag_public,model_lead_tag,base.group_public,1,0,0,0
-access_leadback_messaging_channel,access_leadback_messaging_channel,model_leadback_messaging_channel,base.group_user,1,1,1,1
-access_leadback_scheduled_email,access_leadback_scheduled_email,model_leadback_scheduled_email,base.group_user,1,1,1,1
-access_leadback_preview,access_leadback_preview,model_leadback_preview,base.group_user,1,1,1,1
-access_followup_reminder,access_followup_reminder,model_followup_reminder,base.group_user,1,1,1,1
-access_followup_scheduled_reminder,access_followup_scheduled_reminder,model_followup_scheduled_reminder,base.group_user,1,1,1,1
-access_vcard_download_tracking,access_vcard_download_tracking,model_vcard_download_tracking,base.group_user,1,1,1,1
-access_user_dashboard,access_user_dashboard,model_user_dashboard,base.group_user,1,1,1,1
-access_bulk_onboarding_batch,access_bulk_onboarding_batch,model_bulk_onboarding_batch,base.group_user,1,1,1,1
-access_bulk_onboarding_batch_admin,access_bulk_onboarding_batch_admin,model_bulk_onboarding_batch,base.group_system,1,1,1,1
-access_bulk_onboarding_rep,access_bulk_onboarding_rep,model_bulk_onboarding_rep,base.group_user,1,1,1,1
-access_bulk_onboarding_rep_admin,access_bulk_onboarding_rep_admin,model_bulk_onboarding_rep,base.group_system,1,1,1,1
-access_bulk_onboarding_token,access_bulk_onboarding_token,model_bulk_onboarding_token,base.group_user,1,1,1,1
-access_bulk_onboarding_token_admin,access_bulk_onboarding_token_admin,model_bulk_onboarding_token,base.group_system,1,1,1,1
+access_partner_vcard_user,partner.vcard user,model_partner_vcard,base.group_user,1,1,1,1
+access_partner_vcard_manager,partner.vcard manager,model_partner_vcard,qr_code_odoo.group_vinc_manager,1,1,1,1
+access_partner_vcard_website_user,partner.vcard.website user,model_partner_vcard_website,base.group_user,1,1,1,1
+access_partner_vcard_website_manager,partner.vcard.website manager,model_partner_vcard_website,qr_code_odoo.group_vinc_manager,1,1,1,1
+access_partner_vcard_videos_user,partner.vcard.videos user,model_partner_vcard_videos,base.group_user,1,1,1,1
+access_partner_vcard_videos_manager,partner.vcard.videos manager,model_partner_vcard_videos,qr_code_odoo.group_vinc_manager,1,1,1,1
+access_partner_vcard_reviews_user,partner.vcard.reviews user,model_partner_vcard_reviews,base.group_user,1,1,1,1
+access_partner_vcard_reviews_manager,partner.vcard.reviews manager,model_partner_vcard_reviews,qr_code_odoo.group_vinc_manager,1,1,1,1
+access_partner_vcard_speciality_user,partner.vcard.speciality user,model_partner_vcard_speciality,base.group_user,1,1,1,1
+access_partner_vcard_speciality_manager,partner.vcard.speciality manager,model_partner_vcard_speciality,qr_code_odoo.group_vinc_manager,1,1,1,1
+access_partner_vcard_service_user,partner.vcard.service user,model_partner_vcard_service,base.group_user,1,1,1,1
+access_partner_vcard_service_manager,partner.vcard.service manager,model_partner_vcard_service,qr_code_odoo.group_vinc_manager,1,1,1,1
+access_partner_vcard_service_question_user,partner.vcard.service.question user,model_partner_vcard_service_question,base.group_user,1,1,1,1
+access_partner_vcard_service_question_manager,partner.vcard.service.question manager,model_partner_vcard_service_question,qr_code_odoo.group_vinc_manager,1,1,1,1
+access_lead_tag_user,lead.tag user,model_lead_tag,base.group_user,1,1,1,1
+access_lead_tag_public,lead.tag public read,model_lead_tag,base.group_public,1,0,0,0
+access_leadback_messaging_channel_user,leadback.messaging.channel user,model_leadback_messaging_channel,base.group_user,1,1,1,1
+access_leadback_messaging_channel_manager,leadback.messaging.channel manager,model_leadback_messaging_channel,qr_code_odoo.group_vinc_manager,1,1,1,1
+access_leadback_scheduled_email_user,leadback.scheduled.email user,model_leadback_scheduled_email,base.group_user,1,1,1,1
+access_leadback_scheduled_email_manager,leadback.scheduled.email manager,model_leadback_scheduled_email,qr_code_odoo.group_vinc_manager,1,1,1,1
+access_leadback_preview_user,leadback.preview user,model_leadback_preview,base.group_user,1,1,1,1
+access_leadback_preview_manager,leadback.preview manager,model_leadback_preview,qr_code_odoo.group_vinc_manager,1,1,1,1
+access_followup_reminder_user,followup.reminder user,model_followup_reminder,base.group_user,1,1,1,1
+access_followup_reminder_manager,followup.reminder manager,model_followup_reminder,qr_code_odoo.group_vinc_manager,1,1,1,1
+access_followup_scheduled_reminder_user,followup.scheduled.reminder user,model_followup_scheduled_reminder,base.group_user,1,1,1,1
+access_followup_scheduled_reminder_manager,followup.scheduled.reminder manager,model_followup_scheduled_reminder,qr_code_odoo.group_vinc_manager,1,1,1,1
+access_vcard_download_tracking_user,vcard.download.tracking user,model_vcard_download_tracking,base.group_user,1,1,1,1
+access_vcard_download_tracking_manager,vcard.download.tracking manager,model_vcard_download_tracking,qr_code_odoo.group_vinc_manager,1,1,1,1
+access_user_dashboard_user,user.dashboard user,model_user_dashboard,base.group_user,1,1,1,1
+access_user_dashboard_manager,user.dashboard manager,model_user_dashboard,qr_code_odoo.group_vinc_manager,1,1,1,1
+access_bulk_onboarding_batch_manager,bulk.onboarding.batch manager,model_bulk_onboarding_batch,qr_code_odoo.group_vinc_manager,1,1,1,1
+access_bulk_onboarding_rep_manager,bulk.onboarding.rep manager,model_bulk_onboarding_rep,qr_code_odoo.group_vinc_manager,1,1,1,1
+access_bulk_onboarding_token_manager,bulk.onboarding.token manager,model_bulk_onboarding_token,qr_code_odoo.group_vinc_manager,1,1,1,1

@@ -1331,7 +1331,7 @@ class PartnerWebsite(models.Model):
                                         <t t-esc="service.name"/>
                                     </h5>
                                     <div t-att-style="'color: #666; margin: 0 0 12px 0; line-height: 1.6; word-wrap: break-word; overflow-wrap: break-word;'">
-                                        <t t-raw="service.description"/>
+                                        <t t-esc="service.description"/>
                                     </div>
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; flex-wrap: wrap; gap: 12px;">
                                         <div t-if="service.show_pricing and service.price" style="flex: 0 0 auto;">
@@ -2821,7 +2821,7 @@ class PartnerWebsite(models.Model):
                                         <t t-esc="service.name"/>
                                     </h5>
                                     <div t-att-style="'color: #64748b; margin: 0 0 12px 0; line-height: 1.6; font-size: 14px;'">
-                                        <t t-raw="service.description"/>
+                                        <t t-esc="service.description"/>
                                     </div>
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; flex-wrap: wrap; gap: 12px;">
                                         <div t-if="service.show_pricing and service.price" style="flex: 0 0 auto;">
@@ -4145,7 +4145,7 @@ class PartnerWebsite(models.Model):
                                                 <t t-esc="service.name"/>
                                             </h3>
                                             <div t-if="service.description" style="margin: 0 0 12px 0; color: #6b7280; font-size: 0.875rem; line-height: 1.6;">
-                                                <t t-raw="service.description"/>
+                                                <t t-esc="service.description"/>
                                             </div>
                                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                                 <t t-if="service.price">
@@ -4996,7 +4996,7 @@ class PartnerWebsite(models.Model):
                                             <t t-esc="service.name"/>
                                         </h5>
                                         <div t-att-style="'color: #666; margin: 0 0 12px 0; line-height: 1.6; word-wrap: break-word; overflow-wrap: break-word;'">
-                                            <t t-raw="service.description"/>
+                                            <t t-esc="service.description"/>
                                         </div>
                                         <div t-if="service.show_pricing and service.price" style="flex: 0 0 auto;">
                                             <span t-att-style="'color: ' + (partner.secondary_color or '#000') + '; font-weight: 600; font-size: 16px;'">

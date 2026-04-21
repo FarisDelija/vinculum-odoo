@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Record-level isolation for Vinc models.
+
+        Regular internal users (base.group_user) only see records where
+        create_uid matches their own uid. Vinc Managers (and Odoo
+        administrators, who imply group_vinc_manager) see everything.
+
+        For child records (partner.vcard.website / videos / reviews /
+        speciality / service / service.question), we scope via the parent's
+        create_uid so the child rule survives admin-driven creates that
+        bypass child.create_uid.
+
+        bulk.onboarding.* models intentionally have NO user rule: they are
+        manager-only in ir.model.access.csv. The magic-link activation
+        controller looks up tokens via sudo() by token value (not via RPC
+        search_read), so locking RPC access to managers does not break the
+        activation flow.
+    -->
+    <data noupdate="1">
+
+        <!-- partner.vcard -->
+        <record id="rule_partner_vcard_user" model="ir.rule">
+            <field name="name">Vinc card: own</field>
+            <field name="model_id" ref="model_partner_vcard"/>
+            <field name="domain_force">[('create_uid', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+        <record id="rule_partner_vcard_manager" model="ir.rule">
+            <field name="name">Vinc card: manager</field>
+            <field name="model_id" ref="model_partner_vcard"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('qr_code_odoo.group_vinc_manager'))]"/>
+        </record>
+
+        <!-- partner.vcard.website -->
+        <record id="rule_partner_vcard_website_user" model="ir.rule">
+            <field name="name">Vinc card website: own parent</field>
+            <field name="model_id" ref="model_partner_vcard_website"/>
+            <field name="domain_force">[('partner_id.create_uid', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+        <record id="rule_partner_vcard_website_manager" model="ir.rule">
+            <field name="name">Vinc card website: manager</field>
+            <field name="model_id" ref="model_partner_vcard_website"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('qr_code_odoo.group_vinc_manager'))]"/>
+        </record>
+
+        <!-- partner.vcard.videos -->
+        <record id="rule_partner_vcard_videos_user" model="ir.rule">
+            <field name="name">Vinc card video: own parent</field>
+            <field name="model_id" ref="model_partner_vcard_videos"/>
+            <field name="domain_force">[('partner_id.create_uid', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+        <record id="rule_partner_vcard_videos_manager" model="ir.rule">
+            <field name="name">Vinc card video: manager</field>
+            <field name="model_id" ref="model_partner_vcard_videos"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('qr_code_odoo.group_vinc_manager'))]"/>
+        </record>
+
+        <!-- partner.vcard.reviews -->
+        <record id="rule_partner_vcard_reviews_user" model="ir.rule">
+            <field name="name">Vinc card review: own parent</field>
+            <field name="model_id" ref="model_partner_vcard_reviews"/>
+            <field name="domain_force">[('partner_id.create_uid', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+        <record id="rule_partner_vcard_reviews_manager" model="ir.rule">
+            <field name="name">Vinc card review: manager</field>
+            <field name="model_id" ref="model_partner_vcard_reviews"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('qr_code_odoo.group_vinc_manager'))]"/>
+        </record>
+
+        <!-- partner.vcard.speciality -->
+        <record id="rule_partner_vcard_speciality_user" model="ir.rule">
+            <field name="name">Vinc card speciality: own parent</field>
+            <field name="model_id" ref="model_partner_vcard_speciality"/>
+            <field name="domain_force">[('partner_id.create_uid', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+        <record id="rule_partner_vcard_speciality_manager" model="ir.rule">
+            <field name="name">Vinc card speciality: manager</field>
+            <field name="model_id" ref="model_partner_vcard_speciality"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('qr_code_odoo.group_vinc_manager'))]"/>
+        </record>
+
+        <!-- partner.vcard.service -->
+        <record id="rule_partner_vcard_service_user" model="ir.rule">
+            <field name="name">Vinc card service: own parent</field>
+            <field name="model_id" ref="model_partner_vcard_service"/>
+            <field name="domain_force">[('partner_id.create_uid', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+        <record id="rule_partner_vcard_service_manager" model="ir.rule">
+            <field name="name">Vinc card service: manager</field>
+            <field name="model_id" ref="model_partner_vcard_service"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('qr_code_odoo.group_vinc_manager'))]"/>
+        </record>
+
+        <!-- partner.vcard.service.question -->
+        <record id="rule_partner_vcard_service_question_user" model="ir.rule">
+            <field name="name">Vinc service question: own grandparent</field>
+            <field name="model_id" ref="model_partner_vcard_service_question"/>
+            <field name="domain_force">[('service_id.partner_id.create_uid', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+        <record id="rule_partner_vcard_service_question_manager" model="ir.rule">
+            <field name="name">Vinc service question: manager</field>
+            <field name="model_id" ref="model_partner_vcard_service_question"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('qr_code_odoo.group_vinc_manager'))]"/>
+        </record>
+
+        <!-- leadback.messaging.channel -->
+        <record id="rule_leadback_channel_user" model="ir.rule">
+            <field name="name">Leadback channel: own</field>
+            <field name="model_id" ref="model_leadback_messaging_channel"/>
+            <field name="domain_force">[('create_uid', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+        <record id="rule_leadback_channel_manager" model="ir.rule">
+            <field name="name">Leadback channel: manager</field>
+            <field name="model_id" ref="model_leadback_messaging_channel"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('qr_code_odoo.group_vinc_manager'))]"/>
+        </record>
+
+        <!-- leadback.scheduled.email -->
+        <record id="rule_leadback_scheduled_email_user" model="ir.rule">
+            <field name="name">Leadback scheduled email: own</field>
+            <field name="model_id" ref="model_leadback_scheduled_email"/>
+            <field name="domain_force">[('create_uid', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+        <record id="rule_leadback_scheduled_email_manager" model="ir.rule">
+            <field name="name">Leadback scheduled email: manager</field>
+            <field name="model_id" ref="model_leadback_scheduled_email"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('qr_code_odoo.group_vinc_manager'))]"/>
+        </record>
+
+        <!-- leadback.preview -->
+        <record id="rule_leadback_preview_user" model="ir.rule">
+            <field name="name">Leadback preview: own</field>
+            <field name="model_id" ref="model_leadback_preview"/>
+            <field name="domain_force">[('create_uid', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+        <record id="rule_leadback_preview_manager" model="ir.rule">
+            <field name="name">Leadback preview: manager</field>
+            <field name="model_id" ref="model_leadback_preview"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('qr_code_odoo.group_vinc_manager'))]"/>
+        </record>
+
+        <!-- followup.reminder (template definitions; scoped by create_uid) -->
+        <record id="rule_followup_reminder_user" model="ir.rule">
+            <field name="name">Follow-up reminder: own</field>
+            <field name="model_id" ref="model_followup_reminder"/>
+            <field name="domain_force">[('create_uid', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+        <record id="rule_followup_reminder_manager" model="ir.rule">
+            <field name="name">Follow-up reminder: manager</field>
+            <field name="model_id" ref="model_followup_reminder"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('qr_code_odoo.group_vinc_manager'))]"/>
+        </record>
+
+        <!-- followup.scheduled.reminder -->
+        <record id="rule_followup_scheduled_reminder_user" model="ir.rule">
+            <field name="name">Scheduled follow-up: own</field>
+            <field name="model_id" ref="model_followup_scheduled_reminder"/>
+            <field name="domain_force">[('create_uid', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+        <record id="rule_followup_scheduled_reminder_manager" model="ir.rule">
+            <field name="name">Scheduled follow-up: manager</field>
+            <field name="model_id" ref="model_followup_scheduled_reminder"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('qr_code_odoo.group_vinc_manager'))]"/>
+        </record>
+
+        <!-- vcard.download.tracking -->
+        <record id="rule_vcard_download_tracking_user" model="ir.rule">
+            <field name="name">vCard download tracking: own parent</field>
+            <field name="model_id" ref="model_vcard_download_tracking"/>
+            <field name="domain_force">[('create_uid', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+        <record id="rule_vcard_download_tracking_manager" model="ir.rule">
+            <field name="name">vCard download tracking: manager</field>
+            <field name="model_id" ref="model_vcard_download_tracking"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('qr_code_odoo.group_vinc_manager'))]"/>
+        </record>
+
+        <!-- user.dashboard -->
+        <record id="rule_user_dashboard_user" model="ir.rule">
+            <field name="name">User dashboard: own</field>
+            <field name="model_id" ref="model_user_dashboard"/>
+            <field name="domain_force">[('create_uid', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+        <record id="rule_user_dashboard_manager" model="ir.rule">
+            <field name="name">User dashboard: manager</field>
+            <field name="model_id" ref="model_user_dashboard"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('qr_code_odoo.group_vinc_manager'))]"/>
+        </record>
+
+    </data>
+</odoo>

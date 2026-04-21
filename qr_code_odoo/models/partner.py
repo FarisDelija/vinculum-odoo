@@ -656,7 +656,13 @@ class PartnerVCardService(models.Model):
     _order = 'sequence, name'
     
     name = fields.Char(string='Service Title', required=True)
-    description = fields.Text(string='Description', required=True)
+    # Html (sanitized) so write-path strips scripts/handlers before the value
+    # hits arch_db of the published card. Published templates also use t-esc
+    # (not t-raw) as belt-and-suspenders.
+    description = fields.Html(
+        string='Description', required=True,
+        sanitize=True, sanitize_tags=True, sanitize_attributes=True,
+    )
     price = fields.Char(string='Pricing', help='Enter pricing information (e.g., "$100/hour", "Starting at $500", "Free consultation")')
     show_pricing = fields.Boolean(string='Show Pricing', default=True, help='Display pricing on the vCard')
     thank_you_message = fields.Char(

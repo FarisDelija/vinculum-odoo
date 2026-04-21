@@ -702,10 +702,15 @@ class BulkOnboardingController(http.Controller):
             if rep:
                 rep.status = 'activated'
             
-            # Redirect to login page with credentials to auto-login
-            from urllib.parse import quote
-            redirect_path = quote('/bulk-onboard/complete-vcard', safe='')
-            return request.redirect(f'/web/login?redirect={redirect_path}&login={user.login}&password={password}')
+            # Auto-login server-side and redirect to complete-vcard.
+            # Never place credentials in a GET redirect: the URL ends up in
+            # Werkzeug / reverse-proxy access logs and the browser's history.
+            try:
+                request.session.authenticate(request.session.db, user.login, password)
+            except Exception as auth_err:
+                _logger.warning(f"Auto-login after activation failed, redirecting to login form: {auth_err}")
+                return request.redirect('/web/login?redirect=/bulk-onboard/complete-vcard')
+            return request.redirect('/bulk-onboard/complete-vcard')
             
         except Exception as e:
             _logger.error(f"Error activating account: {str(e)}", exc_info=True)

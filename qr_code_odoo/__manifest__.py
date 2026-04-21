@@ -1,6 +1,6 @@
 {
     'name': 'Vinc',
-    'version': '17.0.1.0.22',
+    'version': '17.0.1.0.23',
     'category': 'Tools',
     'summary': 'Digital business cards, lead capture & analytics inside Odoo',
     'description': """
@@ -27,7 +27,10 @@ This module is designed for companies that want Vinc-style digital cards and lea
     'images': ['static/description/Banner.png'],
     'depends': ['base', 'web', 'crm', 'website', 'utm', 'mass_mailing'],
     'data': [
+        # Security: groups first so ir.model.access.csv can reference them
+        'security/vinc_groups.xml',
         'security/ir.model.access.csv',
+        'security/vinc_record_rules.xml',
         'security/bulk_onboarding_rules.xml',
         'data/leadback_preview_model.xml',
         'data/followup_scheduled_reminder_model.xml',
