@@ -1,2130 +1,681 @@
 <odoo>
+  <!--
+    /get-started — editorial refresh.
+    Five-chapter wizard (Identity / Brand / Find you / Lead capture / Design & share).
+    Visual + interaction styles come from:
+      - /qr_code_odoo/static/src/css/get_started.css  (scoped to .vg-getstarted)
+      - /qr_code_odoo/static/src/js/get_started.js    (navigation, validation, previews)
+      - /qr_code_odoo/static/src/js/vg_fonts.js       (Fraunces + DM Sans + JetBrains Mono)
+    Palette is white + blue only — no sand.
+    Preserves every POST field name consumed by /vcard/submit.
+  -->
   <template id="vcard_form_page" name="Get Started Form Page">
     <t t-call="website.layout">
-      <!-- Welcome Banner -->
-      <section id="welcome-banner" style="background: #4C75A3; color: white; padding: 40px 0; text-align: center;">
-        <div class="container">
-          <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem;">
-            Let's Create Your Vinc Digital Business Card
-          </h1>
-          <p style="font-size: 1.2rem; opacity: 0.95; margin-bottom: 1rem;">
-            You're just a few minutes away from transforming how you network
-          </p>
-          <div style="display: inline-flex; align-items: center; background: rgba(255,255,255,0.2); padding: 10px 25px; border-radius: 50px; margin-top: 10px;">
-            <span style="margin-right: 15px; font-size: 1.1rem;">📱 Setup Your Card</span>
-            <span style="margin-right: 15px;">→</span>
-            <span style="margin-right: 15px; font-size: 1.1rem;">🎨 Customize Design</span>
-            <span style="margin-right: 15px;">→</span>
-            <span style="font-size: 1.1rem;">✨ Start Sharing</span>
+      <div class="vg-getstarted" id="gs-root">
+
+        <!-- ============ Hero ============ -->
+        <section class="gs-hero">
+          <div class="gs-hero-inner">
+            <div class="gs-hero-eyebrow">Build your card</div>
+            <h1>
+              A few minutes of setup.
+              <em>A lifetime of introductions.</em>
+            </h1>
+            <p class="gs-hero-sub">
+              Fill in the essentials. Your Vinc card publishes instantly, ready to share via
+              <strong>tap, QR, or link</strong>.
+            </p>
           </div>
-        </div>
-      </section>
-      
-      <div class="container mt-5 mb-5">
-        <div class="row justify-content-center">
-          <div class="col-lg-8" id="form-column">
-            <div class="text-center mb-4">
-              <h2 style="font-size: 2rem; font-weight: 600; color: #4C75A3;">Complete Your Profile</h2>
-              <p class="lead text-muted">Fill in your details below to create your personalized Vinc Card</p>
+        </section>
+
+        <!-- ============ Stepper + chapters + preview ============ -->
+        <div class="gs-shell">
+          <div class="gs-main">
+
+            <!-- Pill stepper -->
+            <div class="gs-stepper-card">
+              <div class="gs-stepper" role="tablist" aria-label="Setup progress">
+                <button type="button" class="gs-step" data-step="1" data-state="active" aria-current="step">
+                  <span class="gs-step-bullet"><span>1</span></span>
+                  <span class="gs-step-label">Identity</span>
+                </button>
+                <button type="button" class="gs-step" data-step="2" data-state="upcoming">
+                  <span class="gs-step-bullet"><span>2</span></span>
+                  <span class="gs-step-label">Brand</span>
+                </button>
+                <button type="button" class="gs-step" data-step="3" data-state="upcoming">
+                  <span class="gs-step-bullet"><span>3</span></span>
+                  <span class="gs-step-label">Find you</span>
+                </button>
+                <button type="button" class="gs-step" data-step="4" data-state="upcoming">
+                  <span class="gs-step-bullet"><span>4</span></span>
+                  <span class="gs-step-label">Lead capture</span>
+                </button>
+                <button type="button" class="gs-step" data-step="5" data-state="upcoming">
+                  <span class="gs-step-bullet"><span>5</span></span>
+                  <span class="gs-step-label">Design &amp; share</span>
+                </button>
+                <span class="gs-stepper-progress" data-progress-track="true"/>
+              </div>
             </div>
-            
-            <!-- Error Alert -->
+
+            <!-- Server error banner (re-render path) -->
             <t t-if="error">
-              <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="fa fa-exclamation-triangle me-2"></i>
-                <t t-esc="error"/>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              <div class="gs-error-banner" role="alert">
+                <strong>We couldn't save your card.</strong>
+                <span><t t-esc="error"/></span>
               </div>
             </t>
-            
-            <!-- Progress Indicator -->
-            <div class="progress mb-4" style="height: 8px;">
-              <div class="progress-bar bg-primary" role="progressbar" style="width: 0%" id="form-progress"></div>
-            </div>
-            
-            <form action="/vcard/submit" method="post" enctype="multipart/form-data" id="vcard-form">
+
+            <!-- Screen-reader live region for chapter changes -->
+            <div class="gs-sr-only" aria-live="polite" id="gs-live-region"/>
+
+            <!-- Form -->
+            <form id="gs-form" action="/vcard/submit" method="post" enctype="multipart/form-data" novalidate="novalidate">
               <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+              <!-- Primary color is fixed white; historically part of submit payload. -->
+              <input type="hidden" name="primary_color" value="#ffffff"/>
+              <!-- Default template = modern; updated by the template picker in chapter 5. -->
+              <input type="hidden" name="website_template" id="selected_template" value="modern"/>
 
-              <!-- Step 1: Basic Information -->
-              <div class="form-section" data-step="1">
-                <div class="card mb-4">
-                  <div class="card-header vinc-brand-header" style="background: #4C75A3; color: white;">
-                    <h4 class="mb-0"><i class="fa fa-user me-2"></i>Step 1: Basic Information</h4>
-                  </div>
-                  <div class="card-body">
-                    <div class="row">
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Full Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" id="name_input" class="form-control form-control-lg" required="required" placeholder="John Doe" t-att-value="default_name or ''"/>
-                        <div class="invalid-feedback">Please enter your full name.</div>
-                      </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Email Address <span class="text-danger">*</span></label>
-                        <input type="email" name="email" class="form-control form-control-lg" required="required" placeholder="john@example.com" t-att-value="default_email or ''"/>
-                        <div class="invalid-feedback">Please enter a valid email address.</div>
-                      </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Phone Number</label>
-                        <input type="tel" name="phone" class="form-control" placeholder="+1 (555) 123-4567"/>
-                        <small class="form-text text-muted">Include country code for international numbers</small>
-                      </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Mobile Number</label>
-                        <input type="tel" name="mobile" class="form-control" placeholder="+1 (555) 123-4567"/>
-                        <small class="form-text text-muted">Your primary mobile number</small>
-                      </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Job Title</label>
-                        <input type="text" name="function" class="form-control" placeholder="Sales Manager, CEO, Developer..."/>
-                        <small class="form-text text-muted">Your current position or role</small>
-                      </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Profile Photo</label>
-                        <input type="file" name="image_url" class="form-control" accept="image/*" id="profile_photo_input"/>
-                        <small class="form-text text-muted">Upload a professional headshot (optional - a default photo will be used if not provided) (JPG, PNG, max 5MB)</small>
-                        <div class="invalid-feedback">Please upload a valid image file.</div>
-            </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Banner Image</label>
-                        <input type="file" name="banner_image" class="form-control" accept="image/*" id="banner_image_input"/>
-                        <small class="form-text text-muted">Upload a banner image that appears behind your profile picture (optional, JPG, PNG, max 5MB)</small>
-            </div>
-            </div>
-            </div>
-            </div>
-          </div>
-
-              <!-- Step 2: Company & Branding -->
-              <div class="form-section" data-step="2">
-                <div class="card mb-4">
-                  <div class="card-header vinc-brand-header" style="background: #4C75A3; color: white;">
-                    <h4 class="mb-0"><i class="fa fa-building me-2"></i>Step 2: Company &amp; Branding</h4>
-                  </div>
-                  <div class="card-body">
-          <div class="row">
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Company Name</label>
-                        <input type="text" name="company_name" class="form-control" placeholder="Your Company LLC" t-att-value="default_company or ''"/>
-                        <small class="form-text text-muted">Your company or organization name (optional)</small>
-                      </div>
-
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Your Vinc URL <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                          <span class="input-group-text"><t t-esc="base_url_display or 'your-domain.com'"/>/</span>
-                          <input type="text" name="website_slug" class="form-control" required="required" placeholder="john-doe" id="website_slug_input"/>
-                        </div>
-                        <small class="form-text text-muted">Choose a unique URL for your Vinc Card (letters, numbers, and hyphens only)</small>
-                        <div class="invalid-feedback">Please enter a valid URL slug.</div>
-                      </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Calendar URL</label>
-                        <input type="url" name="calendly_url" class="form-control" placeholder="https://calendly.com/your-link"/>
-                        <small class="form-text text-muted">Link to your booking page (Calendly, Google Calendar, etc.)</small>
-                      </div>
-                      <!-- Primary color is always white, removed from UI -->
-                      <input type="hidden" name="primary_color" value="#ffffff"/>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Brand Color <span class="text-danger">*</span></label>
-                        <input type="color" name="secondary_color" id="secondary_color" required="required" class="form-control form-control-color" value="#4C75A3" style="width: 100%; height: 50px; cursor: pointer;"/>
-                        <small class="form-text text-muted">Accent color for your Vinc Card design, used for buttons, borders, sections</small>
-                      </div>
-                      <div class="form-group col-12 mb-3">
-                        <label class="form-label fw-bold">About You <span class="text-danger">*</span></label>
-                        <textarea name="about" class="form-control" rows="4" required="required" placeholder="Tell people about yourself, your expertise, and what you do..."></textarea>
-                        <small class="form-text text-muted">Write a compelling description of yourself (tip: use your LinkedIn summary as inspiration)</small>
-                        <div class="invalid-feedback">Please tell us about yourself.</div>
-                      </div>
+              <!-- =============================================== -->
+              <!-- Chapter 1 · Identity                           -->
+              <!-- =============================================== -->
+              <section class="gs-chapter" data-chapter="1" data-active="true">
+                <header class="gs-chapter-head">
+                  <div class="gs-chapter-eyebrow">Chapter 01 · Identity</div>
+                  <h2 class="gs-chapter-title">Who <em>you</em> are.</h2>
+                  <p class="gs-chapter-intro">The details people remember after the tap — your name, your face, and how to reach you.</p>
+                </header>
+                <div class="gs-chapter-body">
+                  <div class="gs-grid">
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-name">Full Name <span class="gs-req">Required</span></label>
+                      <input class="gs-input" type="text" id="gs-name" name="name" required="required"
+                             placeholder="Jane Doe" t-att-value="default_name or ''"/>
+                      <p class="gs-err">Please enter your full name.</p>
                     </div>
-                  </div>
-            </div>
-            </div>
-
-              <!-- Step 3: Address Information -->
-              <div class="form-section" data-step="3">
-                <div class="card mb-4">
-                  <div class="card-header" style="background: #4C75A3; color: white;">
-                    <h4 class="mb-0"><i class="fa fa-map-marker-alt me-2"></i>Step 3: Address Information</h4>
-            </div>
-                  <div class="card-body">
-                    <div class="row">
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Street Address</label>
-                        <input type="text" name="street" class="form-control" placeholder="123 Main Street"/>
-            </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Address Line 2</label>
-                        <input type="text" name="street2" class="form-control" placeholder="Suite 100, Floor 2"/>
-            </div>
-                      <div class="form-group col-md-4 mb-3">
-                        <label class="form-label fw-bold">City</label>
-              <input type="text" name="city" class="form-control" placeholder="Los Angeles"/>
-            </div>
-                      <div class="form-group col-md-4 mb-3">
-                        <label class="form-label fw-bold">ZIP/Postal Code</label>
-                        <input type="text" name="zip" class="form-control" placeholder="90210"/>
-            </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Country</label>
-                        <select name="country_id" id="vcard_country" class="form-control">
-                          <option value="">Select a country</option>
-                          <t t-foreach="countries" t-as="country">
-                            <option t-att-value="country.id"><t t-esc="country.name"/></option>
-                          </t>
-                        </select>
-                      </div>
-                      <div class="form-group col-md-4 mb-3" id="state_group" style="display: none;">
-                        <label class="form-label fw-bold">State/Province</label>
-                        <select name="state_id" id="vcard_state" class="form-control">
-                          <option value="">Select a state</option>
-                          <t t-foreach="states" t-as="state">
-                            <option t-att-value="state.id" t-att-data-country-id="state.country_id.id">
-                              <t t-esc="state.name"/>
-                            </option>
-                          </t>
-                        </select>
-                      </div>
-            </div>
-            </div>
-            </div>
-          </div>
-
-              <!-- Step 4: Social Media Links -->
-              <div class="form-section" data-step="4">
-                <div class="card mb-4">
-                  <div class="card-header" style="background: #4C75A3; color: white;">
-                    <h4 class="mb-0"><i class="fa fa-share-alt me-2"></i>Step 4: Social Media Links</h4>
-                    <small class="text-muted">Connect your social media profiles to your vCard</small>
-                  </div>
-                  <div class="card-body">
-          <div class="row">
-                      <div class="col-12 mb-3">
-                        <h6 class="text-primary"><i class="fa fa-user me-2"></i>Personal Profiles</h6>
-                      </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">LinkedIn Profile</label>
-                        <input type="url" name="linkedin_url" class="form-control" placeholder="https://www.linkedin.com/in/username"/>
-                        <small class="form-text text-muted">Your personal LinkedIn profile</small>
-                      </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Twitter/X Profile</label>
-                        <input type="url" name="twitter_url" class="form-control" placeholder="https://twitter.com/username"/>
-                        <small class="form-text text-muted">Your Twitter/X handle</small>
-            </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Instagram Profile</label>
-                        <input type="url" name="instagram_url" class="form-control" placeholder="https://www.instagram.com/username"/>
-                        <small class="form-text text-muted">Your Instagram profile</small>
-            </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Facebook Profile</label>
-                        <input type="url" name="facebook_url" class="form-control" placeholder="https://www.facebook.com/username"/>
-                        <small class="form-text text-muted">Your personal Facebook profile</small>
-            </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">YouTube Channel</label>
-                        <input type="url" name="youtube_url" class="form-control" placeholder="https://www.youtube.com/channel/CHANNEL_ID"/>
-                        <small class="form-text text-muted">Your YouTube channel or videos</small>
-            </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">WhatsApp</label>
-                        <input type="url" name="whatsapp_url" class="form-control" placeholder="https://wa.me/1234567890"/>
-                        <small class="form-text text-muted">Your WhatsApp number for direct contact</small>
-          </div>
-
-                      <div class="col-12 mb-3 mt-4">
-                        <h6 class="text-success"><i class="fa fa-building me-2"></i>Company Profiles</h6>
-                      </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Company LinkedIn</label>
-                        <input type="url" name="linkedin_url_company" class="form-control" placeholder="https://www.linkedin.com/company/companyname"/>
-                        <small class="form-text text-muted">Your company's LinkedIn page</small>
-                      </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Company Twitter/X</label>
-                        <input type="url" name="twitter_url_company" class="form-control" placeholder="https://twitter.com/companyname"/>
-                        <small class="form-text text-muted">Your company's Twitter/X handle</small>
-                      </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Company Instagram</label>
-                        <input type="url" name="instagram_url_company" class="form-control" placeholder="https://www.instagram.com/companyname"/>
-                        <small class="form-text text-muted">Your company's Instagram profile</small>
-                      </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">Company Facebook</label>
-                        <input type="url" name="facebook_url_company" class="form-control" placeholder="https://www.facebook.com/companyname"/>
-                        <small class="form-text text-muted">Your company's Facebook page</small>
-                      </div>
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-email">Email Address <span class="gs-req">Required</span></label>
+                      <input class="gs-input" type="email" id="gs-email" name="email" required="required"
+                             placeholder="jane@example.com" t-att-value="default_email or ''"/>
+                      <p class="gs-err">Please enter a valid email address.</p>
                     </div>
-                  </div>
-              </div>
-              </div>
-          
-              <!-- Step 5: Additional Content -->
-              <div class="form-section" data-step="5">
-                <div class="card mb-4">
-                  <div class="card-header" style="background: #4C75A3; color: white;">
-                    <h4 class="mb-0"><i class="fa fa-plus-circle me-2"></i>Step 5: Additional Content</h4>
-                    <small class="text-muted">Add websites and videos to showcase your work</small>
-                  </div>
-                  <div class="card-body">
-                    <!-- External Websites -->
-                    <div class="mb-4">
-                      <h6 class="text-primary mb-3"><i class="fa fa-globe me-2"></i>External Websites</h6>
-                      <p class="text-muted small">Add links to your portfolio, blog, or other websites you want to showcase.</p>
-                      <div id="websites-container">
-                        <div class="website-item mb-3 p-3 border rounded bg-light">
-                          <div class="row">
-                            <div class="form-group col-md-4 mb-3">
-                              <label class="form-label fw-bold">Website URL</label>
-                              <input type="url" name="website_url[]" class="form-control" placeholder="https://example.com"/>
-                            </div>
-                            <div class="form-group col-md-4 mb-3">
-                              <label class="form-label fw-bold">Website Name</label>
-                              <input type="text" name="website_name[]" class="form-control" placeholder="My Portfolio"/>
-                            </div>
-                            <div class="form-group col-md-3 mb-3">
-                              <label class="form-label fw-bold">Button Color</label>
-                              <input type="color" name="website_color[]" class="form-control form-control-color" id="website_color_0" value="#4C75A3"/>
-                              <small class="form-text text-muted" style="font-size: 0.75rem;">Defaults to Secondary Color</small>
-                            </div>
-                            <div class="form-group col-md-1 d-flex align-items-end">
-                              <button type="button" class="btn btn-outline-danger btn-sm remove-website" style="display: none;">
-                                <i class="fa fa-trash"></i>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <button type="button" class="btn btn-outline-primary btn-sm" id="add-website">
-                        <i class="fa fa-plus me-1"></i> Add Another Website
-                      </button>
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-phone">Phone Number</label>
+                      <input class="gs-input" type="tel" id="gs-phone" name="phone" placeholder="+1 (555) 123-4567" t-att-value="default_phone or ''"/>
+                      <p class="gs-hint">Include country code for international numbers.</p>
                     </div>
-
-                    <!-- Videos -->
-                    <div class="mb-4">
-                      <h6 class="text-success mb-3"><i class="fa fa-video me-2"></i>Videos</h6>
-                      <p class="text-muted small">Add YouTube, Vimeo, or other videos to showcase your work or introduce yourself.</p>
-                      <div id="videos-container">
-                        <div class="video-item mb-3 p-3 border rounded bg-light">
-                          <div class="row">
-                            <div class="form-group col-md-6 mb-3">
-                              <label class="form-label fw-bold">Video URL</label>
-                              <input type="url" name="video_url[]" class="form-control" placeholder="https://www.youtube.com/watch?v=..."/>
-                            </div>
-                            <div class="form-group col-md-5 mb-3">
-                              <label class="form-label fw-bold">Video Title</label>
-                              <input type="text" name="video_name[]" class="form-control" placeholder="My Introduction Video"/>
-                            </div>
-                            <div class="form-group col-md-1 d-flex align-items-end">
-                              <button type="button" class="btn btn-outline-danger btn-sm remove-video" style="display: none;">
-                                <i class="fa fa-trash"></i>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <button type="button" class="btn btn-outline-success btn-sm" id="add-video">
-                        <i class="fa fa-plus me-1"></i> Add Another Video
-                      </button>
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-mobile">Mobile Number</label>
+                      <input class="gs-input" type="tel" id="gs-mobile" name="mobile" placeholder="+1 (555) 123-4567" t-att-value="default_mobile or ''"/>
+                      <p class="gs-hint">Your primary mobile number.</p>
+                    </div>
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-function">Job Title</label>
+                      <input class="gs-input" type="text" id="gs-function" name="function" placeholder="Sales Manager · CEO · Developer" t-att-value="default_function or ''"/>
+                      <p class="gs-hint">Your current position or role.</p>
+                    </div>
+                    <div class="gs-field">
+                      <!-- spacer to keep the two-column rhythm on desktop -->
+                    </div>
+                    <div class="gs-field">
+                      <label class="gs-label">Profile Photo</label>
+                      <label class="gs-drop" data-drop="profile" data-state="empty">
+                        <span class="gs-drop-icon" aria-hidden="true"/>
+                        <span class="gs-drop-label">Drop an image, or click to browse</span>
+                        <span class="gs-drop-hint">JPG · PNG · WEBP — up to 5MB</span>
+                        <span class="gs-drop-thumb"/>
+                        <span class="gs-drop-meta">
+                          <span class="gs-drop-filename"/>
+                          <span class="gs-drop-change">Change photo</span>
+                        </span>
+                        <input type="file" id="profile_photo_input" name="image_url" accept="image/*"/>
+                      </label>
+                      <p class="gs-hint">Optional — a default photo is used if you leave this empty.</p>
+                    </div>
+                    <div class="gs-field">
+                      <label class="gs-label">Banner Image</label>
+                      <label class="gs-drop" data-drop="banner" data-state="empty">
+                        <span class="gs-drop-icon" aria-hidden="true"/>
+                        <span class="gs-drop-label">Drop an image, or click to browse</span>
+                        <span class="gs-drop-hint">Shown behind your profile picture</span>
+                        <span class="gs-drop-thumb"/>
+                        <span class="gs-drop-meta">
+                          <span class="gs-drop-filename"/>
+                          <span class="gs-drop-change">Change banner</span>
+                        </span>
+                        <input type="file" id="banner_image_input" name="banner_image" accept="image/*"/>
+                      </label>
+                      <p class="gs-hint">Optional. JPG or PNG, up to 5MB.</p>
+                    </div>
+                    <div class="gs-field gs-col-full">
+                      <label class="gs-label" for="gs-about">About You <span class="gs-req">Required</span></label>
+                      <textarea class="gs-textarea" id="gs-about" name="about" required="required"
+                                placeholder="Tell people who you are, what you do, and why someone would want to work with you."></textarea>
+                      <p class="gs-hint">Tip: your LinkedIn summary usually works well here.</p>
+                      <p class="gs-err">Please tell us about yourself.</p>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <!-- Step 6: Extra Features -->
-              <div class="form-section" data-step="6">
-                <div class="card mb-4">
-                  <div class="card-header" style="background: #4C75A3; color: white;">
-                    <h4 class="mb-0"><i class="fa fa-cog me-2"></i>Step 6: Extra Features</h4>
-                    <small class="text-muted">Configure additional features for your vCard</small>
-                  </div>
-                  <div class="card-body">
-                    <!-- Lead Collection Form -->
-                    <div class="mb-4 p-3 border rounded">
-                      <div class="form-check mb-3">
-                        <input type="checkbox" name="show_form" class="form-check-input" id="show_form_yes" value="yes"/>
-                        <label for="show_form_yes" class="form-check-label fw-bold">Lead Collection Form</label>
-                    </div>
-                      <p class="text-muted small ms-4 mb-3">Allow visitors to submit their contact information through your Vinc Card</p>
-                      <div class="row ms-4" id="lead_extra_fields" style="display: none;">
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">
-                          Lead Button Label
-                        </label>
-                        <input type="text" name="lead_button_label" class="form-control" placeholder="Get In Touch"/>
-                        <small class="form-text text-muted">Text for the button that opens the lead form</small>
-                        
-                      </div>
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">
-                          Thank You Message
-                        </label>
-                        <input type="text" name="form_thank_you_message" class="form-control" placeholder="Thank you! I'll be in touch soon."/>
-                        <small class="form-text text-muted">Message shown after someone submits the form</small>
-                        
-                      </div>
-                        <div class="form-group col-md-12 mb-3">
-                        <label class="form-label fw-bold">Mailing List Name <span class="text-danger">*</span></label>
-                        <input type="text" name="mailing_list_name" id="mailing_list_name_input" class="form-control" data-required-when-enabled="1" placeholder="e.g., Main Contacts, Newsletter Subscribers"/>
-                        <small class="form-text text-muted"><i class="fa fa-info-circle"></i> We use this list to automatically add leads captured from your vCard. You can manage additional lists later from your dashboard.</small>
-                      </div>
-                    </div>
-                  </div>
-
-                    <!-- Notify on New Lead -->
-                    <div class="mb-4 p-3 border rounded">
-                      <div class="form-check">
-                        <input type="checkbox" name="notify_on_new_lead" class="form-check-input" id="notify_on_new_lead_yes" value="yes"/>
-                        <label for="notify_on_new_lead_yes" class="form-check-label fw-bold">Notify on New Lead</label>
+                <div class="gs-actions">
+                  <span/>
+                  <button type="button" class="gs-btn gs-btn-primary" data-action="next">
+                    <span class="gs-btn-label">Next · Brand</span>
+                    <span aria-hidden="true">→</span>
+                  </button>
                 </div>
-                      <p class="text-muted small ms-4">Send an email notification when a new lead is submitted through the form</p>
-              </div>
+              </section>
 
-                    <!-- Send Intro Email Automatically -->
-                    <div class="mb-4 p-3 border rounded">
-                      
-                      <div class="form-check">
-                        <input type="checkbox" name="intro_email_enabled" class="form-check-input" id="intro_email_enabled_yes" value="yes"/>
-                        <label for="intro_email_enabled_yes" class="form-check-label fw-bold">
-                          Send Intro Email Automatically
-                        </label>
-                      </div>
-                      <p class="text-muted small ms-4">
-                        Automatically send an introduction email to new leads
-                      </p>
+              <!-- =============================================== -->
+              <!-- Chapter 2 · Brand                              -->
+              <!-- =============================================== -->
+              <section class="gs-chapter" data-chapter="2" data-active="false">
+                <header class="gs-chapter-head">
+                  <div class="gs-chapter-eyebrow">Chapter 02 · Brand</div>
+                  <h2 class="gs-chapter-title">How it all <em>looks</em>.</h2>
+                  <p class="gs-chapter-intro">The URL people type, the colour that flows through your card, and the company you're with.</p>
+                </header>
+                <div class="gs-chapter-body">
+                  <div class="gs-grid">
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-company">Company Name</label>
+                      <input class="gs-input" type="text" id="gs-company" name="company_name"
+                             placeholder="Your Company" t-att-value="default_company or ''"/>
+                      <p class="gs-hint">Optional — your company or organisation name.</p>
                     </div>
-
-                    <!-- Instant Lead Back -->
-                    <div class="mb-4 p-3 border rounded">
-                      
-                      <div class="form-check mb-3">
-                        <input type="checkbox" name="enable_instant_leadback" class="form-check-input" id="enable_instant_leadback_yes" value="yes"/>
-                        <label for="enable_instant_leadback_yes" class="form-check-label fw-bold">
-                          Instant Lead Back
-                        </label>
-                      </div>
-                      <p class="text-muted small ms-4 mb-3">
-                        Automatically send email and messaging links to new contacts
-                      </p>
-                      
-                      <!-- Enable Automated Email - Only visible when Instant Lead Back is enabled -->
-                      <div class="ms-4 mb-3" id="leadback_email_container" style="display: none;">
-                        <div class="form-check">
-                          <input type="checkbox" name="leadback_send_email" class="form-check-input" id="leadback_send_email_yes" value="yes"/>
-                          <label for="leadback_send_email_yes" class="form-check-label fw-bold">Enable Automated Email</label>
-                        </div>
-                        <p class="text-muted small ms-4">Automatically send an email to new leads using your email marketing system</p>
-                      </div>
-
-                      <!-- Enable Click to Chat - Only visible when Instant Lead Back is enabled -->
-                      <div class="ms-4 mb-3" id="leadback_messaging_container" style="display: none;">
-                        <div class="form-check mb-2">
-                          <input type="checkbox" name="leadback_enable_messaging" class="form-check-input" id="leadback_enable_messaging_yes" value="yes"/>
-                          <label for="leadback_enable_messaging_yes" class="form-check-label fw-bold">Enable Click to Chat</label>
-                        </div>
-                        <p class="text-muted small ms-4 mb-2">Generate click-to-chat links for messaging platforms (WhatsApp, Viber, Telegram)</p>
-                        <div id="messaging_channels_container" style="display: none; margin-left: 2rem;">
-                          <label class="form-label fw-bold small">Select Messaging Channels <span class="text-danger">*</span></label>
-                          <div class="form-check">
-                            <input type="checkbox" name="leadback_channels[]" class="form-check-input" id="channel_whatsapp" value="whatsapp" checked="checked"/>
-                            <label for="channel_whatsapp" class="form-check-label">WhatsApp</label>
-                          </div>
-                          <div class="form-check">
-                            <input type="checkbox" name="leadback_channels[]" class="form-check-input" id="channel_viber" value="viber"/>
-                            <label for="channel_viber" class="form-check-label">Viber</label>
-                          </div>
-                          <div class="form-check">
-                            <input type="checkbox" name="leadback_channels[]" class="form-check-input" id="channel_telegram" value="telegram"/>
-                            <label for="channel_telegram" class="form-check-label">Telegram</label>
-                          </div>
-                        </div>
-                      </div>
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-calendly">Calendar URL</label>
+                      <input class="gs-input" type="url" id="gs-calendly" name="calendly_url" placeholder="https://calendly.com/your-link"/>
+                      <p class="gs-hint">Calendly, Google Calendar, Cal.com — whichever you use.</p>
                     </div>
-
-                    <!-- Show Reviews Section -->
-                    <div class="mb-4 p-3 border rounded">
-                      
-                      <div class="form-check mb-3">
-                        <input type="checkbox" name="show_reviews" class="form-check-input" id="show_reviews_yes" value="yes"/>
-                        <label for="show_reviews_yes" class="form-check-label fw-bold">
-                          Show Reviews Section
-                        </label>
+                    <div class="gs-field gs-col-full">
+                      <label class="gs-label" for="gs-slug">Your Vinc URL <span class="gs-req">Required</span></label>
+                      <div class="gs-input-addon" data-slug-shell="true">
+                        <span class="gs-addon-prefix"><t t-esc="base_url_display or 'your-domain.com'"/>/</span>
+                        <input class="gs-input" type="text" id="gs-slug" name="website_slug"
+                               required="required" placeholder="jane-doe" autocomplete="off"/>
+                        <span class="gs-addon-suffix">
+                          <span class="gs-slug-status" data-slug-status="true" aria-live="polite"/>
+                        </span>
                       </div>
-                      <p class="text-muted small ms-4">
-                        Display the reviews section on your vCard website
-                      </p>
+                      <p class="gs-hint">Letters, numbers and hyphens only. We'll auto-fill from your name if you leave this blank.</p>
+                      <p class="gs-err">Please enter a valid URL slug.</p>
+                    </div>
+                    <div class="gs-field gs-col-full">
+                      <label class="gs-label">Brand Colour <span class="gs-req">Required</span></label>
+                      <div class="gs-swatches" data-swatch-grid="true">
+                        <button type="button" class="gs-swatch" data-color="#2D5BFF" style="--gs-swatch-color: #2D5BFF;" aria-label="Vinc blue"/>
+                        <button type="button" class="gs-swatch" data-color="#0B162E" style="--gs-swatch-color: #0B162E;" aria-label="Midnight"/>
+                        <button type="button" class="gs-swatch" data-color="#047857" style="--gs-swatch-color: #047857;" aria-label="Forest"/>
+                        <button type="button" class="gs-swatch" data-color="#B45309" style="--gs-swatch-color: #B45309;" aria-label="Amber"/>
+                        <button type="button" class="gs-swatch" data-color="#9333EA" style="--gs-swatch-color: #9333EA;" aria-label="Violet"/>
+                        <button type="button" class="gs-swatch" data-color="#DC2626" style="--gs-swatch-color: #DC2626;" aria-label="Crimson"/>
+                        <button type="button" class="gs-swatch" data-custom="true" aria-label="Custom colour">
+                          <span class="gs-swatch-icon" aria-hidden="true"/>
+                          <span class="gs-swatch-custom-display"/>
+                        </button>
+                      </div>
+                      <input class="gs-native-color" type="color" id="secondary_color" name="secondary_color" required="required" value="#2D5BFF"/>
+                      <p class="gs-hint">Accent colour used for buttons, borders, and highlights on your card.</p>
+                      <p class="gs-err">Please pick a brand colour.</p>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <!-- Step 7: QR Code & Final Touches -->
-              <div class="form-section" data-step="7">
-                <div class="card mb-4">
-                  <div class="card-header" style="background: #4C75A3; color: white;">
-                    <h4 class="mb-0"><i class="fa fa-qrcode me-2"></i>Step 7: QR Code &amp; Final Touches</h4>
-                    <small style="color: rgba(255,255,255,0.7);">Customize your QR code and finalize your vCard</small>
-                  </div>
-                  <div class="card-body">
-                    <div class="row">
-                      <div class="form-group col-md-6 mb-3">
-                        <label class="form-label fw-bold">QR Code Logo</label>
-                        <input type="file" name="qr_logo" id="qr_logo_input" class="form-control" accept="image/*"/>
-                        <small class="form-text text-muted">Add your logo to the center of your QR code (optional)</small>
-                      </div>
-                      <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">QR Code Preview</label>
-                        <div id="qr_code_preview_container" style="border: 2px dashed #dee2e6; border-radius: 8px; padding: 20px; text-align: center; min-height: 200px; background: #f8f9fa; position: relative; display: flex; align-items: center; justify-content: center;">
-                          <div id="qr_code_preview_placeholder" style="color: #6c757d; position: relative;">
-                            <!-- Static dummy QR code image -->
-                            <img id="qr_code_dummy" src="/qr_code_odoo/static/description/Vinc.png" alt="QR Code Preview" style="display: block; margin: 0 auto; max-width: 200px; max-height: 200px; width: auto; height: auto; position: relative;"/>
-                            <!-- Logo overlay (positioned absolutely over the QR code) -->
-                            <div id="qr_logo_overlay_container" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 50px; height: 50px; display: none; align-items: center; justify-content: center; z-index: 10;">
-                              <img id="qr_logo_image" src="" alt="Logo" style="max-width: 100%; max-height: 100%; width: auto; height: auto; display: none;"/>
-                            </div>
-                            <p class="mb-0" style="font-size: 12px; margin-top: 10px; color: #6c7280;">
-                              <i class="fa fa-info-circle"></i> This is a sample QR code preview
-                            </p>
-                          </div>
-                        </div>
-                        <small class="form-text text-muted">Preview of how your QR code will look with your logo</small>
-                      </div>
-                    </div>
-                  </div>
-              </div>
-          </div>
-          
-              <!-- Step 8: Choose Template -->
-              <div class="form-section" data-step="8">
-                <div class="card mb-4">
-                  <div class="card-header" style="background: #4C75A3; color: white;">
-                    <h4 class="mb-0"><i class="fa fa-palette me-2"></i>Step 8: Choose Your Template</h4>
-                    <small class="text-muted">Select a design template for your vCard</small>
-                  </div>
-                  <div class="card-body">
-                    <t t-set="default_template" t-value="'modern'"/>
-                    <input type="hidden" name="website_template" id="selected_template" t-att-value="default_template"/>
-                    <div class="row" id="template-selection">
-                      <!-- Classic template - Scale only -->
-                      <div class="col-md-6 mb-3">
-                        
-                        <div class="template-option card h-100" data-template="classic">
-                          <div class="card-body text-center">
-                            <h5 class="card-title">Classic</h5>
-                            <p class="card-text small text-muted">Traditional gradient card layout with centered profile picture</p>
-                            <div class="template-preview" style="height: 150px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; position: relative; margin-top: 10px;">
-                              <div style="position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; background: white; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.2);"></div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <!-- Modern template - All plans -->
-                      <div class="col-md-6 mb-3">
-                        <div class="template-option card h-100" data-template="modern">
-                          <div class="card-body text-center">
-                            <h5 class="card-title">Modern</h5>
-                            <p class="card-text small text-muted">Side-by-side layout with inline action buttons</p>
-                            <div class="template-preview" style="height: 150px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 8px; position: relative; margin-top: 10px; display: flex; align-items: center; padding: 20px;">
-                              <div style="width: 50px; height: 50px; background: white; border-radius: 50%; margin-right: 15px;"></div>
-                              <div style="flex: 1; background: rgba(255,255,255,0.3); height: 40px; border-radius: 4px;"></div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <!-- Corporate template - Scale only -->
-                      <div class="col-md-6 mb-3">
-                        
-                        <div class="template-option card h-100" data-template="corporate">
-                          <div class="card-body text-center">
-                            <h5 class="card-title">Corporate</h5>
-                            <p class="card-text small text-muted">Professional banner header with structured sections</p>
-                            <div class="template-preview" style="height: 150px; background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); border-radius: 8px; position: relative; margin-top: 10px;">
-                              <div style="position: absolute; top: 0; left: 0; right: 0; height: 40px; background: rgba(255,255,255,0.1); border-radius: 8px 8px 0 0;"></div>
-                              <div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 50px; height: 50px; background: white; border-radius: 50%;"></div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <!-- Minimal template - Grow and Scale -->
-                      <div class="col-md-6 mb-3">
-                        
-                        <div class="template-option card h-100" data-template="minimal">
-                          <div class="card-body text-center">
-                            <h5 class="card-title">Minimal</h5>
-                            <p class="card-text small text-muted">Tabbed navigation with maximum white space</p>
-                            <div class="template-preview" style="height: 150px; background: #fafafa; border-radius: 8px; position: relative; margin-top: 10px; border: 1px solid #e0e0e0;">
-                              <div style="position: absolute; top: 10px; left: 10px; right: 10px; height: 30px; background: #e0e0e0; border-radius: 4px;"></div>
-                              <div style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 50px; height: 50px; background: #d0d0d0; border-radius: 50%;"></div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <!-- Creative template - Grow and Scale -->
-                      <div class="col-md-6 mb-3">
-                        
-                        <div class="template-option card h-100" data-template="creative">
-                          <div class="card-body text-center">
-                            <h5 class="card-title">Creative</h5>
-                            <p class="card-text small text-muted">Floating background elements with vibrant colors</p>
-                            <div class="template-preview" style="height: 150px; background: linear-gradient(45deg, #FF6B6B, #4ECDC4, #45B7D1); border-radius: 8px; position: relative; margin-top: 10px; overflow: hidden;">
-                              <div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; background: white; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.3);"></div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                <div class="gs-actions">
+                  <button type="button" class="gs-btn gs-btn-ghost" data-action="back">
+                    <span aria-hidden="true">←</span>
+                    <span class="gs-btn-label">Back</span>
+                  </button>
+                  <button type="button" class="gs-btn gs-btn-primary" data-action="next">
+                    <span class="gs-btn-label">Next · Find you</span>
+                    <span aria-hidden="true">→</span>
+                  </button>
                 </div>
-              </div>
+              </section>
+
+              <!-- =============================================== -->
+              <!-- Chapter 3 · Find you                           -->
+              <!-- =============================================== -->
+              <section class="gs-chapter" data-chapter="3" data-active="false">
+                <header class="gs-chapter-head">
+                  <div class="gs-chapter-eyebrow">Chapter 03 · Find you</div>
+                  <h2 class="gs-chapter-title">Everywhere <em>else</em> people reach you.</h2>
+                  <p class="gs-chapter-intro">Address, social profiles, and the websites and videos worth showcasing.</p>
+                </header>
+                <div class="gs-chapter-body">
+
+                  <!-- Address -->
+                  <div class="gs-subhead">
+                    <h3 class="gs-subhead-title">Address</h3>
+                    <p class="gs-subhead-note">Optional — leave blank if you'd rather not share a physical location.</p>
+                  </div>
+                  <div class="gs-grid">
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-street">Street Address</label>
+                      <input class="gs-input" type="text" id="gs-street" name="street" placeholder="123 Main Street"/>
+                    </div>
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-street2">Address Line 2</label>
+                      <input class="gs-input" type="text" id="gs-street2" name="street2" placeholder="Suite 100"/>
+                    </div>
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-city">City</label>
+                      <input class="gs-input" type="text" id="gs-city" name="city" placeholder="San Francisco"/>
+                    </div>
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-zip">ZIP / Postal Code</label>
+                      <input class="gs-input" type="text" id="gs-zip" name="zip" placeholder="94103"/>
+                    </div>
+                    <div class="gs-field">
+                      <label class="gs-label" for="vcard_country">Country</label>
+                      <select class="gs-select" id="vcard_country" name="country_id">
+                        <option value="">Select a country</option>
+                        <t t-foreach="countries" t-as="country">
+                          <option t-att-value="country.id"><t t-esc="country.name"/></option>
+                        </t>
+                      </select>
+                    </div>
+                    <div class="gs-field" id="state_group" hidden="hidden">
+                      <label class="gs-label" for="vcard_state">State / Province</label>
+                      <select class="gs-select" id="vcard_state" name="state_id">
+                        <option value="">Select a state</option>
+                        <t t-foreach="states" t-as="state">
+                          <option t-att-value="state.id" t-att-data-country-id="state.country_id.id">
+                            <t t-esc="state.name"/>
+                          </option>
+                        </t>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Social links -->
+                  <div class="gs-subhead">
+                    <h3 class="gs-subhead-title">Personal profiles</h3>
+                    <p class="gs-subhead-note">Your own social channels.</p>
+                  </div>
+                  <div class="gs-grid">
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-linkedin">LinkedIn</label>
+                      <input class="gs-input" type="url" id="gs-linkedin" name="linkedin_url" placeholder="https://www.linkedin.com/in/username"/>
+                    </div>
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-twitter">Twitter / X</label>
+                      <input class="gs-input" type="url" id="gs-twitter" name="twitter_url" placeholder="https://twitter.com/username"/>
+                    </div>
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-instagram">Instagram</label>
+                      <input class="gs-input" type="url" id="gs-instagram" name="instagram_url" placeholder="https://www.instagram.com/username"/>
+                    </div>
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-facebook">Facebook</label>
+                      <input class="gs-input" type="url" id="gs-facebook" name="facebook_url" placeholder="https://www.facebook.com/username"/>
+                    </div>
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-youtube">YouTube</label>
+                      <input class="gs-input" type="url" id="gs-youtube" name="youtube_url" placeholder="https://www.youtube.com/@username"/>
+                    </div>
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-whatsapp">WhatsApp</label>
+                      <input class="gs-input" type="url" id="gs-whatsapp" name="whatsapp_url" placeholder="https://wa.me/1234567890"/>
+                    </div>
+                  </div>
+
+                  <div class="gs-subhead">
+                    <h3 class="gs-subhead-title">Company profiles</h3>
+                    <p class="gs-subhead-note">Channels that belong to your company, not you personally.</p>
+                  </div>
+                  <div class="gs-grid">
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-linkedin-company">Company LinkedIn</label>
+                      <input class="gs-input" type="url" id="gs-linkedin-company" name="linkedin_url_company" placeholder="https://www.linkedin.com/company/companyname"/>
+                    </div>
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-twitter-company">Company Twitter / X</label>
+                      <input class="gs-input" type="url" id="gs-twitter-company" name="twitter_url_company" placeholder="https://twitter.com/companyname"/>
+                    </div>
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-instagram-company">Company Instagram</label>
+                      <input class="gs-input" type="url" id="gs-instagram-company" name="instagram_url_company" placeholder="https://www.instagram.com/companyname"/>
+                    </div>
+                    <div class="gs-field">
+                      <label class="gs-label" for="gs-facebook-company">Company Facebook</label>
+                      <input class="gs-input" type="url" id="gs-facebook-company" name="facebook_url_company" placeholder="https://www.facebook.com/companyname"/>
+                    </div>
+                  </div>
+
+                  <!-- Websites -->
+                  <div class="gs-subhead">
+                    <h3 class="gs-subhead-title">External websites</h3>
+                    <p class="gs-subhead-note">Portfolio, blog, store — anything worth featuring.</p>
+                  </div>
+                  <div id="websites-container">
+                    <div class="gs-item" data-item="website">
+                      <div class="gs-field">
+                        <label class="gs-label">Website URL</label>
+                        <input class="gs-input" type="url" name="website_url[]" placeholder="https://example.com"/>
+                      </div>
+                      <div class="gs-field">
+                        <label class="gs-label">Label</label>
+                        <input class="gs-input" type="text" name="website_name[]" placeholder="My Portfolio"/>
+                      </div>
+                      <div class="gs-field" style="flex-direction: row; align-items: end; gap: 8px;">
+                        <input class="gs-item-mini-color" type="color" name="website_color[]" value="#2D5BFF" data-default-color="#2D5BFF"/>
+                        <button type="button" class="gs-item-remove" data-action="remove-item" hidden="hidden" aria-label="Remove website">×</button>
+                      </div>
+                    </div>
+                  </div>
+                  <button type="button" class="gs-add-item" id="add-website">Add another website</button>
+
+                  <!-- Videos -->
+                  <div class="gs-subhead">
+                    <h3 class="gs-subhead-title">Videos</h3>
+                    <p class="gs-subhead-note">YouTube, Vimeo, Loom — embed anything that introduces your work.</p>
+                  </div>
+                  <div id="videos-container">
+                    <div class="gs-item" data-item="video">
+                      <div class="gs-field">
+                        <label class="gs-label">Video URL</label>
+                        <input class="gs-input" type="url" name="video_url[]" placeholder="https://www.youtube.com/watch?v=..."/>
+                      </div>
+                      <div class="gs-field">
+                        <label class="gs-label">Title</label>
+                        <input class="gs-input" type="text" name="video_name[]" placeholder="My Introduction Video"/>
+                      </div>
+                      <div class="gs-field" style="flex-direction: row; align-items: end; gap: 8px;">
+                        <button type="button" class="gs-item-remove" data-action="remove-item" hidden="hidden" aria-label="Remove video">×</button>
+                      </div>
+                    </div>
+                  </div>
+                  <button type="button" class="gs-add-item" id="add-video">Add another video</button>
+
+                </div>
+                <div class="gs-actions">
+                  <button type="button" class="gs-btn gs-btn-ghost" data-action="back">
+                    <span aria-hidden="true">←</span>
+                    <span class="gs-btn-label">Back</span>
+                  </button>
+                  <button type="button" class="gs-btn gs-btn-primary" data-action="next">
+                    <span class="gs-btn-label">Next · Lead capture</span>
+                    <span aria-hidden="true">→</span>
+                  </button>
+                </div>
+              </section>
+
+              <!-- =============================================== -->
+              <!-- Chapter 4 · Lead capture                       -->
+              <!-- =============================================== -->
+              <section class="gs-chapter" data-chapter="4" data-active="false">
+                <header class="gs-chapter-head">
+                  <div class="gs-chapter-eyebrow">Chapter 04 · Lead capture</div>
+                  <h2 class="gs-chapter-title">Turn taps into <em>conversations</em>.</h2>
+                  <p class="gs-chapter-intro">Choose what happens when someone wants to reach back. Everything's optional.</p>
+                </header>
+                <div class="gs-chapter-body">
+
+                  <!-- Lead form -->
+                  <div class="gs-toggle-row">
+                    <div class="gs-toggle-info">
+                      <span class="gs-toggle-label">Lead Collection Form</span>
+                      <span class="gs-toggle-desc">Let visitors submit their contact details from your card.</span>
+                    </div>
+                    <button type="button" class="gs-toggle" role="switch" aria-checked="false"
+                            data-toggle-target="show_form" aria-labelledby=""/>
+                    <input type="checkbox" name="show_form" value="yes" id="show_form_yes" class="gs-sr-only" data-linked-toggle="true"/>
+                  </div>
+                  <div class="gs-reveal" id="lead_extra_fields">
+                    <div class="gs-grid">
+                      <div class="gs-field">
+                        <label class="gs-label" for="gs-lead-btn">Lead Button Label</label>
+                        <input class="gs-input" type="text" id="gs-lead-btn" name="lead_button_label" placeholder="Get in touch"/>
+                        <p class="gs-hint">Text on the button that opens the lead form.</p>
+                      </div>
+                      <div class="gs-field">
+                        <label class="gs-label" for="gs-thanks">Thank You Message</label>
+                        <input class="gs-input" type="text" id="gs-thanks" name="form_thank_you_message" placeholder="Thanks! I'll be in touch soon."/>
+                        <p class="gs-hint">Shown after a visitor submits the form.</p>
+                      </div>
+                      <div class="gs-field gs-col-full">
+                        <label class="gs-label" for="gs-list">Mailing List Name <span class="gs-req">Required</span></label>
+                        <input class="gs-input" type="text" id="gs-list" name="mailing_list_name" data-required-when-enabled="1" placeholder="e.g. Main Contacts"/>
+                        <p class="gs-hint">We'll use this list to auto-add leads captured from your card. You can manage more lists later.</p>
+                        <p class="gs-err">Please name the mailing list.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Notify -->
+                  <div class="gs-toggle-row">
+                    <div class="gs-toggle-info">
+                      <span class="gs-toggle-label">Notify on new lead</span>
+                      <span class="gs-toggle-desc">Send you an email when a lead is submitted.</span>
+                    </div>
+                    <button type="button" class="gs-toggle" role="switch" aria-checked="false" data-toggle-target="notify_on_new_lead"/>
+                    <input type="checkbox" name="notify_on_new_lead" value="yes" id="notify_on_new_lead_yes" class="gs-sr-only" data-linked-toggle="true"/>
+                  </div>
+
+                  <!-- Intro email -->
+                  <div class="gs-toggle-row">
+                    <div class="gs-toggle-info">
+                      <span class="gs-toggle-label">Send intro email automatically</span>
+                      <span class="gs-toggle-desc">A warm introduction goes out to every new lead.</span>
+                    </div>
+                    <button type="button" class="gs-toggle" role="switch" aria-checked="false" data-toggle-target="intro_email_enabled"/>
+                    <input type="checkbox" name="intro_email_enabled" value="yes" id="intro_email_enabled_yes" class="gs-sr-only" data-linked-toggle="true"/>
+                  </div>
+
+                  <!-- Instant leadback -->
+                  <div class="gs-toggle-row">
+                    <div class="gs-toggle-info">
+                      <span class="gs-toggle-label">Instant lead back</span>
+                      <span class="gs-toggle-desc">Instantly send new leads an email and click-to-chat links.</span>
+                    </div>
+                    <button type="button" class="gs-toggle" role="switch" aria-checked="false" data-toggle-target="enable_instant_leadback"/>
+                    <input type="checkbox" name="enable_instant_leadback" value="yes" id="enable_instant_leadback_yes" class="gs-sr-only" data-linked-toggle="true"/>
+                  </div>
+                  <div class="gs-reveal" data-reveal-for="enable_instant_leadback">
+                    <div class="gs-toggle-row">
+                      <div class="gs-toggle-info">
+                        <span class="gs-toggle-label">Automated email</span>
+                        <span class="gs-toggle-desc">Deliver the leadback email via your email marketing system.</span>
+                      </div>
+                      <button type="button" class="gs-toggle" role="switch" aria-checked="false" data-toggle-target="leadback_send_email"/>
+                      <input type="checkbox" name="leadback_send_email" value="yes" id="leadback_send_email_yes" class="gs-sr-only" data-linked-toggle="true"/>
+                    </div>
+                    <div class="gs-toggle-row">
+                      <div class="gs-toggle-info">
+                        <span class="gs-toggle-label">Click-to-chat</span>
+                        <span class="gs-toggle-desc">Generate direct messaging links (WhatsApp, Viber, Telegram).</span>
+                      </div>
+                      <button type="button" class="gs-toggle" role="switch" aria-checked="false" data-toggle-target="leadback_enable_messaging"/>
+                      <input type="checkbox" name="leadback_enable_messaging" value="yes" id="leadback_enable_messaging_yes" class="gs-sr-only" data-linked-toggle="true"/>
+                    </div>
+                    <div class="gs-reveal" data-reveal-for="leadback_enable_messaging">
+                      <label class="gs-label">Messaging channels <span class="gs-req">Required</span></label>
+                      <div class="gs-check-row" data-check-group="leadback_channels">
+                        <label class="gs-check" data-checked="true">
+                          <input type="checkbox" name="leadback_channels[]" value="whatsapp" checked="checked"/>
+                          WhatsApp
+                        </label>
+                        <label class="gs-check">
+                          <input type="checkbox" name="leadback_channels[]" value="viber"/>
+                          Viber
+                        </label>
+                        <label class="gs-check">
+                          <input type="checkbox" name="leadback_channels[]" value="telegram"/>
+                          Telegram
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Reviews -->
+                  <div class="gs-toggle-row">
+                    <div class="gs-toggle-info">
+                      <span class="gs-toggle-label">Show reviews section</span>
+                      <span class="gs-toggle-desc">Display a reviews section on your card.</span>
+                    </div>
+                    <button type="button" class="gs-toggle" role="switch" aria-checked="false" data-toggle-target="show_reviews"/>
+                    <input type="checkbox" name="show_reviews" value="yes" id="show_reviews_yes" class="gs-sr-only" data-linked-toggle="true"/>
+                  </div>
+
+                </div>
+                <div class="gs-actions">
+                  <button type="button" class="gs-btn gs-btn-ghost" data-action="back">
+                    <span aria-hidden="true">←</span>
+                    <span class="gs-btn-label">Back</span>
+                  </button>
+                  <button type="button" class="gs-btn gs-btn-primary" data-action="next">
+                    <span class="gs-btn-label">Next · Design &amp; share</span>
+                    <span aria-hidden="true">→</span>
+                  </button>
+                </div>
+              </section>
+
+              <!-- =============================================== -->
+              <!-- Chapter 5 · Design & share                     -->
+              <!-- =============================================== -->
+              <section class="gs-chapter" data-chapter="5" data-active="false">
+                <header class="gs-chapter-head">
+                  <div class="gs-chapter-eyebrow">Chapter 05 · Design &amp; share</div>
+                  <h2 class="gs-chapter-title">Choose the <em>frame</em>.</h2>
+                  <p class="gs-chapter-intro">Pick a template — you can change it later — and we'll generate your QR code on publish.</p>
+                </header>
+                <div class="gs-chapter-body">
+
+                  <div class="gs-templates" id="template-selection">
+                    <button type="button" class="gs-template" data-template="classic">
+                      <div class="gs-template-preview" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <div style="position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%); width: 48px; height: 48px; background: white; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.25);"/>
+                      </div>
+                      <h4 class="gs-template-name">Classic</h4>
+                      <p class="gs-template-desc">Centred portrait over a gradient panel. A calm, timeless layout.</p>
+                    </button>
+                    <button type="button" class="gs-template" data-template="modern">
+                      <div class="gs-template-preview" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); display: flex; align-items: center; padding: 18px;">
+                        <div style="width: 46px; height: 46px; background: white; border-radius: 50%; margin-right: 12px;"/>
+                        <div style="flex: 1; background: rgba(255,255,255,0.4); height: 36px; border-radius: 6px;"/>
+                      </div>
+                      <h4 class="gs-template-name">Modern</h4>
+                      <p class="gs-template-desc">Portrait beside action buttons. Compact and direct.</p>
+                    </button>
+                    <button type="button" class="gs-template" data-template="corporate">
+                      <div class="gs-template-preview" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);">
+                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 36px; background: rgba(255,255,255,0.08);"/>
+                        <div style="position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); width: 46px; height: 46px; background: white; border-radius: 50%;"/>
+                      </div>
+                      <h4 class="gs-template-name">Corporate</h4>
+                      <p class="gs-template-desc">Banner header, structured sections. The boardroom option.</p>
+                    </button>
+                    <button type="button" class="gs-template" data-template="minimal">
+                      <div class="gs-template-preview" style="background: #fafafa; border: 1px solid #e5e5e5;">
+                        <div style="position: absolute; top: 10px; left: 10px; right: 10px; height: 26px; background: #e5e5e5; border-radius: 4px;"/>
+                        <div style="position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); width: 46px; height: 46px; background: #d4d4d4; border-radius: 50%;"/>
+                      </div>
+                      <h4 class="gs-template-name">Minimal</h4>
+                      <p class="gs-template-desc">Tabbed navigation, maximum negative space. Let content breathe.</p>
+                    </button>
+                    <button type="button" class="gs-template" data-template="creative">
+                      <div class="gs-template-preview" style="background: linear-gradient(45deg, #FF6B6B, #4ECDC4, #45B7D1); overflow: hidden;">
+                        <div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 52px; height: 52px; background: white; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.3);"/>
+                      </div>
+                      <h4 class="gs-template-name">Creative</h4>
+                      <p class="gs-template-desc">Vibrant colour washes, floating elements. Stand out on purpose.</p>
+                    </button>
+                  </div>
+
+                  <!-- QR -->
+                  <div class="gs-subhead" style="margin-top: 32px;">
+                    <h3 class="gs-subhead-title">Your QR code</h3>
+                    <p class="gs-subhead-note">Real QR generated after you publish — this is a preview.</p>
+                  </div>
+                  <div class="gs-qr-panel">
+                    <div class="gs-field">
+                      <label class="gs-label">QR Code Logo</label>
+                      <label class="gs-drop" data-drop="qr" data-state="empty">
+                        <span class="gs-drop-icon" aria-hidden="true"/>
+                        <span class="gs-drop-label">Drop a logo, or click to browse</span>
+                        <span class="gs-drop-hint">Optional · sits in the centre of the QR</span>
+                        <span class="gs-drop-thumb"/>
+                        <span class="gs-drop-meta">
+                          <span class="gs-drop-filename"/>
+                          <span class="gs-drop-change">Change logo</span>
+                        </span>
+                        <input type="file" id="qr_logo_input" name="qr_logo" accept="image/*"/>
+                      </label>
+                    </div>
+                    <div class="gs-qr-frame">
+                      <div class="gs-qr-stack">
+                        <img class="gs-qr-sample" id="qr_code_dummy" src="/qr_code_odoo/static/description/Vinc.png" alt="Sample QR code preview"/>
+                        <div class="gs-qr-logo-overlay" id="qr_logo_overlay_container">
+                          <img id="qr_logo_image" src="" alt=""/>
+                        </div>
+                      </div>
+                      <p class="gs-qr-note">Sample QR — your real one generates on publish.</p>
+                    </div>
+                  </div>
+
+                </div>
+                <div class="gs-actions">
+                  <button type="button" class="gs-btn gs-btn-ghost" data-action="back">
+                    <span aria-hidden="true">←</span>
+                    <span class="gs-btn-label">Back</span>
+                  </button>
+                  <button type="submit" class="gs-btn gs-btn-primary" data-action="submit" id="gs-submit">
+                    <span class="gs-btn-label">Create my Vinc card</span>
+                    <span aria-hidden="true">→</span>
+                  </button>
+                </div>
+              </section>
 
             </form>
           </div>
-          
-          <!-- Phone Preview Column (Right Side) -->
-          <div class="col-lg-4 d-none d-lg-block" id="preview-column" style="position: sticky; top: 20px; height: fit-content;">
-            <div class="phone-preview-container" style="position: relative; max-width: 320px; margin: 0 auto;">
-              <!-- Phone Frame -->
-              <div class="phone-frame" style="background: #1a1a1a; border-radius: 40px; padding: 20px 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
-                <!-- Phone Screen -->
-                <div class="phone-screen" style="background: white; border-radius: 30px; overflow: hidden; height: 600px; position: relative;">
-                  <!-- Status Bar -->
-                  <div style="background: #1a1a1a; color: white; padding: 8px 15px; font-size: 11px; display: flex; justify-content: space-between; align-items: center;">
-                    <span>9:41</span>
-                    <div style="display: flex; gap: 4px;">
-                      <span style="width: 18px; height: 10px; border: 1px solid white; border-radius: 2px;"></span>
-                      <span style="width: 4px; height: 4px; background: white; border-radius: 50%;"></span>
-                    </div>
+
+          <!-- ============ Preview rail (desktop) ============ -->
+          <aside class="gs-rail" aria-label="Live card preview">
+            <div class="gs-preview-rail">
+              <span class="gs-preview-eyebrow">Live preview.</span>
+              <div class="gs-phone">
+                <span class="gs-phone-notch"/>
+                <div class="gs-phone-screen">
+                  <iframe id="vcard-preview-iframe" src="about:blank" frameborder="0" scrolling="yes" title="Card preview"/>
+                  <div class="gs-phone-loading" data-shown="true" id="preview-loading">
+                    <span class="gs-phone-loading-spinner"/>
+                    <span>Building preview…</span>
                   </div>
-                  <!-- Preview Content -->
-                  <div id="template-preview-content" style="height: calc(100% - 40px); overflow-y: auto; overflow-x: hidden; background: white; position: relative;">
-                    <!-- Preview iframe -->
-                    <iframe id="vcard-preview-iframe" 
-                            src="about:blank"
-                            style="width: 125%; height: 2000px; min-height: 2000px; border: none; transform: scale(0.8); transform-origin: top left; display: block;"
-                            frameborder="0"
-                            scrolling="yes">
-                    </iframe>
-                    <!-- Loading indicator -->
-                    <div id="preview-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #999; z-index: 10;">
-                      <i class="fa fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i>
-                      <p style="font-size: 12px; margin: 0;">Loading preview...</p>
-                    </div>
-                  </div>
+                </div>
+              </div>
+              <span class="gs-preview-url" data-preview-url="true"><t t-esc="base_url_display or 'your-domain.com'"/>/<span data-slug-echo="true">your-slug</span></span>
+            </div>
+          </aside>
+        </div>
+
+        <!-- ============ Mobile preview pill + sheet ============ -->
+        <button type="button" class="gs-preview-pill" id="gs-preview-pill-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="7" y="2" width="10" height="20" rx="2"/>
+            <line x1="12" y1="18" x2="12" y2="18"/>
+          </svg>
+          Preview
+        </button>
+        <div class="gs-preview-sheet" id="gs-preview-sheet" data-open="false" aria-hidden="true">
+          <div class="gs-preview-sheet-inner" role="dialog" aria-modal="true" aria-label="Card preview">
+            <div class="gs-preview-sheet-head">
+              <span>Live preview.</span>
+              <button type="button" class="gs-preview-sheet-close" data-action="close-sheet" aria-label="Close preview">×</button>
+            </div>
+            <div class="gs-preview-sheet-body">
+              <div class="gs-phone">
+                <span class="gs-phone-notch"/>
+                <div class="gs-phone-screen">
+                  <iframe id="vcard-preview-iframe-mobile" src="about:blank" frameborder="0" scrolling="yes" title="Card preview"/>
                 </div>
               </div>
             </div>
           </div>
-            </div>
-          </div>
+        </div>
 
-      <style>
-        .form-section {
-          display: none;
-        }
-        .form-section.active {
-          display: block;
-        }
-        .form-section.completed {
-          opacity: 0.7;
-        }
-        .form-section.completed .card-header {
-          background-color: #28a745 !important;
-        }
-        .form-section.completed .card-header::after {
-          content: " ✓";
-          font-weight: bold;
-        }
-        .form-control:focus {
-          border-color: #007bff;
-          box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-        }
-        .card {
-          box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-          border: 1px solid rgba(0, 0, 0, 0.125);
-        }
-        .card-header {
-          border-bottom: 1px solid rgba(0, 0, 0, 0.125);
-        }
-        .progress {
-          border-radius: 10px;
-        }
-        .progress-bar {
-          transition: width 0.3s ease;
-        }
-        .btn-lg {
-          padding: 0.75rem 2rem;
-          font-size: 1.1rem;
-        }
-        .form-control.is-invalid {
-          border-color: #dc3545;
-        }
-        .form-control.is-valid {
-          border-color: #28a745;
-        }
-        .btn {
-          transition: all 0.3s ease;
-        }
-        .btn:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        /* Toast notification styles */
-        .limit-notification {
-          position: fixed;
-          top: 20px;
-          right: 20px;
-          background: #fff3cd;
-          border: 1px solid #ffc107;
-          border-radius: 8px;
-          padding: 16px 20px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-          z-index: 10000;
-          max-width: 400px;
-          display: none;
-          animation: slideInRight 0.3s ease-out;
-        }
-        .limit-notification.show {
-          display: block;
-        }
-        .limit-notification .notification-content {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-        }
-        .limit-notification .notification-icon {
-          color: #856404;
-          font-size: 20px;
-          flex-shrink: 0;
-          margin-top: 2px;
-        }
-        .limit-notification .notification-text {
-          flex: 1;
-        }
-        .limit-notification .notification-title {
-          font-weight: 600;
-          color: #856404;
-          margin-bottom: 4px;
-          font-size: 14px;
-        }
-        .limit-notification .notification-message {
-          color: #856404;
-          font-size: 13px;
-          line-height: 1.4;
-        }
-        .limit-notification .notification-close {
-          background: none;
-          border: none;
-          color: #856404;
-          font-size: 18px;
-          cursor: pointer;
-          padding: 0;
-          margin-left: 8px;
-          line-height: 1;
-          opacity: 0.7;
-        }
-        .limit-notification .notification-close:hover {
-          opacity: 1;
-        }
-        @keyframes slideInRight {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-      </style>
-
-          <script type="text/javascript">
-            // Get plan limits from template (set before CDATA)
-            const maxWebsites = <t t-esc="max_websites or 2"/>;
-            const maxVideos = <t t-esc="max_videos or 1"/>;
-          </script>
-          <script type="text/javascript"><![CDATA[
-            // Function to show limit notification
-            function showLimitNotification(message) {
-              // Remove existing notification if any
-              const existing = document.getElementById('limit-notification');
-              if (existing) {
-                existing.remove();
-              }
-              
-              // Create notification element
-              const notification = document.createElement('div');
-              notification.id = 'limit-notification';
-              notification.className = 'limit-notification';
-              notification.innerHTML = 
-                '<div class="notification-content">' +
-                  '<i class="fa fa-exclamation-triangle notification-icon"></i>' +
-                  '<div class="notification-text">' +
-                    '<div class="notification-title">Plan Limit Reached</div>' +
-                    '<div class="notification-message">' + message + '</div>' +
-                  '</div>' +
-                  '<button type="button" class="notification-close" onclick="this.parentElement.parentElement.remove()">&times;</button>' +
-                '</div>';
-              
-              document.body.appendChild(notification);
-              
-              // Show with animation
-              setTimeout(function() {
-                notification.classList.add('show');
-              }, 10);
-              
-              // Auto-hide after 5 seconds
-              setTimeout(function() {
-                notification.classList.remove('show');
-                setTimeout(function() {
-                  if (notification.parentElement) {
-                    notification.remove();
-                  }
-                }, 300);
-              }, 5000);
-            }
-            
-            document.addEventListener("DOMContentLoaded", function () {
-          // Form state management
-          let currentStep = 1;
-          const totalSteps = 8;
-          const form = document.getElementById('vcard-form');
-          const progressBar = document.getElementById('form-progress');
-          const submitBtn = document.getElementById('submit-btn');
-          
-          // Initialize form
-          loadFormData(); // Load any saved data first
-          showStep(1);
-          updateProgress();
-          
-          // Clear saved data on successful form submission
-          form.addEventListener('submit', function() {
-            clearFormData();
-          });
-          
-          // Color input handlers
-              const primaryColorInput = document.getElementById('primary_color');
-              const secondaryColorInput = document.getElementById('secondary_color');
-              
-              if (primaryColorInput) {
-                primaryColorInput.addEventListener('input', function() {
-                  const selectedTemplate = document.getElementById('selected_template') ? document.getElementById('selected_template').value || 'modern' : 'modern';
-                  if (typeof updateTemplatePreview === 'function') {
-                    updateTemplatePreview(selectedTemplate);
-                  }
-                });
-                primaryColorInput.addEventListener('change', function() {
-                  const selectedTemplate = document.getElementById('selected_template') ? document.getElementById('selected_template').value || 'modern' : 'modern';
-                  if (typeof updateTemplatePreview === 'function') {
-                    updateTemplatePreview(selectedTemplate);
-                  }
-                });
-              }
-              
-              if (secondaryColorInput) {
-                secondaryColorInput.addEventListener('input', function() {
-                  const selectedTemplate = document.getElementById('selected_template') ? document.getElementById('selected_template').value || 'modern' : 'modern';
-                  if (typeof updateTemplatePreview === 'function') {
-                    updateTemplatePreview(selectedTemplate);
-                  }
-                });
-                secondaryColorInput.addEventListener('change', function() {
-                  const selectedTemplate = document.getElementById('selected_template') ? document.getElementById('selected_template').value || 'modern' : 'modern';
-                  if (typeof updateTemplatePreview === 'function') {
-                    updateTemplatePreview(selectedTemplate);
-                  }
-                });
-              }
-          
-          // Lead form toggle functionality
-              const showFormYes = document.getElementById("show_form_yes");
-              const extraFields = document.getElementById("lead_extra_fields");
-              const mailingListField = document.querySelector('input[name="mailing_list_name"]');
-              
-              const toggleLeadFields = () => {
-                const isEnabled = showFormYes && showFormYes.checked;
-                extraFields.style.display = isEnabled ? "block" : "none";
-                if (mailingListField) {
-                  if (isEnabled) {
-                    mailingListField.setAttribute('required', 'required');
-                  } else {
-                    mailingListField.removeAttribute('required');
-                    mailingListField.classList.remove('is-invalid', 'is-valid');
-                  }
-                }
-              };
-              
-              if (showFormYes) {
-                showFormYes.addEventListener("change", toggleLeadFields);
-              }
-              
-              // Instant leadback toggle
-              const leadbackYes = document.getElementById("enable_instant_leadback_yes");
-              const leadbackEmailContainer = document.getElementById("leadback_email_container");
-              const leadbackMessagingContainer = document.getElementById("leadback_messaging_container");
-              const leadbackEmailYes = document.getElementById("leadback_send_email_yes");
-              const leadbackMessagingYes = document.getElementById("leadback_enable_messaging_yes");
-              const messagingChannelsContainer = document.getElementById("messaging_channels_container");
-              
-              if (leadbackYes) {
-                leadbackYes.addEventListener("change", function() {
-                  const isEnabled = this.checked;
-                  
-                  // Show/hide email and messaging containers
-                  if (leadbackEmailContainer) {
-                    leadbackEmailContainer.style.display = isEnabled ? 'block' : 'none';
-                  }
-                  if (leadbackMessagingContainer) {
-                    leadbackMessagingContainer.style.display = isEnabled ? 'block' : 'none';
-                  }
-                  
-                  // If disabled, uncheck the sub-options
-                  if (!isEnabled) {
-                    if (leadbackEmailYes) leadbackEmailYes.checked = false;
-                    if (leadbackMessagingYes) {
-                      leadbackMessagingYes.checked = false;
-                      if (messagingChannelsContainer) {
-                        messagingChannelsContainer.style.display = 'none';
-                      }
-                    }
-                  }
-                });
-              }
-              
-              // Messaging checkbox toggle
-              if (leadbackMessagingYes) {
-                leadbackMessagingYes.addEventListener("change", function() {
-                  if (messagingChannelsContainer) {
-                    messagingChannelsContainer.style.display = this.checked ? 'block' : 'none';
-                  }
-                });
-              }
-
-              // Websites functionality
-              const websitesContainer = document.getElementById("websites-container");
-              const addWebsiteBtn = document.getElementById("add-website");
-              
-              // Function to get current secondary color
-              const getSecondaryColor = function() {
-                return secondaryColorInput ? secondaryColorInput.value || '#4C75A3' : '#4C75A3';
-              };
-              
-              // Update existing website color inputs when secondary color changes
-              if (secondaryColorInput) {
-                secondaryColorInput.addEventListener('change', function() {
-                  // Update all website color inputs that haven't been manually changed
-                  const websiteColorInputs = document.querySelectorAll('input[name="website_color[]"]');
-                  const newSecondaryColor = this.value;
-                  websiteColorInputs.forEach(function(input) {
-                    // Only update if it's still the default or previous secondary color
-                    const currentValue = input.value.toLowerCase();
-                    const previousSecondary = input.getAttribute('data-default-color') || '#4C75A3';
-                    if (currentValue === previousSecondary.toLowerCase() || currentValue === '#007bff') {
-                      input.value = newSecondaryColor;
-                      input.setAttribute('data-default-color', newSecondaryColor);
-                    }
-                  });
-                });
-              }
-              
-              // Set initial default color on first website input
-              const firstWebsiteColor = document.getElementById('website_color_0');
-              if (firstWebsiteColor) {
-                const secondaryColor = getSecondaryColor();
-                firstWebsiteColor.value = secondaryColor;
-                firstWebsiteColor.setAttribute('data-default-color', secondaryColor);
-              }
-              
-              // Plan limits are set in a separate script tag above
-              // maxWebsites and maxVideos are available in global scope
-              
-              if (addWebsiteBtn && websitesContainer) {
-              addWebsiteBtn.addEventListener("click", function() {
-                  // Get current count of websites (including the initial one)
-                  const currentWebsiteCount = websitesContainer.querySelectorAll('.website-item').length;
-                  
-                  // Check limit (only if maxWebsites is not -1)
-                  if (maxWebsites !== -1 && currentWebsiteCount >= maxWebsites) {
-                      showLimitNotification('You have reached the maximum limit of ' + maxWebsites + ' website links for your plan. Please upgrade your subscription to add more websites.');
-                      return;
-                  }
-                  
-                  const secondaryColor = getSecondaryColor();
-                const websiteItem = document.createElement("div");
-                websiteItem.className = "website-item mb-3 p-3 border rounded";
-                  const websiteIndex = websitesContainer.querySelectorAll('.website-item').length;
-                websiteItem.innerHTML = 
-                  '<div class="row">' +
-                    '<div class="form-group col-md-4">' +
-                      '<label>Website URL</label>' +
-                      '<input type="url" name="website_url[]" class="form-control" placeholder="https://example.com"/>' +
-                    '</div>' +
-                    '<div class="form-group col-md-4">' +
-                      '<label>Website Name/Label</label>' +
-                      '<input type="text" name="website_name[]" class="form-control" placeholder="My Portfolio"/>' +
-                    '</div>' +
-                    '<div class="form-group col-md-3">' +
-                      '<label>Button Color</label>' +
-                        '<input type="color" name="website_color[]" class="form-control form-control-color" id="website_color_' + websiteIndex + '" value="' + secondaryColor + '" data-default-color="' + secondaryColor + '"/>' +
-                        '<small class="form-text text-muted" style="font-size: 0.75rem;">Defaults to Secondary Color</small>' +
-                    '</div>' +
-                    '<div class="form-group col-md-1 d-flex align-items-end">' +
-                      '<button type="button" class="btn btn-danger btn-sm remove-website">' +
-                        '<i class="fa fa-trash"></i>' +
-                      '</button>' +
-                    '</div>' +
-                  '</div>';
-                websitesContainer.appendChild(websiteItem);
-                  if (typeof updateRemoveButtons === 'function') {
-                updateRemoveButtons();
-                  }
-              });
-              }
-
-              // Videos functionality
-              const videosContainer = document.getElementById("videos-container");
-              const addVideoBtn = document.getElementById("add-video");
-              
-              addVideoBtn.addEventListener("click", function() {
-                  // Get current count of videos (including the initial one)
-                  const currentVideoCount = videosContainer.querySelectorAll('.video-item').length;
-                  
-                  // Check limit (only if maxVideos is not -1)
-                  if (maxVideos !== -1 && currentVideoCount >= maxVideos) {
-                      showLimitNotification('You have reached the maximum limit of ' + maxVideos + ' video(s) for your plan. Please upgrade your subscription to add more videos.');
-                      return;
-                  }
-                  
-                const videoItem = document.createElement("div");
-                videoItem.className = "video-item mb-3 p-3 border rounded";
-                videoItem.innerHTML = 
-                  '<div class="row">' +
-                    '<div class="form-group col-md-6">' +
-                      '<label>Video URL</label>' +
-                      '<input type="url" name="video_url[]" class="form-control" placeholder="https://www.youtube.com/watch?v=..."/>' +
-                    '</div>' +
-                    '<div class="form-group col-md-5">' +
-                      '<label>Video Name/Label</label>' +
-                      '<input type="text" name="video_name[]" class="form-control" placeholder="My Introduction Video"/>' +
-                    '</div>' +
-                    '<div class="form-group col-md-1 d-flex align-items-end">' +
-                      '<button type="button" class="btn btn-danger btn-sm remove-video">' +
-                        '<i class="fa fa-trash"></i>' +
-                      '</button>' +
-                    '</div>' +
-                  '</div>';
-                videosContainer.appendChild(videoItem);
-                updateRemoveButtons();
-              });
-
-              // Remove buttons functionality
-              function updateRemoveButtons() {
-                // Update website remove buttons
-                const websiteItems = websitesContainer.querySelectorAll(".website-item");
-                websiteItems.forEach((item, index) => {
-                  const removeBtn = item.querySelector(".remove-website");
-                  if (websiteItems.length > 1) {
-                    removeBtn.style.display = "block";
-                  } else {
-                    removeBtn.style.display = "none";
-                  }
-                });
-
-                // Update video remove buttons
-                const videoItems = videosContainer.querySelectorAll(".video-item");
-                videoItems.forEach((item, index) => {
-                  const removeBtn = item.querySelector(".remove-video");
-                  if (videoItems.length > 1) {
-                    removeBtn.style.display = "block";
-                  } else {
-                    removeBtn.style.display = "none";
-                  }
-                });
-              }
-
-              // Event delegation for remove buttons
-              websitesContainer.addEventListener("click", function(e) {
-                if (e.target.closest(".remove-website")) {
-                  e.target.closest(".website-item").remove();
-                  updateRemoveButtons();
-                }
-              });
-
-              videosContainer.addEventListener("click", function(e) {
-                if (e.target.closest(".remove-video")) {
-                  e.target.closest(".video-item").remove();
-                  updateRemoveButtons();
-                }
-              });
-
-              // Initialize remove buttons
-              updateRemoveButtons();
-              
-              // Step navigation functions
-              function showStep(step) {
-                document.querySelectorAll('.form-section').forEach(section => {
-                  section.classList.remove('active');
-                });
-                document.querySelector('[data-step="' + step + '"]').classList.add('active');
-                currentStep = step;
-                updateProgress();
-                updateStepIndicators();
-                
-                // Show/hide preview column
-                const previewColumn = document.getElementById('preview-column');
-                if (previewColumn) {
-                  if (step === 8 || step === 1) {
-                    previewColumn.classList.remove('d-none');
-                    // Update preview when step 1 or 8 is shown
-                    const templateInput = document.getElementById('selected_template');
-                    const selectedTemplate = templateInput ? templateInput.value || 'modern' : 'modern';
-                    if (typeof updateTemplatePreview === 'function') {
-                      // Small delay to ensure form is ready
-                      setTimeout(function() {
-                        updateTemplatePreview(selectedTemplate);
-                      }, 300);
-                    }
-                  } else {
-                    previewColumn.classList.add('d-none');
-                  }
-                }
-              }
-              
-              function updateStepIndicators() {
-                // Add completed class to previous steps
-                for (let i = 1; i < currentStep; i++) {
-                  const stepSection = document.querySelector('[data-step="' + i + '"]');
-                  if (stepSection) {
-                    stepSection.classList.add('completed');
-                  }
-                }
-                
-                // Remove completed class from current and future steps
-                for (let i = currentStep; i <= totalSteps; i++) {
-                  const stepSection = document.querySelector('[data-step="' + i + '"]');
-                  if (stepSection) {
-                    stepSection.classList.remove('completed');
-                  }
-                }
-              }
-              
-              function updateProgress() {
-                const progress = (currentStep / totalSteps) * 100;
-                progressBar.style.width = progress + '%';
-                progressBar.setAttribute('aria-valuenow', progress);
-              }
-              
-              function validateStep(step) {
-                const section = document.querySelector('[data-step="' + step + '"]');
-                const requiredFields = section.querySelectorAll('[required]');
-                let isValid = true;
-                let errorMessages = [];
-                
-                // Clear previous validation states
-                requiredFields.forEach(field => {
-                  field.classList.remove('is-invalid', 'is-valid');
-                });
-                
-                // Validate each required field
-                requiredFields.forEach(field => {
-                  if (!field.value.trim()) {
-                    field.classList.add('is-invalid');
-                    isValid = false;
-                    
-                    // Get field label for error message
-                    const label = field.closest('.form-group').querySelector('label');
-                    const fieldName = label ? label.textContent.replace('*', '').trim() : 'This field';
-                    errorMessages.push(fieldName + ' is required');
-                  } else {
-                    field.classList.add('is-valid');
-                  }
-                });
-                
-                // Special validation for email field
-                const emailField = section.querySelector('input[type="email"]');
-                if (emailField && emailField.value.trim()) {
-                  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                  if (!emailRegex.test(emailField.value.trim())) {
-                    emailField.classList.add('is-invalid');
-                    isValid = false;
-                    errorMessages.push('Please enter a valid email address');
-                  }
-                }
-                
-                // Special validation for website slug
-                const slugField = section.querySelector('input[name="website_slug"]');
-                if (slugField && slugField.value.trim()) {
-                  const slugRegex = /^[a-zA-Z0-9-]+$/;
-                  if (!slugRegex.test(slugField.value.trim())) {
-                    slugField.classList.add('is-invalid');
-                    isValid = false;
-                    errorMessages.push('vCard URL can only contain letters, numbers, and hyphens');
-                  }
-                }
-                
-                // Show error message if validation fails
-                if (!isValid) {
-                  showStepError(errorMessages.join(', '));
-                } else {
-                  hideStepError();
-                }
-                
-                return isValid;
-              }
-              
-              function showStepError(message) {
-                // Remove existing error alert
-                const existingAlert = document.querySelector('.step-error-alert');
-                if (existingAlert) {
-                  existingAlert.remove();
-                }
-                
-                // Create new error alert
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-danger step-error-alert mt-3';
-                alertDiv.innerHTML = 
-                  '<i class="fa fa-exclamation-triangle me-2"></i>' +
-                  '<strong>Please fix the following errors:</strong> ' + message;
-                
-                // Insert after the current step's card
-                const currentSection = document.querySelector('[data-step="' + currentStep + '"]');
-                const card = currentSection.querySelector('.card');
-                card.parentNode.insertBefore(alertDiv, card.nextSibling);
-                
-                // Scroll to the error
-                alertDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }
-              
-              function hideStepError() {
-                const existingAlert = document.querySelector('.step-error-alert');
-                if (existingAlert) {
-                  existingAlert.remove();
-                }
-              }
-              
-              // Save form data to localStorage
-              function saveFormData() {
-                const formData = new FormData(form);
-                const data = {};
-                for (let [key, value] of formData.entries()) {
-                  if (key !== 'csrf_token' && key !== 'image_url' && key !== 'qr_logo') {
-                    data[key] = value;
-                  }
-                }
-                localStorage.setItem('vcard_form_data', JSON.stringify(data));
-              }
-              
-              // Load form data from localStorage
-              function loadFormData() {
-                const savedData = localStorage.getItem('vcard_form_data');
-                if (savedData) {
-                  try {
-                    const data = JSON.parse(savedData);
-                    Object.keys(data).forEach(key => {
-                      const field = form.querySelector('[name="' + key + '"]');
-                      if (field && field.type !== 'file') {
-                        field.value = data[key];
-                        // Trigger validation styling
-                        if (field.hasAttribute('required') && field.value.trim()) {
-                          field.classList.add('is-valid');
-                        }
-                      }
-                    });
-                  } catch (e) {
-                    // Failed to load saved form data; ignore silently in production
-                  }
-                }
-              }
-              
-              // Clear saved form data
-              function clearFormData() {
-                localStorage.removeItem('vcard_form_data');
-              }
-              
-              // Auto-advance on field completion
-              document.querySelectorAll('input, select, textarea').forEach(field => {
-                field.addEventListener('blur', function() {
-                  if (this.hasAttribute('required') && this.value.trim()) {
-                    this.classList.remove('is-invalid');
-                    this.classList.add('is-valid');
-                  }
-                  saveFormData(); // Save data on blur
-                });
-                
-                field.addEventListener('input', function() {
-                  if (this.classList.contains('is-invalid') && this.value.trim()) {
-                    this.classList.remove('is-invalid');
-                    this.classList.add('is-valid');
-                  }
-                  saveFormData(); // Save data on input
-                });
-              });
-              
-              // Navigation functions
-              function nextStep() {
-                if (validateStep(currentStep)) {
-                  if (currentStep < totalSteps) {
-                    const nextStepNum = currentStep + 1;
-                    showStep(nextStepNum);
-                    // Auto-fill slug when moving to step 2 if name is filled and slug is empty
-                    if (nextStepNum === 2) {
-                      setTimeout(() => {
-                        // Look up elements dynamically to avoid scope issues
-                        const nameField = document.getElementById('name_input');
-                        const slugFieldEl = document.querySelector('input[name="website_slug"]');
-                        if (nameField && slugFieldEl) {
-                          const currentName = nameField.value.trim();
-                          if (currentName && !slugFieldEl.value) {
-                            // Check if slug was manually edited by checking if it has a value that doesn't match the name
-                            const nameSlug = currentName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                            const currentSlug = slugFieldEl.value.toLowerCase();
-                            // Only auto-fill if slug is empty or matches the name pattern (not manually edited)
-                            if (!currentSlug || currentSlug === nameSlug || currentSlug.startsWith(nameSlug + '-')) {
-                              // Trigger auto-fill by calling the function if it exists, or dispatch input event
-                              if (typeof autoFillSlugFromName === 'function') {
-                                autoFillSlugFromName();
-                              } else {
-                                // Fallback: trigger input event on name field to trigger auto-fill
-                                nameField.dispatchEvent(new Event('input', { bubbles: true }));
-                              }
-                            }
-                          }
-                        }
-                      }, 300);
-                    }
-                  }
-                }
-              }
-              
-              function prevStep() {
-                if (currentStep > 1) {
-                  showStep(currentStep - 1);
-                }
-              }
-              
-              // Add navigation buttons to each step
-              function addNavigationButtons() {
-                document.querySelectorAll('.form-section').forEach((section, index) => {
-                  const stepNumber = index + 1;
-                  const cardBody = section.querySelector('.card-body');
-                  
-                  if (cardBody) {
-                    const navDiv = document.createElement('div');
-                    navDiv.className = 'd-flex justify-content-between mt-4';
-                    
-                    if (stepNumber > 1) {
-                      const prevBtn = document.createElement('button');
-                      prevBtn.type = 'button';
-                      prevBtn.className = 'btn btn-outline-secondary';
-                      const prevIcon = document.createElement('i');
-                      prevIcon.className = 'fa fa-arrow-left me-2';
-                      prevBtn.appendChild(prevIcon);
-                      prevBtn.appendChild(document.createTextNode('Previous'));
-                      prevBtn.onclick = prevStep;
-                      navDiv.appendChild(prevBtn);
-                    } else {
-                      navDiv.appendChild(document.createElement('div'));
-                    }
-                    
-                    if (stepNumber < totalSteps) {
-                      const nextBtn = document.createElement('button');
-                      nextBtn.type = 'button';
-                      nextBtn.className = 'btn btn-primary';
-                      nextBtn.appendChild(document.createTextNode('Next'));
-                      const nextIcon = document.createElement('i');
-                      nextIcon.className = 'fa fa-arrow-right ms-2';
-                      nextBtn.appendChild(nextIcon);
-                      nextBtn.onclick = nextStep;
-                      navDiv.appendChild(nextBtn);
-                    } else {
-                      // On last step, show a button that triggers form submission
-                      const submitBtn = document.createElement('button');
-                      submitBtn.type = 'button';
-                      submitBtn.className = 'btn btn-success btn-lg';
-                      const submitIcon = document.createElement('i');
-                      submitIcon.className = 'fa fa-rocket me-2';
-                      submitBtn.appendChild(submitIcon);
-                      submitBtn.appendChild(document.createTextNode('Create Card'));
-                      submitBtn.onclick = function() {
-                        // Trigger form submission
-                        form.dispatchEvent(new Event('submit'));
-                      };
-                      navDiv.appendChild(submitBtn);
-                    }
-                    
-                    cardBody.appendChild(navDiv);
-                  }
-                });
-              }
-              
-              // Initialize navigation buttons
-              addNavigationButtons();
-              
-              // Template selection functionality
-              const templateOptions = document.querySelectorAll('.template-option');
-              const selectedTemplateInput = document.getElementById('selected_template');
-              
-              // Function to update template preview - CLIENT-SIDE RENDERING (instant, no server calls)
-              let previewTimeout = null;
-              let lastPreviewPayload = null;
-              let profileImageDataUrl = null;
-              let bannerImageDataUrl = null;
-              
-              // Pre-load images when files are selected
-              const profilePhotoInput = document.getElementById('profile_photo_input');
-              const bannerImageInput = document.getElementById('banner_image_input');
-              
-              if (profilePhotoInput) {
-                profilePhotoInput.addEventListener('change', function(e) {
-                  const file = e.target.files[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                      profileImageDataUrl = e.target.result;
-                      const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'modern' : 'modern';
-                      updateTemplatePreview(selectedTemplate);
-                    };
-                    reader.readAsDataURL(file);
-                  }
-                });
-              }
-              
-              if (bannerImageInput) {
-                bannerImageInput.addEventListener('change', function(e) {
-                  const file = e.target.files[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                      bannerImageDataUrl = e.target.result;
-                      const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'modern' : 'modern';
-                      updateTemplatePreview(selectedTemplate);
-                    };
-                    reader.readAsDataURL(file);
-                  }
-                });
-              }
-              
-              function updateTemplatePreview(template) {
-                const previewIframe = document.getElementById('vcard-preview-iframe');
-                const loadingIndicator = document.getElementById('preview-loading');
-                
-                if (!previewIframe || !loadingIndicator) {
-                  return;
-                }
-                
-                // Show loading indicator for server-side preview
-                loadingIndicator.style.display = 'flex';
-                
-                // Server-side preview with 500ms debounce (matching bulk-onboard)
-                if (previewTimeout) {
-                  clearTimeout(previewTimeout);
-                }
-                
-                previewTimeout = setTimeout(function() {
-                  // Get form values
-                  const getValue = (name) => {
-                    const field = form.querySelector('[name="' + name + '"]');
-                    return field ? field.value || '' : '';
-                  };
-                  
-                  const data = {
-                    name: getValue('name') || 'Your Name',
-                    company_name: getValue('company_name') || '',
-                    function: getValue('function') || '',
-                    email: getValue('email') || 'email@example.com',
-                    phone: getValue('phone') || '',
-                    mobile: getValue('mobile') || '',
-                    about: getValue('about') || '',
-                    primary_color: getValue('primary_color') || '#ffffff',
-                    secondary_color: getValue('secondary_color') || '#4C75A3',
-                    website_template: template || 'modern',
-                    linkedin_url: getValue('linkedin_url') || '',
-                    twitter_url: getValue('twitter_url') || '',
-                    instagram_url: getValue('instagram_url') || '',
-                    facebook_url: getValue('facebook_url') || '',
-                    youtube_url: getValue('youtube_url') || '',
-                    whatsapp_url: getValue('whatsapp_url') || '',
-                    calendly_url: getValue('calendly_url') || '',
-                    street: getValue('street') || '',
-                    street2: getValue('street2') || '',
-                    city: getValue('city') || '',
-                    zip: getValue('zip') || '',
-                    country_id: getValue('country_id') || '',
-                    state_id: getValue('state_id') || '',
-                    show_form: document.getElementById('show_form_yes') ? document.getElementById('show_form_yes').checked : false,
-                    show_reviews: document.getElementById('show_reviews_yes') ? document.getElementById('show_reviews_yes').checked : false,
-                    mailing_list_name: getValue('mailing_list_name') || 'Leads',
-                    lead_button_label: getValue('lead_button_label') || 'Get In Touch',
-                    form_thank_you_message: getValue('form_thank_you_message') || ''
-                  };
-
-                  // Include uploaded image data (raw base64, no data URL prefix) so the
-                  // server preview renders with the user's photo instead of the default.
-                  if (profileImageDataUrl) {
-                    const idx = profileImageDataUrl.indexOf(',');
-                    data.image_base64 = idx >= 0 ? profileImageDataUrl.slice(idx + 1) : profileImageDataUrl;
-                  }
-                  if (bannerImageDataUrl) {
-                    const idx = bannerImageDataUrl.indexOf(',');
-                    data.banner_image_base64 = idx >= 0 ? bannerImageDataUrl.slice(idx + 1) : bannerImageDataUrl;
-                  }
-
-                  // Short-circuit if payload hasn't changed since last successful fetch
-                  const payloadStr = JSON.stringify(data);
-                  if (payloadStr === lastPreviewPayload) {
-                    if (loadingIndicator) {
-                      loadingIndicator.style.display = 'none';
-                    }
-                    return;
-                  }
-                  lastPreviewPayload = payloadStr;
-
-                  // Call preview endpoint (matching bulk-onboard approach)
-                  fetch('/vcard/preview', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: payloadStr
-                  })
-                  .then(response => {
-                    if (!response.ok) {
-                      throw new Error('HTTP error! status: ' + response.status);
-                    }
-                    return response.json();
-                  })
-                  .then(response => {
-                    let result = response;
-                    if (response.result) {
-                      result = response.result;
-                    }
-                    
-                    if (result && (result.success === true || result.success === 'true')) {
-                      const previewUrl = result.preview_url;
-
-                      let loadTimeout = setTimeout(() => {
-                        if (loadingIndicator) {
-                          loadingIndicator.innerHTML = '<i class="fa fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><p style="font-size: 12px; margin: 0;">Loading preview...</p>';
-                        }
-                      }, 3000);
-
-                      previewIframe.onerror = () => {
-                        clearTimeout(loadTimeout);
-                        if (loadingIndicator) {
-                          loadingIndicator.innerHTML = '<i class="fa fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 10px; color: #dc3545;"></i><p style="font-size: 12px; margin: 0; color: #dc3545;">Failed to load preview</p>';
-                        }
-                      };
-
-                      previewIframe.onload = () => {
-                        clearTimeout(loadTimeout);
-                        if (loadingIndicator) {
-                          loadingIndicator.style.display = 'none';
-                        }
-                      };
-
-                      previewIframe.src = previewUrl;
-                    } else {
-                      // Hide loading on error
-                      if (loadingIndicator) {
-                        loadingIndicator.style.display = 'none';
-                      }
-                    }
-                  })
-                  .catch(error => {
-                    console.error('Error generating preview:', error);
-                    if (loadingIndicator) {
-                      loadingIndicator.style.display = 'none';
-                    }
-                  });
-                }, 800);  // 800ms debounce for server-side updates
-              }
-
-              // Make updateTemplatePreview available globally
-              window.updateTemplatePreview = updateTemplatePreview;
-              
-              // QR Code Preview function - shows static dummy QR code with logo overlay (matching bulk-onboard)
-              function updateQRPreview() {
-                const previewContainer = document.getElementById('qr_code_preview_container');
-                const previewPlaceholder = document.getElementById('qr_code_preview_placeholder');
-                const qrDummy = document.getElementById('qr_code_dummy');
-                const qrLogoOverlayContainer = document.getElementById('qr_logo_overlay_container');
-                const qrLogoImage = document.getElementById('qr_logo_image');
-                const fileInput = document.getElementById('qr_logo_input');
-                
-                if (!previewContainer || !previewPlaceholder || !qrDummy) {
-                  console.warn('QR code preview elements not found');
-                  return;
-                }
-                
-                // Always show the dummy QR code
-                previewPlaceholder.style.display = 'block';
-                qrDummy.style.display = 'block';
-                
-                // Check if logo file is uploaded
-                if (fileInput && fileInput.files && fileInput.files[0]) {
-                  const file = fileInput.files[0];
-                  const reader = new FileReader();
-                  
-                  reader.onload = function(e) {
-                    // Show logo overlay container and image
-                    if (qrLogoOverlayContainer) {
-                      qrLogoOverlayContainer.style.display = 'flex';
-                    }
-                    if (qrLogoImage) {
-                      qrLogoImage.src = e.target.result;
-                      qrLogoImage.style.display = 'block';
-                    }
-                  };
-                  
-                  reader.onerror = function() {
-                    console.error('Error reading logo file');
-                    if (qrLogoOverlayContainer) {
-                      qrLogoOverlayContainer.style.display = 'none';
-                    }
-                    if (qrLogoImage) {
-                      qrLogoImage.style.display = 'none';
-                    }
-                  };
-                  
-                  reader.readAsDataURL(file);
-                } else {
-                  // No logo uploaded, hide logo overlay
-                  if (qrLogoOverlayContainer) {
-                    qrLogoOverlayContainer.style.display = 'none';
-                  }
-                  if (qrLogoImage) {
-                    qrLogoImage.style.display = 'none';
-                  }
-                }
-              }
-              
-              // Add QR preview listener
-              const qrLogoInputForPreview = document.getElementById('qr_logo_input');
-              if (qrLogoInputForPreview) {
-                qrLogoInputForPreview.addEventListener('change', updateQRPreview);
-              }
-              
-              // Initialize QR preview after a short delay to ensure DOM is ready
-              setTimeout(updateQRPreview, 100);
-              
-              // Set up template selection event listeners
-              if (templateOptions.length > 0 && selectedTemplateInput) {
-                templateOptions.forEach(option => {
-                  option.addEventListener('click', function() {
-                    // Remove selected class from all options
-                    templateOptions.forEach(opt => {
-                      opt.style.border = '2px solid #e0e0e0';
-                      opt.style.transform = 'scale(1)';
-                    });
-                    
-                    // Add selected class to clicked option
-                    this.style.border = '2px solid #007bff';
-                    this.style.transform = 'scale(1.02)';
-                    
-                    // Update hidden input
-                    const template = this.getAttribute('data-template');
-                    selectedTemplateInput.value = template;
-                    
-                    // Update preview (will regenerate website)
-                    if (typeof updateTemplatePreview === 'function') {
-                      updateTemplatePreview(template);
-                    }
-                    
-                    // Save to localStorage
-                    saveFormData();
-                  });
-                });
-                
-                // Initialize template selection (default based on plan)
-                const defaultTemplate = selectedTemplateInput ? selectedTemplateInput.value : 'modern';
-                if (selectedTemplateInput) {
-                  selectedTemplateInput.value = defaultTemplate;
-                }
-                const defaultOption = document.querySelector('.template-option[data-template="' + defaultTemplate + '"]');
-                if (defaultOption) {
-                  defaultOption.click();
-                }
-              }
-              
-              // Update preview when form fields change
-              const previewFields = ['name', 'company_name', 'function', 'email', 'phone', 'mobile', 'primary_color', 'secondary_color', 'about', 'calendly_url', 'website_slug', 'linkedin_url', 'twitter_url', 'instagram_url', 'facebook_url', 'youtube_url', 'whatsapp_url', 'street', 'street2', 'city', 'zip'];
-              previewFields.forEach(fieldName => {
-                const field = form.querySelector(`[name="${fieldName}"]`);
-                if (field) {
-                  field.addEventListener('input', function() {
-                    const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'modern' : 'modern';
-                    if (typeof updateTemplatePreview === 'function') {
-                      updateTemplatePreview(selectedTemplate);
-                    }
-                  });
-                  field.addEventListener('change', function() {
-                    const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'modern' : 'modern';
-                    if (typeof updateTemplatePreview === 'function') {
-                      updateTemplatePreview(selectedTemplate);
-                    }
-                  });
-                }
-              });
-              
-              // Update preview when color inputs change
-              if (primaryColorInput) {
-                primaryColorInput.addEventListener('input', function() {
-                  const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'classic' : 'classic';
-                  if (typeof updateTemplatePreview === 'function') {
-                    updateTemplatePreview(selectedTemplate);
-                  }
-                });
-              }
-              
-              if (secondaryColorInput) {
-                secondaryColorInput.addEventListener('input', function() {
-                  const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'classic' : 'classic';
-                  if (typeof updateTemplatePreview === 'function') {
-                    updateTemplatePreview(selectedTemplate);
-                  }
-                });
-              }
-              
-              // Update preview when country/state selects change
-              const countrySelect = document.getElementById('vcard_country');
-              const stateSelect = document.getElementById('vcard_state');
-              
-              if (countrySelect) {
-                countrySelect.addEventListener('change', function() {
-                  const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'modern' : 'modern';
-                  if (typeof updateTemplatePreview === 'function') {
-                    updateTemplatePreview(selectedTemplate);
-                  }
-                });
-              }
-              
-              if (stateSelect) {
-                stateSelect.addEventListener('change', function() {
-                  const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'modern' : 'modern';
-                  if (typeof updateTemplatePreview === 'function') {
-                    updateTemplatePreview(selectedTemplate);
-                  }
-                });
-              }
-              
-              // Also update preview when images are selected
-              const imageField = form.querySelector('input[name="image_url"]');
-              if (imageField) {
-                imageField.addEventListener('change', function() {
-                  const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'classic' : 'classic';
-                  if (typeof updateTemplatePreview === 'function') {
-                    updateTemplatePreview(selectedTemplate);
-                  }
-                });
-              }
-              
-              const bannerField = form.querySelector('input[name="banner_image"]');
-              if (bannerField) {
-                bannerField.addEventListener('change', function() {
-                  const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'classic' : 'classic';
-                  if (typeof updateTemplatePreview === 'function') {
-                    updateTemplatePreview(selectedTemplate);
-                  }
-                });
-              }
-              
-              // Update preview when websites/videos are added/changed
-              const websiteInputs = form.querySelectorAll('input[name="website_url[]"]');
-              const videoInputs = form.querySelectorAll('input[name="video_url[]"]');
-              
-              websiteInputs.forEach(input => {
-                input.addEventListener('input', function() {
-                  const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'classic' : 'classic';
-                  if (typeof updateTemplatePreview === 'function') {
-                    updateTemplatePreview(selectedTemplate);
-                  }
-                });
-              });
-              
-              videoInputs.forEach(input => {
-                input.addEventListener('input', function() {
-                  const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'classic' : 'classic';
-                  if (typeof updateTemplatePreview === 'function') {
-                    updateTemplatePreview(selectedTemplate);
-                  }
-                });
-              });
-              
-              // Update preview when extra features change
-              const extraFeatureInputs = form.querySelectorAll('input[type="checkbox"][name="show_form"], input[type="checkbox"][name="notify_on_new_lead"], input[type="checkbox"][name="intro_email_enabled"], input[type="checkbox"][name="enable_instant_leadback"], input[type="checkbox"][name="leadback_send_email"], input[type="checkbox"][name="leadback_enable_messaging"], input[type="checkbox"][name="show_reviews"], input[type="checkbox"][name^="leadback_channels"]');
-              extraFeatureInputs.forEach(input => {
-                input.addEventListener('change', function(e) {
-                  // Prevent any default behavior
-                  e.preventDefault();
-                  e.stopPropagation();
-                  
-                  const selectedTemplate = selectedTemplateInput ? selectedTemplateInput.value || 'classic' : 'classic';
-                  if (typeof updateTemplatePreview === 'function') {
-                    // Debounce the preview update to avoid too many requests
-                    setTimeout(function() {
-                      updateTemplatePreview(selectedTemplate);
-                    }, 500);
-                  }
-                });
-              });
-              
-              // Form submission with validation
-              form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                // Validate all required fields
-                let allValid = true;
-                for (let step = 1; step <= totalSteps; step++) {
-                  if (!validateStep(step)) {
-                    allValid = false;
-                    showStep(step);
-                    break;
-                  }
-                }
-                
-                if (allValid) {
-                  // Show loading state on the submit button
-                  const submitButton = document.querySelector('.btn-success');
-                  if (submitButton) {
-                    submitButton.innerHTML = '';
-                    const spinnerIcon2 = document.createElement('i');
-                    spinnerIcon2.className = 'fa fa-spinner fa-spin me-2';
-                    submitButton.appendChild(spinnerIcon2);
-                    submitButton.appendChild(document.createTextNode('Creating Your Card...'));
-                    submitButton.disabled = true;
-                  }
-                  
-                  // Submit the form
-                  this.submit();
-                } else {
-                  // Scroll to first invalid field
-                  const firstInvalid = document.querySelector('.is-invalid');
-                  if (firstInvalid) {
-                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    firstInvalid.focus();
-                  }
-                }
-              });
-              
-              // URL slug validation and auto-generation
-              const slugField = document.querySelector('input[name="website_slug"]');
-              const nameInput = document.getElementById('name_input');
-              let slugManuallyEdited = false;
-              let lastGeneratedName = '';
-              
-              if (slugField) {
-                slugField.addEventListener('input', function() {
-                  this.value = this.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
-                  slugManuallyEdited = true;
-                  // Don't trigger preview update when slug changes manually to avoid breaking images
-                  // The preview will update when other fields change
-                });
-              }
-              
-              // Auto-generate slug from name
-              function generateSlugFromName(name) {
-                return name.toLowerCase()
-                  .trim()
-                  .replace(/\s+/g, '-')
-                  .replace(/[^a-z0-9-]/g, '')
-                  .replace(/-+/g, '-')
-                  .replace(/^-|-$/g, '');
-              }
-              
-              async function checkSlugAvailability(slug) {
-                try {
-                  // Get CSRF token from form
-                  const csrfToken = document.querySelector('input[name="csrf_token"]');
-                  const headers = {
-                    'Content-Type': 'application/json',
-                  };
-                  if (csrfToken) {
-                    headers['X-CSRFToken'] = csrfToken.value;
-                  }
-                  
-                  const response = await fetch('/vcard/check_slug_availability', {
-                    method: 'POST',
-                    headers: headers,
-                    credentials: 'same-origin',
-                    body: JSON.stringify({ slug: slug })
-                  });
-                  
-                  if (!response.ok) {
-                    console.error('Slug availability check failed:', response.status, response.statusText);
-                    return { available: false, error: 'Could not check availability' };
-                  }
-                  
-                  const data = await response.json();
-                  
-                  // Handle Odoo JSON-RPC response format (wrapped in 'result')
-                  if (data.result) {
-                    return data.result;
-                  }
-                  return data;
-                } catch (error) {
-                  console.error('Error checking slug availability:', error);
-                  return { available: false, error: 'Could not check availability' };
-                }
-              }
-              
-              async function generateUniqueSlug(baseSlug) {
-                if (!baseSlug) {
-                  return '';
-                }
-                
-                console.log('generateUniqueSlug: Checking base slug:', baseSlug);
-                
-                // First check if the base slug is available
-                const result = await checkSlugAvailability(baseSlug);
-                console.log('generateUniqueSlug: Base slug check result:', result);
-                
-                if (result && result.available === true) {
-                  console.log('generateUniqueSlug: Base slug is available, returning:', baseSlug);
-                  return baseSlug;
-                }
-                
-                // If not available and we have a suggestion, use it
-                if (result && result.suggestion) {
-                  console.log('generateUniqueSlug: Using backend suggestion:', result.suggestion);
-                  return result.suggestion;
-                }
-                
-                // Fallback: try appending numbers manually (but limit to reasonable number)
-                // This should rarely happen if backend is working correctly
-                console.warn('generateUniqueSlug: No suggestion from backend, trying sequential numbers');
-                let counter = 2;
-                let uniqueSlug = `${baseSlug}-${counter}`;
-                
-                while (counter < 20) {  // Limit to 20 attempts instead of 100
-                  const checkResult = await checkSlugAvailability(uniqueSlug);
-                  console.log(`generateUniqueSlug: Checking ${uniqueSlug}, result:`, checkResult);
-                  if (checkResult && checkResult.available === true) {
-                    console.log('generateUniqueSlug: Found available slug:', uniqueSlug);
-                    return uniqueSlug;
-                  }
-                  // If we get a suggestion, use it
-                  if (checkResult && checkResult.suggestion) {
-                    console.log('generateUniqueSlug: Using suggestion from sequential check:', checkResult.suggestion);
-                    return checkResult.suggestion;
-                  }
-                  counter++;
-                  uniqueSlug = `${baseSlug}-${counter}`;
-                }
-                
-                // If we couldn't find a unique slug, return the last attempt
-                console.warn('generateUniqueSlug: Reached limit, returning last attempt:', uniqueSlug);
-                return uniqueSlug;
-              }
-              
-              async function autoFillSlugFromName() {
-                if (!nameInput || !slugField) {
-                  return;
-                }
-                
-                const currentName = nameInput.value.trim();
-                
-                // Don't auto-fill if name is empty or slug was manually edited
-                if (!currentName || slugManuallyEdited) {
-                  return;
-                }
-                
-                // Don't regenerate if name hasn't changed and slug is already set
-                if (currentName === lastGeneratedName && slugField.value && slugField.value.trim()) {
-                  return;
-                }
-                
-                // Generate slug from name
-                const baseSlug = generateSlugFromName(currentName);
-                if (!baseSlug) {
-                  console.warn('Generated empty slug from name:', currentName);
-                  return;
-                }
-                
-                console.log('Auto-generating slug from name:', currentName, '-> baseSlug:', baseSlug);
-                
-                // Show loading state
-                const originalPlaceholder = slugField.placeholder;
-                slugField.placeholder = 'Checking availability...';
-                slugField.disabled = true;
-                
-                // Prevent preview updates during slug check to avoid breaking images
-                const wasUpdatingPreview = window.isUpdatingPreview;
-                window.isUpdatingPreview = true;
-                
-                try {
-                  // Get unique slug
-                  const uniqueSlug = await generateUniqueSlug(baseSlug);
-                  console.log('Generated unique slug:', uniqueSlug, 'from base:', baseSlug);
-                  if (uniqueSlug && uniqueSlug !== baseSlug + '-20') {
-                    // Only set if it's not the fallback "-20" value
-                    slugField.value = uniqueSlug;
-                    lastGeneratedName = currentName;
-                    slugField.classList.add('is-valid');
-                    slugField.classList.remove('is-invalid');
-                  } else if (uniqueSlug === baseSlug) {
-                    // Base slug is available - use it
-                    slugField.value = uniqueSlug;
-                    lastGeneratedName = currentName;
-                    slugField.classList.add('is-valid');
-                    slugField.classList.remove('is-invalid');
-                  } else {
-                    console.warn('Slug generation returned unexpected value:', uniqueSlug);
-                    // Set the base slug anyway if we got a weird result
-                    slugField.value = baseSlug;
-                    lastGeneratedName = currentName;
-                  }
-                } catch (error) {
-                  console.error('Error generating slug:', error);
-                  // On error, still re-enable the field
-                  slugField.classList.remove('is-valid', 'is-invalid');
-                } finally {
-                  // Always re-enable the field and restore placeholder
-                  slugField.placeholder = originalPlaceholder;
-                  slugField.disabled = false;
-                  // Clear the "checking" state
-                  slugField.style.backgroundImage = '';
-                  
-                  // Restore preview update state
-                  window.isUpdatingPreview = wasUpdatingPreview;
-                }
-              }
-              
-              if (nameInput && slugField) {
-                // Trigger on input
-                nameInput.addEventListener('input', autoFillSlugFromName);
-                
-                // Also trigger on page load if name is pre-filled (with multiple attempts to catch late-loading values)
-                // Limit retry attempts to prevent infinite loops
-                let autoFillAttempts = 0;
-                const maxAutoFillAttempts = 3;
-                
-                function tryAutoFillOnLoad() {
-                  if (autoFillAttempts >= maxAutoFillAttempts) {
-                    return; // Stop after max attempts
-                  }
-                  autoFillAttempts++;
-                  const nameVal = nameInput.value.trim();
-                  if (nameVal && !slugField.value && !slugManuallyEdited) {
-                    autoFillSlugFromName();
-                  } else if (!nameVal && autoFillAttempts < maxAutoFillAttempts) {
-                    // Only retry if name is still empty and we haven't exceeded max attempts
-                    setTimeout(tryAutoFillOnLoad, 500);
-                  }
-                }
-                
-                // Try immediately
-                tryAutoFillOnLoad();
-                
-                // Also try after delays to catch late-loading default values (but limit attempts)
-                setTimeout(() => { if (autoFillAttempts < maxAutoFillAttempts) tryAutoFillOnLoad(); }, 500);
-                setTimeout(() => { if (autoFillAttempts < maxAutoFillAttempts) tryAutoFillOnLoad(); }, 1500);
-                
-                // Also trigger when name field gets focus (in case user clicks on it)
-                nameInput.addEventListener('focus', function() {
-                  if (this.value.trim() && !slugField.value && !slugManuallyEdited) {
-                    setTimeout(autoFillSlugFromName, 100);
-                  }
-                });
-              }
-              
-              // Auto-fill mailing list name with "[Name]'s List"
-              const mailingListInput = document.getElementById('mailing_list_name_input');
-              if (mailingListInput && nameInput) {
-                const updateMailingListName = function() {
-                  const nameValue = nameInput.value.trim();
-                  // Only auto-fill if mailing list field is empty
-                  if (nameValue && (!mailingListInput.value || mailingListInput.value.trim() === '')) {
-                    mailingListInput.value = nameValue + "'s List";
-                  }
-                };
-                
-                nameInput.addEventListener('input', updateMailingListName);
-                nameInput.addEventListener('change', updateMailingListName);
-                
-                // Update on page load if name is pre-filled
-                const tryUpdateMailingListOnLoad = function() {
-                  if (nameInput.value.trim() && (!mailingListInput.value || mailingListInput.value.trim() === '')) {
-                    updateMailingListName();
-                  }
-                };
-                
-                if (document.readyState === 'loading') {
-                  document.addEventListener('DOMContentLoaded', function() {
-                    setTimeout(tryUpdateMailingListOnLoad, 100);
-                    setTimeout(tryUpdateMailingListOnLoad, 500);
-                  });
-                } else {
-                  setTimeout(tryUpdateMailingListOnLoad, 100);
-                  setTimeout(tryUpdateMailingListOnLoad, 500);
-                }
-              }
-              
-              // Country/State filtering functionality
-              // Note: countrySelect and stateSelect already declared above for preview updates
-              
-              if (countrySelect && stateSelect) {
-                // Store all states for filtering
-                const allStates = Array.from(stateSelect.options).map(option => ({
-                  value: option.value,
-                  text: option.textContent,
-                  countryId: option.getAttribute('data-country-id')
-                }));
-                
-                // Filter states based on selected country
-                countrySelect.addEventListener('change', function() {
-                  const selectedCountryId = this.value;
-                  
-                  // Clear current state options except the first one
-                  stateSelect.innerHTML = '';
-                  const defaultOption = document.createElement('option');
-                  defaultOption.value = '';
-                  defaultOption.textContent = 'Select a state';
-                  stateSelect.appendChild(defaultOption);
-                  
-                  if (selectedCountryId) {
-                    // Filter states by country
-                    const countryStates = allStates.filter(state => {
-                      return state.countryId && String(state.countryId) === String(selectedCountryId) && state.value !== '';
-                    });
-                    
-                    // Add filtered states to dropdown
-                    countryStates.forEach(state => {
-                      const option = document.createElement('option');
-                      option.value = state.value;
-                      option.textContent = state.text;
-                      stateSelect.appendChild(option);
-                    });
-
-                    // Toggle state field visibility based on availability
-                    const stateGroup = document.getElementById('state_group');
-                    if (stateGroup) {
-                      stateGroup.style.display = countryStates.length > 0 ? 'block' : 'none';
-                    }
-                  } else {
-                    // If no country selected, hide state field
-                    const stateGroup = document.getElementById('state_group');
-                    if (stateGroup) {
-                      stateGroup.style.display = 'none';
-                    }
-                  }
-                });
-
-                // Initialize visibility on load
-                (function initStateVisibility() {
-                  const selectedCountryId = countrySelect.value;
-                  const stateGroup = document.getElementById('state_group');
-                  if (!selectedCountryId) {
-                    if (stateGroup) stateGroup.style.display = 'none';
-                    return;
-                  }
-                  const countryStates = allStates.filter(state => {
-                    return state.countryId && String(state.countryId) === String(selectedCountryId) && state.value !== '';
-                  });
-                  if (stateGroup) stateGroup.style.display = countryStates.length > 0 ? 'block' : 'none';
-                })();
-              }
-            });
-          ]]></script>
+      </div>
     </t>
   </template>
 </odoo>

@@ -1350,27 +1350,37 @@ class VCardFormController(http.Controller):
         countries = request.env['res.country'].sudo().search([], order='name')
         states = request.env['res.country.state'].sudo().search([], order='name')
 
-        # Prefill defaults from user
+        # Prefill defaults from user + linked res.partner
         default_name = ''
         default_email = ''
         default_company = ''
-        
+        default_phone = ''
+        default_mobile = ''
+        default_function = ''
+
         try:
             default_name = user.name or ''
             default_email = getattr(user, 'email', None) or getattr(user, 'login', '') or ''
-            
+
             if hasattr(user, 'company_id') and user.company_id:
                 company = request.env['res.company'].sudo().browse(user.company_id.id)
                 if company.exists() and company.name:
                     default_company = company.name
+
+            # Pull phone / mobile / job title from the partner record linked to the user
+            partner = getattr(user, 'partner_id', None)
+            if partner and partner.exists():
+                default_phone = partner.phone or ''
+                default_mobile = partner.mobile or ''
+                default_function = partner.function or ''
         except Exception as e:
             _logger.warning(f"Error accessing user fields: {e}")
-        
+
         # Get base URL for vCard URL prefix
         base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
         # Remove protocol and trailing slash for display
         base_url_display = base_url.replace('http://', '').replace('https://', '').rstrip('/')
-        
+
         # No limits - all features enabled
         return request.render('qr_code_odoo.vcard_form_page', {
             'countries': countries,
@@ -1378,6 +1388,9 @@ class VCardFormController(http.Controller):
             'default_name': default_name,
             'default_email': default_email,
             'default_company': default_company,
+            'default_phone': default_phone,
+            'default_mobile': default_mobile,
+            'default_function': default_function,
             'base_url_display': base_url_display,
             'max_websites': 999999,  # Unlimited
             'max_videos': 999999,  # Unlimited
