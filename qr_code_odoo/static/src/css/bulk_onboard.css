@@ -660,14 +660,25 @@ body:has(.vg-magic) #wrapwrap > main { background: #FFFFFF !important; }
     line-height: 1.5;
 }
 .vg-bulk .bk-drop-link {
-    display: inline-block;
-    margin-top: 4px;
     color: var(--gs-blue, #2D5BFF);
     font-size: 13px;
     font-weight: 500;
     text-decoration: none;
 }
-.vg-bulk .bk-drop-link:hover { text-decoration: underline; }
+.vg-bulk .bk-drop-link:hover { text-decoration: underline; color: var(--gs-blue-deep, #1E40AF); }
+
+/* Footer row under the dropzone with the "Don't have a file?" link.
+   Kept OUTSIDE the <label> so clicks fall through to the link, not the
+   hidden file input. */
+.vg-bulk .bk-drop-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--gs-ink-faint, #6B7494);
+}
 .vg-bulk .bk-drop[data-state="filled"] {
     border-style: solid;
     border-color: var(--gs-input-border, #B8CAF5);
@@ -992,6 +1003,175 @@ body:has(.vg-magic) #wrapwrap > main { background: #FFFFFF !important; }
     background: var(--gs-green-pale, #D1FAE5);
     color: var(--gs-green, #047857);
 }
+
+/* ================================================================== */
+/* ADMIN — reuse /get-started field primitives inside .vg-bulk        */
+/* ================================================================== */
+/* These mirror the rules in get_started.css that are scoped to
+   .vg-getstarted. The wizard markup reuses the .gs-input / .gs-field /
+   .gs-toggle classes for consistency, but CSS scoping meant they had
+   no effect inside .vg-bulk until this block existed. */
+
+.vg-bulk .gs-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.vg-bulk .gs-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gs-ink, #0B162E);
+    letter-spacing: 0.005em;
+    display: inline-flex; align-items: center; gap: 6px;
+}
+.vg-bulk .gs-label .gs-req {
+    color: var(--gs-blue, #2D5BFF);
+    font-weight: 500;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+.vg-bulk .gs-hint {
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--gs-ink-faint, #6B7494);
+    margin: 2px 0 0;
+}
+.vg-bulk .gs-err {
+    display: none;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--gs-red, #DC2626);
+    margin: 2px 0 0;
+}
+.vg-bulk .gs-field.is-invalid .gs-err { display: block; }
+.vg-bulk .gs-field.is-invalid .gs-hint { display: none; }
+
+.vg-bulk .gs-input,
+.vg-bulk .gs-select,
+.vg-bulk .gs-textarea {
+    width: 100%;
+    height: 46px;
+    padding: 0 14px;
+    background: #FFFFFF;
+    border: 1.5px solid var(--gs-input-border, #B8CAF5);
+    border-radius: var(--gs-radius-input, 12px);
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--gs-ink, #0B162E);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    appearance: none;
+}
+.vg-bulk .gs-input::placeholder,
+.vg-bulk .gs-textarea::placeholder {
+    color: #C5CBDB;
+    opacity: 1;
+    font-weight: 400;
+}
+.vg-bulk .gs-textarea {
+    height: auto;
+    min-height: 120px;
+    padding: 12px 14px;
+    line-height: 1.55;
+    resize: vertical;
+}
+.vg-bulk .gs-input:hover,
+.vg-bulk .gs-select:hover,
+.vg-bulk .gs-textarea:hover {
+    border-color: var(--gs-input-border-hover, #8BA5ED);
+}
+.vg-bulk .gs-input:focus,
+.vg-bulk .gs-select:focus,
+.vg-bulk .gs-textarea:focus {
+    outline: none;
+    border-color: var(--gs-blue, #2D5BFF);
+    box-shadow: 0 0 0 4px rgba(45, 91, 255, 0.14);
+    background: #FFFFFF;
+}
+.vg-bulk .gs-field.is-invalid .gs-input,
+.vg-bulk .gs-field.is-invalid .gs-select,
+.vg-bulk .gs-field.is-invalid .gs-textarea {
+    border-color: var(--gs-red, #DC2626);
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.10);
+}
+.vg-bulk .gs-select {
+    padding-right: 40px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7494' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 16px;
+}
+
+/* Pill toggle — the admin wizard uses .gs-toggle-row / .gs-toggle. */
+.vg-bulk .gs-toggle-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--gs-line, #D9E2F3);
+}
+.vg-bulk .gs-toggle-row:first-of-type { padding-top: 4px; }
+.vg-bulk .gs-toggle-row:last-of-type { border-bottom: none; padding-bottom: 4px; }
+.vg-bulk .gs-toggle-info { min-width: 0; }
+.vg-bulk .gs-toggle-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gs-ink, #0B162E);
+    margin-bottom: 2px;
+}
+.vg-bulk .gs-toggle-desc {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--gs-ink-faint, #6B7494);
+}
+.vg-bulk .gs-toggle {
+    position: relative;
+    width: 48px; height: 28px;
+    border-radius: 999px;
+    background: var(--gs-toggle-off, #BECADF);
+    cursor: pointer;
+    transition: background 0.22s ease;
+    flex: 0 0 auto;
+    border: none;
+    padding: 0;
+    box-shadow: inset 0 1px 2px rgba(14, 27, 58, 0.12);
+}
+.vg-bulk .gs-toggle::after {
+    content: "";
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 22px; height: 22px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(14, 27, 58, 0.28);
+    transition: transform 0.22s ease;
+}
+.vg-bulk .gs-toggle[aria-checked="true"] {
+    background: var(--gs-blue, #2D5BFF);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+.vg-bulk .gs-toggle[aria-checked="true"]::after { transform: translateX(20px); }
+.vg-bulk .gs-toggle:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(45, 91, 255, 0.25);
+}
+
+.vg-bulk .gs-reveal {
+    display: none;
+    padding: 16px 0 4px;
+    margin: 0 0 8px;
+    border-bottom: 1px dashed var(--gs-line, #D9E2F3);
+}
+.vg-bulk .gs-reveal[data-revealed="true"] { display: block; }
+
+.vg-bulk .gs-sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 
 /* ================================================================== */
 /* GET-STARTED: invited-card banner                                   */

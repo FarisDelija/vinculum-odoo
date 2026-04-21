@@ -193,13 +193,17 @@
                                     <button type="button" class="bk-import-tab" data-import-tab="manual" role="tab">Type reps in</button>
                                 </div>
 
-                                <!-- Upload panel -->
+                                <!-- Upload panel.
+                                     NOTE: the "Download starter CSV" link lives OUTSIDE the
+                                     <label> on purpose. Native HTML promotes any click inside
+                                     a <label> that contains a form control into a click on
+                                     that control — event.stopPropagation() on the link does
+                                     not override it. Pulled out below the dropzone. -->
                                 <div class="bk-import-panel" data-import-panel="upload" data-active="true">
                                     <label class="bk-drop" data-state="empty" id="bk-dropzone">
                                         <span class="bk-drop-icon" aria-hidden="true">↑</span>
                                         <span class="bk-drop-label">Drop your file here, or click to browse</span>
                                         <span class="bk-drop-hint">CSV or Excel (.xlsx, .xls). Maximum 2&#160;MB, 500 rows per batch.</span>
-                                        <a href="/bulk-onboard/template" class="bk-drop-link" onclick="event.stopPropagation();">Download starter CSV</a>
                                         <span class="bk-drop-meta">
                                             <span class="bk-drop-filename" data-drop-filename="true"></span>
                                             <span class="bk-drop-count" data-drop-count="true"></span>
@@ -207,6 +211,10 @@
                                         <button type="button" class="bk-drop-reset" data-drop-reset="true">Change file</button>
                                         <input type="file" id="bk-file-input" accept=".csv,.xlsx,.xls"/>
                                     </label>
+                                    <div class="bk-drop-footer">
+                                        <span>Don't have a file?</span>
+                                        <a href="/bulk-onboard/template" class="bk-drop-link">Download starter CSV →</a>
+                                    </div>
                                     <div class="bk-alert" data-tone="info" id="bk-upload-status" style="display: none; margin-top: 16px;"></div>
                                 </div>
 
@@ -241,7 +249,7 @@
                             <header class="bk-chapter-head">
                                 <div class="bk-chapter-eyebrow">Chapter 02 · Shared defaults</div>
                                 <h2 class="bk-chapter-title">Applied to <em>every</em> card in this batch.</h2>
-                                <p class="bk-chapter-intro">Company, colour, template, company social links — recipients can still edit their own card afterward.</p>
+                                <p class="bk-chapter-intro">Company, color, template, company social links — recipients can still edit their own card afterward.</p>
                             </header>
                             <div class="bk-chapter-body">
 
@@ -255,7 +263,7 @@
                                         <input class="gs-input" type="text" id="bk-company" name="company_name" placeholder="Your Company"/>
                                     </div>
                                     <div class="gs-field">
-                                        <label class="gs-label" for="bk-brand-color-visible">Brand colour</label>
+                                        <label class="gs-label" for="bk-brand-color-visible">Brand color</label>
                                         <input class="gs-input" type="color" id="bk-brand-color-visible" value="#2D5BFF" data-syncs-to="bk-brand-color" style="height: 46px; padding: 4px;"/>
                                     </div>
                                     <div class="gs-field bk-col-full">
@@ -431,7 +439,7 @@
                                         <div class="bk-summary-value" style="font-size: 18px;" data-summary-template="true">Modern</div>
                                     </div>
                                     <div class="bk-summary-tile">
-                                        <div class="bk-summary-label">Brand colour</div>
+                                        <div class="bk-summary-label">Brand color</div>
                                         <div class="bk-summary-value" style="font-size: 18px; display: flex; align-items: center; gap: 10px;">
                                             <span data-summary-color-swatch="true" style="width: 20px; height: 20px; border-radius: 6px; background: #2D5BFF; border: 1px solid rgba(14,27,58,0.12);"></span>
                                             <span data-summary-color-hex="true">#2D5BFF</span>

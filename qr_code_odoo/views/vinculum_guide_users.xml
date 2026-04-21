@@ -62,7 +62,7 @@
                     <li><strong>Classic</strong> — photo-forward, traditional vCard feel. Best for people-first cards (consultants, agents, founders).</li>
                     <li><strong>Minimal</strong> — pared down to name, role, and contact methods. For cards going on densely-printed materials where the QR carries most of the design.</li>
                     <li><strong>Corporate</strong> — banner-led, company-forward. Best for cards where the brand outweighs the individual.</li>
-                    <li><strong>Creative</strong> — colour-led, photography-heavy. For brands with strong visual identity (designers, agencies, hospitality).</li>
+                    <li><strong>Creative</strong> — color-led, photography-heavy. For brands with strong visual identity (designers, agencies, hospitality).</li>
                 </ul>
                 <figure class="vg-figure">
                     <img src="/qr_code_odoo/static/src/img/guide/setup-form-templates.png"

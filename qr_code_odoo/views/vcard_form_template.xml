@@ -189,7 +189,7 @@
                 <header class="gs-chapter-head">
                   <div class="gs-chapter-eyebrow">Chapter 02 · Brand</div>
                   <h2 class="gs-chapter-title">How it all <em>looks</em>.</h2>
-                  <p class="gs-chapter-intro">The URL people type, the colour that flows through your card, and the company you're with.</p>
+                  <p class="gs-chapter-intro">The URL people type, the color that flows through your card, and the company you're with.</p>
                 </header>
                 <div class="gs-chapter-body">
                   <div class="gs-grid">
@@ -219,7 +219,7 @@
                       <p class="gs-err">Please enter a valid URL slug.</p>
                     </div>
                     <div class="gs-field gs-col-full">
-                      <label class="gs-label">Brand Colour <span class="gs-req">Required</span></label>
+                      <label class="gs-label">Brand Color <span class="gs-req">Required</span></label>
                       <div class="gs-swatches" data-swatch-grid="true">
                         <button type="button" class="gs-swatch" data-color="#2D5BFF" style="--gs-swatch-color: #2D5BFF;" aria-label="Vinc blue"/>
                         <button type="button" class="gs-swatch" data-color="#0B162E" style="--gs-swatch-color: #0B162E;" aria-label="Midnight"/>
@@ -227,14 +227,14 @@
                         <button type="button" class="gs-swatch" data-color="#B45309" style="--gs-swatch-color: #B45309;" aria-label="Amber"/>
                         <button type="button" class="gs-swatch" data-color="#9333EA" style="--gs-swatch-color: #9333EA;" aria-label="Violet"/>
                         <button type="button" class="gs-swatch" data-color="#DC2626" style="--gs-swatch-color: #DC2626;" aria-label="Crimson"/>
-                        <button type="button" class="gs-swatch" data-custom="true" aria-label="Custom colour">
+                        <button type="button" class="gs-swatch" data-custom="true" aria-label="Custom color">
                           <span class="gs-swatch-icon" aria-hidden="true"/>
                           <span class="gs-swatch-custom-display"/>
                         </button>
                       </div>
                       <input class="gs-native-color" type="color" id="secondary_color" name="secondary_color" required="required" t-att-value="default_secondary_color or '#2D5BFF'"/>
-                      <p class="gs-hint">Accent colour used for buttons, borders, and highlights on your card.</p>
-                      <p class="gs-err">Please pick a brand colour.</p>
+                      <p class="gs-hint">Accent color used for buttons, borders, and highlights on your card.</p>
+                      <p class="gs-err">Please pick a brand color.</p>
                     </div>
                   </div>
                 </div>
@@ -596,7 +596,7 @@
                         <div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 52px; height: 52px; background: white; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.3);"/>
                       </div>
                       <h4 class="gs-template-name">Creative</h4>
-                      <p class="gs-template-desc">Vibrant colour washes, floating elements. Stand out on purpose.</p>
+                      <p class="gs-template-desc">Vibrant color washes, floating elements. Stand out on purpose.</p>
                     </button>
                   </div>
 
