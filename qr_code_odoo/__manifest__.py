@@ -1,6 +1,6 @@
 {
     'name': 'Vinc',
-    'version': '17.0.1.0.24',
+    'version': '17.0.1.0.25',
     'category': 'Tools',
     'summary': 'Digital business cards, lead capture & analytics inside Odoo',
     'description': """

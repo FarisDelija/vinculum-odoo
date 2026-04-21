@@ -250,8 +250,8 @@ class BulkOnboardingBatch(models.Model):
                     self.progress_current = processed_count
                     try:
                         self.env.cr.commit()
-                    except:
-                        pass
+                    except Exception as commit_err:
+                        _logger.warning("Bulk onboarding commit failed for rep %s: %s", email, commit_err)
                 # Remove from processed set so it can be retried if needed
                 processed_emails.discard(email)
         

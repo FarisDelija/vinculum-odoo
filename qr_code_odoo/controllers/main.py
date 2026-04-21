@@ -239,16 +239,20 @@ def _extract_tracking_data_from_request(req, data=None):
     """
     # Get IP address (handling proxies)
     ip_address = _get_ip_address(req)
-    
+
     # Get user agent
     user_agent = req.httprequest.headers.get('User-Agent', '')
-    
+
     # Build browser fingerprint
     fingerprint_hash = _build_browser_fingerprint(req)
-    
-    # Get geolocation from IP
-    geolocation = _get_geolocation_from_ip(ip_address) if ip_address else None
-    
+
+    # Geolocation moved off the sync path. Previously this blocked the submit
+    # for up to 4s waiting on two upstream geo providers — a very user-visible
+    # latency hit. The IP is stored with the lead / download-tracking row and
+    # the `Vinc: Enrich lead geolocation` cron backfills country / city /
+    # timezone asynchronously (see data/cron_actions.xml).
+    geolocation = None
+
     # Parse user agent
     ua_info = _parse_user_agent(user_agent)
     
@@ -1453,7 +1457,7 @@ class VCardFormController(http.Controller):
                     raw_data = json.loads(request.httprequest.data.decode('utf-8'))
                     if isinstance(raw_data, dict):
                         slug = raw_data.get('slug', '').strip()
-                except:
+                except (ValueError, UnicodeDecodeError, AttributeError):
                     pass
             
             _logger.info(f"Extracted slug: '{slug}'")

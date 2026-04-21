@@ -629,18 +629,13 @@ class CrmLead(models.Model):
             defaults['type'] = 'opportunity'
         return defaults
     
-    @api.model
-    def create(self, vals):
-        """Override create - ensure it's an opportunity by default"""
-        # Ensure it's an opportunity by default
-        if 'type' not in vals:
-            vals['type'] = 'opportunity'
-        
-        return super().create(vals)
-    
-    def write(self, vals):
-        """Override write - integrations removed"""
-        return super(CrmLead, self).write(vals)
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Override create - ensure it's an opportunity by default."""
+        for vals in vals_list:
+            if 'type' not in vals:
+                vals['type'] = 'opportunity'
+        return super().create(vals_list)
 
 class PartnerVCardSpeciality(models.Model):
     _name = 'partner.vcard.speciality'
@@ -680,14 +675,6 @@ class PartnerVCardService(models.Model):
         help='Additional questions to ask when someone requests this service.',
     )
     
-    @api.model
-    def create(self, vals):
-        """Create service - no limits"""
-        return super(PartnerVCardService, self).create(vals)
-    
-    def write(self, vals):
-        """Write service - no limits"""
-        return super(PartnerVCardService, self).write(vals)
 
 
 class PartnerVCardServiceQuestion(models.Model):
@@ -1248,12 +1235,6 @@ class PartnerVCard(models.Model):
         result = super().default_get(fields_list)
         return result
     
-    @api.model
-    def create(self, vals):
-        """Override create - no limits or tenant requirements"""
-        return super().create(vals)
-    
-    
     @api.constrains('show_form', 'mailing_list_id')
     def _check_mailing_list_required(self):
         """Ensure mailing list is set when form is enabled"""
@@ -1495,10 +1476,11 @@ class PartnerVCard(models.Model):
         self.ensure_one()
         if not self.qr_code:
             raise ValidationError('QR code is not available. Please generate the website first.')
-        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url', 'http://localhost:8069')
+        # Relative URL resolves against the current origin — avoids leaking a
+        # hardcoded localhost:8069 fallback when web.base.url isn't configured.
         return {
             'type': 'ir.actions.act_url',
-            'url': f'{base_url}/vcard/qr_code/download/{self.id}',
+            'url': f'/vcard/qr_code/download/{self.id}',
             'target': 'self',
         }
     
@@ -1845,6 +1827,102 @@ class PartnerVCard(models.Model):
             return False
     
     @api.model
+    @staticmethod
+    def _lookup_geolocation(ip_address):
+        """Look up IP geolocation via free public providers.
+
+        Returns a dict with country / city / timezone / country_code / region,
+        or None if all providers fail or the IP is local. Called from
+        _cron_enrich_geolocation — never on a user-facing request path.
+        """
+        if not ip_address or ip_address in ('127.0.0.1', 'localhost', '::1'):
+            return None
+        import urllib.request
+        import urllib.error
+        providers = (
+            (
+                'geojs.io',
+                f'https://get.geojs.io/v1/ip/geo/{ip_address}.json',
+                lambda d: {
+                    'country': d.get('country', ''),
+                    'city': d.get('city', ''),
+                    'timezone': d.get('timezone', ''),
+                    'country_code': d.get('country_code', ''),
+                    'region': d.get('region', ''),
+                } if d else None,
+            ),
+            (
+                'ip-api.com',
+                f'http://ip-api.com/json/{ip_address}?fields=status,country,countryCode,city,timezone,regionName',
+                lambda d: {
+                    'country': d.get('country', ''),
+                    'city': d.get('city', ''),
+                    'timezone': d.get('timezone', ''),
+                    'country_code': d.get('countryCode', ''),
+                    'region': d.get('regionName', ''),
+                } if d and d.get('status') == 'success' else None,
+            ),
+        )
+        for name, url, parser in providers:
+            try:
+                req = urllib.request.Request(url, headers={'User-Agent': 'Vinc-Odoo/1.0'})
+                with urllib.request.urlopen(req, timeout=4) as resp:
+                    import json as _json
+                    data = _json.loads(resp.read().decode())
+                    result = parser(data)
+                    if result:
+                        return result
+            except Exception as err:
+                _logger.debug("Geolocation provider %s failed for %s: %s", name, ip_address, err)
+                continue
+        return None
+
+    @api.model
+    def _cron_enrich_geolocation(self, batch_size=50):
+        """Backfill country / city / timezone on recent leads and downloads.
+
+        Runs every 5 minutes. Processes up to `batch_size` rows per model per
+        tick so a large backlog is drained smoothly instead of blocking the
+        cron worker. Only considers rows created in the last 7 days — older
+        rows with a stuck empty country are left alone.
+        """
+        from datetime import datetime, timedelta
+        recent_cutoff = datetime.now() - timedelta(days=7)
+
+        # Leads submitted through the public /create_lead handler.
+        leads = self.env['crm.lead'].sudo().search([
+            ('submission_ip', '!=', False),
+            ('submission_ip', '!=', ''),
+            ('submission_country', 'in', (False, '')),
+            ('create_date', '>=', recent_cutoff),
+        ], limit=batch_size)
+        for lead in leads:
+            geo = self._lookup_geolocation(lead.submission_ip)
+            if not geo:
+                continue
+            lead.sudo().write({
+                'submission_country': geo.get('country', ''),
+                'submission_city': geo.get('city', ''),
+                'submission_timezone': geo.get('timezone', ''),
+            })
+
+        # vCard download tracking rows.
+        downloads = self.env['vcard.download.tracking'].sudo().search([
+            ('download_ip', '!=', False),
+            ('download_ip', '!=', ''),
+            ('download_country', 'in', (False, '')),
+            ('create_date', '>=', recent_cutoff),
+        ], limit=batch_size)
+        for dl in downloads:
+            geo = self._lookup_geolocation(dl.download_ip)
+            if not geo:
+                continue
+            dl.sudo().write({
+                'download_country': geo.get('country', ''),
+                'download_city': geo.get('city', ''),
+                'download_timezone': geo.get('timezone', ''),
+            })
+
     def _cron_send_digest_emails(self):
         """Cron job to send digest emails to all eligible vCards"""
         from datetime import datetime, timedelta
@@ -3104,286 +3182,6 @@ If you'd like to save my info again later, here's my card: {vcard_url}
             _logger.warning(f"Failed to add logo to QR code: {e}")
             return img
 
-    @api.depends(
-        'whatsapp_url', 'linkedin_url', 'youtube_url', 'facebook_url', 'telegram_url',
-        'instagram_url', 'tumblr_url', 'xing_url', 'github_url', 'vimeo_url',
-        'messenger_url', 'dribbble_url', 'skype_url', 'doordash_url', 'tripadvisor_url',
-        'yelp_url', 'twitter_url', 'google_reviews_url', 'ubereats_url', 'line_url',
-        'vkontakte_url', 'reddit_url', 'viber_url', 'pinterest_url', 'tiktok_url',
-        'snapchat_url', 'signal_url'
-    )
-    def _compute_social_media_urls(self):
-        """Automatically format the social media URLs if the user enters a slug."""
-        url_patterns = {
-            'whatsapp_url': ('https://wa.me/', r'^\d+$'),
-            'linkedin_url': ('https://www.linkedin.com/in/', r'^[a-zA-Z0-9_-]+$'),
-            'linkedin_url_company': ('https://www.linkedin.com/company/', r'^[a-zA-Z0-9_-]+$'),
-            'youtube_url': ('https://www.youtube.com/channel/', r'^[a-zA-Z0-9_-]+$'),
-            'facebook_url': ('https://www.facebook.com/', r'^[a-zA-Z0-9._-]+$'),
-            'facebook_url_company': ('https://www.facebook.com/', r'^[a-zA-Z0-9._-]+$'),
-            'telegram_url': ('https://t.me/', r'^[a-zA-Z0-9_-]+$'),
-            'instagram_url': ('https://www.instagram.com/', r'^[a-zA-Z0-9._-]+$'),
-            'instagram_url_company': ('https://www.instagram.com/', r'^[a-zA-Z0-9._-]+$'),
-            'tumblr_url': ('https://', r'^[a-zA-Z0-9_-]+\.tumblr\.com$'),
-            'xing_url': ('https://www.xing.com/profile/', r'^[a-zA-Z0-9_-]+$'),
-            'github_url': ('https://github.com/', r'^[a-zA-Z0-9_-]+$'),
-            'vimeo_url': ('https://vimeo.com/', r'^[a-zA-Z0-9_-]+$'),
-            'messenger_url': ('https://m.me/', r'^[a-zA-Z0-9._-]+$'),
-            'dribbble_url': ('https://dribbble.com/', r'^[a-zA-Z0-9_-]+$'),
-            'skype_url': ('skype:', r'^[a-zA-Z0-9._-]+$'),
-            'doordash_url': ('https://www.doordash.com/store/', r'^[a-zA-Z0-9._-]+$'),
-            'tripadvisor_url': ('https://www.tripadvisor.com/Profile/', r'^[a-zA-Z0-9._-]+$'),
-            'yelp_url': ('https://www.yelp.com/biz/', r'^[a-zA-Z0-9._-]+$'),
-            'twitter_url': ('https://www.twitter.com/', r'^[a-zA-Z0-9._-]+$'),
-            'twitter_url_company': ('https://www.twitter.com/', r'^[a-zA-Z0-9._-]+$'),
-            'google_reviews_url': ('https://g.page/', r'^[a-zA-Z0-9._-]+$'),
-            'ubereats_url': ('https://www.ubereats.com/store/', r'^[a-zA-Z0-9._-]+$'),
-            'line_url': ('https://line.me/R/ti/p/', r'^[a-zA-Z0-9._-]+$'),
-            'vkontakte_url': ('https://vk.com/', r'^[a-zA-Z0-9._-]+$'),
-            'reddit_url': ('https://www.reddit.com/user/', r'^[a-zA-Z0-9._-]+$'),
-            'viber_url': ('viber://chat?number=', r'^[0-9]+$'),
-            'pinterest_url': ('https://www.pinterest.com/', r'^[a-zA-Z0-9._-]+$'),
-            'tiktok_url': ('https://www.tiktok.com/@', r'^[a-zA-Z0-9._-]+$'),
-            'snapchat_url': ('https://www.snapchat.com/add/', r'^[a-zA-Z0-9._-]+$'),
-            'signal_url': ('https://signal.me/#p/', r'^[0-9]+$')
-        }
-
-        for field_name, (prefix, slug_pattern) in url_patterns.items():
-            field_value = getattr(self, field_name)
-            if field_value:
-                # Check if the user entered a full URL
-                if field_value.startswith('http') or field_value.startswith('https'):
-                    continue
-                elif re.match(slug_pattern, field_value):
-                    # If it's a valid slug, append the correct prefix
-                    setattr(self, field_name, prefix + field_value)
-
-    @api.depends('website_slug')
-    def _compute_website_full_url(self):
-        # Try to get base URL, but handle transaction errors gracefully
-        try:
-            base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
-        except Exception:
-            # If we can't access the database (e.g., transaction is aborted), use request URL
-            try:
-                from odoo import request
-                if hasattr(request, 'httprequest') and request.httprequest:
-                    base_url = request.httprequest.host_url.rstrip('/')
-                else:
-                    base_url = 'http://localhost:8069'  # Fallback
-            except:
-                base_url = 'http://localhost:8069'  # Final fallback
-        
-        for record in self:
-            if record.website_slug:
-                record.website_full_url = base_url + "/" + record.website_slug
-            else:
-                record.website_full_url = base_url
-
-    def _generate_vcf(self):
-        """Generate vCard (.vcf) file for the partner."""
-        vcard = (
-            f"BEGIN:VCARD\n"
-            f"VERSION:3.0\n"
-            f"FN:{self.name}\n"
-            f"ORG:{self.company_name or ''}\n"
-            f"TITLE:{self.function or ''}\n"
-            f"TEL;TYPE=CELL:{self.phone or ''}\n"
-            f"TEL;TYPE=WORK,VOICE:{self.mobile or ''}\n"
-            f"EMAIL:{self.email or ''}\n"
-            f"ADR;TYPE=WORK,PREF:;;{self.street or ''};{self.city or ''};{self.state_id.name or ''};{self.zip or ''};{self.country_id.name or ''}\n"
-            f"END:VCARD"
-        )
-        return vcard
-
-    @api.onchange('website_slug', 'primary_color', 'secondary_color')
-    def _onchange_website_slug(self):
-        self._compute_website_full_url()
-
-    # Imperative side-effect method (no field assignment). @api.depends is
-    # incorrect and was removed — the live override in partner_website1.py
-    # also dropped it. See that file for the authoritative version.
-    def _update_attachment_if_image_changed(self):
-        """Create or update the attachment when image_url is changed."""
-        for record in self:
-            if record.image_url:
-                # Step 1: Check if an attachment already exists; if not, create it
-                if not record.attachment_id:
-                    # Create a new attachment for the uploaded image
-                    new_attachment = self.env['ir.attachment'].create({
-                        'name': f"Partner Image {record.name}",
-                        'type': 'binary',
-                        'datas': record.image_url,
-                        'res_model': 'partner.vcard',
-                        'res_id': record.id,
-                        'public': True,  # Make it accessible to the public
-                        'mimetype': 'image/png',  # Adjust based on the actual image type
-                    })
-                    # Link the newly created attachment to the record
-                    record.attachment_id = new_attachment
-                else:
-                    # Step 2: Update the existing attachment (if an image already exists)
-                    record.attachment_id.write({
-                        'datas': record.image_url,
-                        'name': f"Partner Image {record.name}",
-                        'mimetype': 'image/png',  # Adjust MIME type if needed
-                    })
-    
-    @api.onchange('image_url')
-    def _onchange_image_url(self):
-        """Trigger update when image_url changes and regenerate the website page."""
-        # Call the function to handle attachment creation/update
-        self._update_attachment_if_image_changed()
-        # Optionally regenerate the website page if the slug is set
-        if self.website_slug:
-            self.action_generate_website_page()
-
-    # Imperative side-effect method (no field assignment). See note on
-    # _update_attachment_if_image_changed.
-    def _update_banner_attachment_if_image_changed(self):
-        """Create or update the attachment when banner_image is changed."""
-        for record in self:
-            if record.banner_image:
-                # Step 1: Check if an attachment already exists; if not, create it
-                if not record.banner_attachment_id:
-                    # Create a new attachment for the uploaded banner image
-                    new_attachment = self.env['ir.attachment'].create({
-                        'name': f"Partner Banner Image {record.name}",
-                        'type': 'binary',
-                        'datas': record.banner_image,
-                        'res_model': 'partner.vcard',
-                        'res_id': record.id,
-                        'public': True,  # Make it accessible to the public
-                        'mimetype': 'image/png',  # Adjust based on the actual image type
-                    })
-                    # Link the newly created attachment to the record
-                    record.banner_attachment_id = new_attachment
-                else:
-                    # Step 2: Update the existing attachment (if an image already exists)
-                    record.banner_attachment_id.write({
-                        'datas': record.banner_image,
-                        'name': f"Partner Banner Image {record.name}",
-                        'mimetype': 'image/png',  # Adjust MIME type if needed
-                    })
-            else:
-                # Step 3: If banner_image is removed, clear the attachment reference
-                if record.banner_attachment_id:
-                    # Optionally delete the old attachment to clean up
-                    old_attachment = record.banner_attachment_id
-                    record.banner_attachment_id = False
-                    try:
-                        old_attachment.unlink()
-                    except Exception:
-                        # If deletion fails, just continue - the reference is already cleared
-                        pass
-    
-    @api.onchange('banner_image')
-    def _onchange_banner_image(self):
-        """Trigger update when banner_image changes and regenerate the website page."""
-        # Call the function to handle attachment creation/update
-        self._update_banner_attachment_if_image_changed()
-        # Optionally regenerate the website page if the slug is set
-        if self.website_slug:
-            self.action_generate_website_page()
-
-    def action_generate_website_page(self):
-        """Generate or update the website page dynamically when the button is clicked."""
-        from odoo.exceptions import UserError
-        
-        try:
-            for record in self:
-                _logger.info(f"=== Generating website for {record.name} with template: {record.website_template} ===")
-                
-                # Step 1: Ensure that the image is attached and publicly accessible
-                record._update_attachment_if_image_changed()
-                record._update_banner_attachment_if_image_changed()
-        
-                # Step 2: Get the public URL for the attachment
-                image_url = f'/website/image/ir.attachment/{record.attachment_id.id}/datas' if record.attachment_id else None
-                banner_url = f'/website/image/ir.attachment/{record.banner_attachment_id.id}/datas' if record.banner_attachment_id else None
-        
-                # Step 3: Build the dynamic template, including color settings
-                template = record._build_dynamic_template(image_url, banner_url)
-                
-                _logger.info(f"Generated template for {record.website_slug}, template type: {record.website_template}")
-        
-                # Check if a view already exists for this slug
-                existing_view = self.env['ir.ui.view'].search([('key', '=', f'website.{record.website_slug}')], limit=1)
-        
-                if existing_view:
-                    view_id = existing_view.id
-                    if existing_view.arch_db != template:
-                        _logger.info(f"Updating existing view for {record.website_slug}")
-                        existing_view.write({
-                            'arch_db': template,
-                        })
-                        # Clear all caches to ensure changes take effect
-                        self.env['ir.ui.view'].clear_caches()
-                        self.env['ir.qweb'].clear_caches()
-                        _logger.info(f"View updated successfully, ID: {view_id}")
-                    else:
-                        _logger.info(f"View arch_db unchanged for {record.website_slug}, skipping write + cache clear (ID: {view_id})")
-                else:
-                    # Create a new view with the dynamic template
-                    new_view = self.env['ir.ui.view'].create({
-                        'name': record.website_slug,
-                        'type': 'qweb',
-                        'key': f'website.{record.website_slug}',
-                        'arch_db': template,  # Use the generated template
-                        'website_id': self.env['website'].get_current_website().id,
-                    })
-                    view_id = new_view.id
-        
-                # Check if a website page exists for the slug, if not, create it
-                existing_page = self.env['website.page'].search([('url', '=', f'/{record.website_slug}')], limit=1)
-                if existing_page:
-                    # Update the existing page
-                    existing_page.write({
-                        'name': record.website_slug,
-                        'view_id': view_id,
-                        'is_published': True,
-                    })
-                    record.website_page_id = existing_page.id  # Assign existing page ID to the partner
-                else:
-                    # Create the corresponding website.page entry and mark it as published
-                    new_page = self.env['website.page'].create({
-                        'name': record.website_slug,
-                        'url': f"/{record.website_slug}",
-                        'view_id': view_id,
-                        'website_id': self.env['website'].get_current_website().id,
-                        'is_published': True
-                    })
-                    # Store the created website page reference
-                    record.website_page_id = new_page.id  # Assign new page ID to the partner
-                
-                _logger.info(f"=== Website generation complete for {record.name} ===")
-            
-            _logger.info("========== WEBSITE GENERATION FINISHED SUCCESSFULLY ==========")
-            
-            # Return a notification to the user
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'display_notification',
-                'params': {
-                    'title': 'Website Generated!',
-                    'message': f'Your vCard website has been generated with the {self.website_template} template.',
-                    'type': 'success',
-                    'sticky': True,
-                }
-            }
-        except Exception as e:
-            _logger.error(f"========== ERROR GENERATING WEBSITE: {str(e)} ==========", exc_info=True)
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'display_notification',
-                'params': {
-                    'title': 'Error',
-                    'message': f'Failed to generate website: {str(e)}',
-                    'type': 'danger',
-                    'sticky': True,
-                }
-            }
-
 
     def _get_lead_tag_ids_str(self):
         """Get comma-separated string of lead tag IDs for use in templates"""
@@ -3471,660 +3269,15 @@ If you'd like to save my info again later, here's my card: {vcard_url}
         </script>
         """
     
-    def _build_dynamic_template(self, image_url, banner_url=None):
-        """Build the dynamic website template based on selected template."""
-        # CRITICAL: Compute referral URL at build time and ensure it has ref ID
-        # This URL will be hardcoded in the template, so it's set once and never changes
-        import logging
-        _logger = logging.getLogger(__name__)
-        
-        _logger.info("=" * 80)
-        _logger.info(f"TEMPLATE GENERATION: Building template for vCard {self.id} ({self.name})")
-        _logger.info(f"  Template type: {self.website_template}")
-        _logger.info(f"  Website slug: {self.website_slug}")
-        referral_url = '/get-started'
-        
-        
-        _logger.info(f"  Step 3: Building {self.website_template} template with hardcoded referral URL...")
-        
-        # Call the appropriate template building method based on selection
-        # Pass referral_url to each template builder so it's embedded directly in the template
-        if self.website_template == 'modern':
-            template = self._build_modern_template(image_url, banner_url, referral_url)
-        elif self.website_template == 'minimal':
-            template = self._build_minimal_template(image_url, banner_url, referral_url)
-        elif self.website_template == 'corporate':
-            template = self._build_corporate_template(image_url, banner_url, referral_url)
-        elif self.website_template == 'creative':
-            template = self._build_creative_template(image_url, banner_url, referral_url)
-        else:  # classic or default
-            template = self._build_classic_template(image_url, banner_url, referral_url)
-        
-        # Verify the URL is in the template
-        if referral_url in template:
-            _logger.info(f"  ✓✓✓ VERIFIED: Referral URL '{referral_url}' is embedded in the template")
-            _logger.info(f"  ✓ Footer link will use: {referral_url}")
-        else:
-            _logger.error(f"  ✗✗✗ ERROR: Referral URL '{referral_url}' NOT FOUND in generated template!")
-            _logger.error(f"  ✗ Template may be using fallback URL")
-        
-        _logger.info("=" * 80)
-        
-        # Inject page view tracking script before closing template tag
-        tracking_script = self._get_page_view_tracking_script()
-        if tracking_script:
-            # Insert script before the last closing </t> tag (the outer one)
-            # Find the last occurrence of </t> which is the closing tag for the template
-            last_closing_tag = template.rfind('</t>')
-            if last_closing_tag != -1:
-                template = template[:last_closing_tag] + tracking_script + '\n        ' + template[last_closing_tag:]
-        
-        return template
-    
-    def _build_classic_template(self, image_url, banner_url=None, referral_url=None):
-        """Build the classic vCard template (original design)."""
-        if referral_url is None:
-            referral_url = self.get_referral_signup_url()
-        
-        google_maps_url = self._get_google_maps_url()
-        google_maps_button = ''
-        if google_maps_url:
-            google_maps_button = f'<a href="{google_maps_url}" target="_blank" class="btn btn-sm btn-outline-light ms-2" style="padding: 2px 8px; font-size: 0.75rem; margin-top: 4px; display: inline-block;"><i class="fa fa-map me-1"></i>Directions</a>'
-        
-        address_display = ''
-        if self.street or self.city:
-            address_parts = []
-            if self.street:
-                address_parts.append(self.street)
-            if self.city:
-                address_parts.append(self.city)
-            if self.state_id and self.state_id.name:
-                address_parts.append(self.state_id.name)
-            if self.zip:
-                address_parts.append(f' {self.zip}')
-            if self.country_id and self.country_id.name:
-                address_parts.append(self.country_id.name)
-            address_display = ', '.join(address_parts)
-        
-        address_html = ''
-        if address_display:
-            address_html = f'''<p class="text-white mb-2"><i class="fa fa-map-marker me-2"></i>{address_display}{google_maps_button}</p>'''
-        
-        return f"""
-        <t t-name="website.{self.website_slug}">
-            <t t-set="partner" t-value="request.env['partner.vcard'].sudo().browse({self.id})"/>
-    
-            <!-- Dashboard Button (visible to logged-in internal users) -->
-            <t t-if="request.env.user and not request.env.user._is_public() and not request.env.user.share">
-                <style>
-                    @media only screen and (max-width: 600px) {{
-                        .dashboard-btn-container {{
-                            top: 10px !important;
-                            right: 10px !important;
-                        }}
-                        .dashboard-btn-container a {{
-                            padding: 10px 16px !important;
-                            font-size: 12px !important;
-                        }}
-                        .dashboard-btn-container .fa {{
-                            font-size: 14px !important;
-                        }}
-                    }}
-                </style>
-                <div class="dashboard-btn-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
-                    <a href="/web#action=qr_code_odoo.action_user_dashboard" 
-                       style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: rgba(69, 126, 184, 0.9); color: white; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 14px; font-weight: 500; transition: all 0.3s ease;"
-                       onmouseover="this.style.background='rgba(69, 126, 184, 1)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)';"
-                       onmouseout="this.style.background='rgba(69, 126, 184, 0.9)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)';">
-                        <i class="fa fa-dashboard" style="font-size: 16px;"></i>
-                        <span>Back to Dashboard</span>
-                    </a>
-                </div>
-            </t>
-    
-            <t t-call="website.layout">
-                <div class="container mt-5 mb-5">
-                    <div class="row justify-content-center">
-                        <div class="col-md-8 col-lg-6">
-                            <div class="card shadow-lg border-0" style="background: linear-gradient(135deg, {self.primary_color or '#ffffff'} 0%, {self.secondary_color or '#4C75A3'} 100%);">
-                                <div class="card-body text-center p-5">
-                                    <!-- Profile Image -->
-                                    <div class="mb-4">
-                                        <img t-att-src="'{image_url}'" alt="Profile Image" class="rounded-circle" style="width: 150px; height: 150px; object-fit: cover; border: 5px solid white;"/>
-                                    </div>
-                                    
-                                    <!-- Name and Title -->
-                                    <h1 class="text-white mb-2">{self.name or ''}</h1>
-                                    <h4 class="text-white-50 mb-3">{self.function or ''}</h4>
-                                    <h5 class="text-white mb-4">{self.company_name or ''}</h5>
-                                    
-                                    <!-- Contact Info -->
-                                    <div class="mb-4">
-                                        <t t-if="partner.email">
-                                            <p class="text-white mb-2"><i class="fa fa-envelope me-2"></i><t t-esc="partner.email"/></p>
-                                        </t>
-                                        <t t-if="partner.phone">
-                                            <p class="text-white mb-2"><i class="fa fa-phone me-2"></i><t t-esc="partner.phone"/></p>
-                                        </t>
-                                        <t t-if="partner.mobile">
-                                            <p class="text-white mb-2"><i class="fa fa-mobile me-2"></i><t t-esc="partner.mobile"/></p>
-                                        </t>
-                                        {address_html}
-                                    </div>
-                                    
-                                    <!-- QR Code -->
-                                        <div class="mb-4">
-                                        <img t-att-src="'/vcard/qr_code/download/' + str(partner.id)" alt="QR Code" class="rounded" style="width: 150px; height: 150px; background: white; padding: 10px;"/>
-                                        </div>
-                                    
-                                    <!-- vCard Download -->
-                                    <div class="mb-4">
-                                        <a t-att-href="'/website/vcard/download/' + str(partner.id)" class="btn btn-outline-light btn-lg">
-                                            <i class="fa fa-download me-2"></i>Download vCard
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Vinculum Footer Banner -->
-                    <div style="background: rgba(255,255,255,0.95); border-top: 1px solid rgba(0,0,0,0.1); padding: 20px 0; text-align: center;">
-                        <a href="{referral_url}" target="_blank" style="display: inline-block; color: #6c757d; text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.3s ease; padding: 8px 16px; border-radius: 20px;">
-                            Built with <strong style="color: #4c89c8;">Vinc</strong> <span style="display: inline-block; transition: transform 0.3s ease; margin: 0 4px;">→</span> Create yours for <strong style="color: #4c89c8;">FREE</strong>
-                        </a>
-                    </div>
-                </div>
-            </t>
-        </t>
-        """
-    
-    def _build_modern_template(self, image_url, banner_url=None, referral_url=None):
-        """Build the modern vCard template."""
-        if referral_url is None:
-            referral_url = self.get_referral_signup_url()
-        
-        google_maps_url = self._get_google_maps_url()
-        google_maps_button = ''
-        if google_maps_url:
-            google_maps_button = f'<a href="{google_maps_url}" target="_blank" class="btn btn-sm btn-outline-light ms-2" style="padding: 2px 8px; font-size: 0.75rem;"><i class="fas fa-map me-1"></i>Directions</a>'
-        
-        address_display = ''
-        if self.street or self.city:
-            address_parts = []
-            if self.street:
-                address_parts.append(self.street)
-            if self.city:
-                address_parts.append(self.city)
-            if self.state_id and self.state_id.name:
-                address_parts.append(self.state_id.name)
-            if self.zip:
-                address_parts.append(f' {self.zip}')
-            if self.country_id and self.country_id.name:
-                address_parts.append(self.country_id.name)
-            address_display = ', '.join(address_parts)
-        
-        address_html = ''
-        if address_display:
-            address_html = f'''<p class="mb-2"><i class="fas fa-map-marker-alt me-2"></i><span class="text-white">{address_display}</span>{google_maps_button}</p>'''
-        
-        return f"""
-        <t t-name="website.{self.website_slug}">
-            <t t-set="partner" t-value="request.env['partner.vcard'].sudo().browse({self.id})"/>
-    
-            <!-- Dashboard Button (visible to logged-in internal users) -->
-            <t t-if="request.env.user and not request.env.user._is_public() and not request.env.user.share">
-                <style>
-                    @media only screen and (max-width: 600px) {{
-                        .dashboard-btn-container {{
-                            top: 10px !important;
-                            right: 10px !important;
-                        }}
-                        .dashboard-btn-container a {{
-                            padding: 10px 16px !important;
-                            font-size: 12px !important;
-                        }}
-                        .dashboard-btn-container .fa {{
-                            font-size: 14px !important;
-                        }}
-                    }}
-                </style>
-                <div class="dashboard-btn-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
-                    <a href="/web#action=qr_code_odoo.action_user_dashboard" 
-                       style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: rgba(69, 126, 184, 0.9); color: white; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 14px; font-weight: 500; transition: all 0.3s ease;"
-                       onmouseover="this.style.background='rgba(69, 126, 184, 1)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)';"
-                       onmouseout="this.style.background='rgba(69, 126, 184, 0.9)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)';">
-                        <i class="fa fa-dashboard" style="font-size: 16px;"></i>
-                        <span>Back to Dashboard</span>
-                    </a>
-                </div>
-            </t>
-    
-            <t t-call="website.layout">
-                <div class="modern-vcard-container" style="background: linear-gradient(135deg, {self.primary_color or '#ffffff'} 0%, {self.secondary_color or '#4C75A3'} 100%); min-height: 100vh;">
-                    <div class="container py-5">
-                        <div class="row align-items-center" style="min-height: 80vh;">
-                            <div class="col-lg-6 text-white">
-                                <div class="mb-4 text-center text-lg-start">
-                                    <img t-att-src="'{image_url}'" class="rounded-circle mb-4" alt="Profile" style="width: 200px; height: 200px; object-fit: cover; border: 5px solid rgba(255,255,255,0.3);"/>
-                                </div>
-                                <h1 class="display-4 fw-bold mb-3">{self.name or ''}</h1>
-                                <h2 class="h4 mb-3">{self.company_name or ''}</h2>
-                                <p class="lead mb-4">{self.function or ''}</p>
-                                <div class="contact-info">
-                                    <t t-if="partner.email">
-                                        <p class="mb-2"><i class="fas fa-envelope me-2"></i><a t-att-href="'mailto:' + partner.email" class="text-white text-decoration-none" t-esc="partner.email"/></p>
-                                    </t>
-                                    <t t-if="partner.phone">
-                                        <p class="mb-2"><i class="fas fa-phone me-2"></i><a t-att-href="'tel:' + partner.phone" class="text-white text-decoration-none" t-esc="partner.phone"/></p>
-                                    </t>
-                                    {address_html}
-                                </div>
-                            </div>
-                            <div class="col-lg-6 text-center mt-5 mt-lg-0">
-                                <div class="qr-container">
-                                    <img t-att-src="'/vcard/qr_code/download/' + str(partner.id)" class="qr-code" alt="QR Code" style="width: 250px; height: 250px; border-radius: 20px; background: white; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);"/>
-                                    <p class="mt-3 text-white">Scan to connect</p>
-                                </div>
-                                <div class="mt-4">
-                                    <a t-att-href="'/website/vcard/download/' + str(partner.id)" class="btn btn-light btn-lg">
-                                        <i class="fa fa-download me-2"></i>Download vCard
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Vinculum Footer Banner -->
-                    <div style="padding: 20px 0; background: ' + (partner.primary_color or '#ffffff') + '; border-top: 1px solid #e9ecef; text-align: center;">
-                        <a href="{referral_url}" target="_blank" style="display: inline-block; color: #6c757d; text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.3s ease; padding: 8px 16px; border-radius: 20px;">
-                            Built with Vinc <span style="display: inline-block; transition: transform 0.3s ease; margin: 0 4px;">→</span> Create yours
-                        </a>
-                    </div>
-                </div>
-            </t>
-        </t>
-        """
-    
-    def _build_minimal_template(self, image_url, banner_url=None, referral_url=None):
-        """Build the minimal vCard template."""
-        if referral_url is None:
-            referral_url = self.get_referral_signup_url()
-        
-        google_maps_url = self._get_google_maps_url()
-        google_maps_button = ''
-        if google_maps_url:
-            google_maps_button = f'<a href="{google_maps_url}" target="_blank" class="btn btn-sm btn-outline-dark ms-2" style="padding: 2px 8px; font-size: 0.75rem; margin-top: 4px; display: inline-block;"><i class="fas fa-map me-1"></i>Directions</a>'
-        
-        address_display = ''
-        if self.street or self.city:
-            address_parts = []
-            if self.street:
-                address_parts.append(self.street)
-            if self.city:
-                address_parts.append(self.city)
-            if self.state_id and self.state_id.name:
-                address_parts.append(self.state_id.name)
-            if self.zip:
-                address_parts.append(f' {self.zip}')
-            if self.country_id and self.country_id.name:
-                address_parts.append(self.country_id.name)
-            address_display = ', '.join(address_parts)
-        
-        address_html = ''
-        if address_display:
-            address_html = f'''<p class="mb-2"><i class="fas fa-map-marker-alt me-2"></i><span>{address_display}</span>{google_maps_button}</p>'''
-        
-        return f"""
-        <t t-name="website.{self.website_slug}">
-            <t t-set="partner" t-value="request.env['partner.vcard'].sudo().browse({self.id})"/>
-    
-            <!-- Dashboard Button (visible to logged-in internal users) -->
-            <t t-if="request.env.user and not request.env.user._is_public() and not request.env.user.share">
-                <style>
-                    @media only screen and (max-width: 600px) {{
-                        .dashboard-btn-container {{
-                            top: 10px !important;
-                            right: 10px !important;
-                        }}
-                        .dashboard-btn-container a {{
-                            padding: 10px 16px !important;
-                            font-size: 12px !important;
-                        }}
-                        .dashboard-btn-container .fa {{
-                            font-size: 14px !important;
-                        }}
-                    }}
-                </style>
-                <div class="dashboard-btn-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
-                    <a href="/web#action=qr_code_odoo.action_user_dashboard" 
-                       style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: rgba(69, 126, 184, 0.9); color: white; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 14px; font-weight: 500; transition: all 0.3s ease;"
-                       onmouseover="this.style.background='rgba(69, 126, 184, 1)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)';"
-                       onmouseout="this.style.background='rgba(69, 126, 184, 0.9)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)';">
-                        <i class="fa fa-dashboard" style="font-size: 16px;"></i>
-                        <span>Back to Dashboard</span>
-                    </a>
-                </div>
-            </t>
-    
-            <t t-call="website.layout">
-                <div class="minimal-vcard-container" t-att-style="'min-height: 100vh; padding: 50px 0; background: ' + (partner.primary_color or '#ffffff') + ';'">
-                    <div class="container">
-                        <div class="row justify-content-center">
-                            <div class="col-lg-6 text-center">
-                                <img t-att-src="'{image_url}'" class="mb-4" alt="Profile" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid #e9ecef;"/>
-                                <h1 class="display-5 fw-bold mb-2">{self.name or ''}</h1>
-                                <h2 class="h5 text-muted mb-4">{self.company_name or ''}</h2>
-                                <p class="lead mb-4">{self.function or ''}</p>
-                                
-                                <div class="contact-info mb-4">
-                                    <t t-if="partner.email">
-                                        <p class="mb-2"><i class="fas fa-envelope me-2"></i><a t-att-href="'mailto:' + partner.email" class="text-decoration-none" t-esc="partner.email"/></p>
-                                    </t>
-                                    <t t-if="partner.phone">
-                                        <p class="mb-2"><i class="fas fa-phone me-2"></i><a t-att-href="'tel:' + partner.phone" class="text-decoration-none" t-esc="partner.phone"/></p>
-                                    </t>
-                                    {address_html}
-                                </div>
-                                        
-                                <div class="qr-code-section mb-5">
-                                    <img t-att-src="'/vcard/qr_code/download/' + str(partner.id)" alt="QR Code" style="width: 200px; height: 200px; border-radius: 10px;"/>
-                                    </div>
-                                    
-                                <div>
-                                    <a t-att-href="'/website/vcard/download/' + str(partner.id)" class="btn btn-dark btn-lg">
-                                        <i class="fa fa-download me-2"></i>Download vCard
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Vinculum Footer Banner -->
-                    <div t-att-style="'padding: 20px 0; border-top: 1px solid #e9ecef; text-align: center; background: ' + (partner.primary_color or '#ffffff') + ';'">
-                        <a href="{referral_url}" target="_blank" style="display: inline-block; color: #6c757d; text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.3s ease; padding: 8px 16px; border-radius: 20px;">
-                            Built with Vinc <span style="display: inline-block; transition: transform 0.3s ease; margin: 0 4px;">→</span> Create yours
-                        </a>
-                    </div>
-                                        </div>
-                                    </t>
-        </t>
-        """
-    
-    def _build_corporate_template(self, image_url, banner_url=None, referral_url=None):
-        """Build the corporate vCard template."""
-        if referral_url is None:
-            referral_url = self.get_referral_signup_url()
-        
-        google_maps_url = self._get_google_maps_url()
-        google_maps_button = ''
-        if google_maps_url:
-            google_maps_button = f'<a href="{google_maps_url}" target="_blank" class="btn btn-sm btn-outline-primary ms-2" style="padding: 2px 8px; font-size: 0.75rem; margin-top: 4px; display: inline-block;"><i class="fas fa-map me-1"></i>Directions</a>'
-        
-        address_display = ''
-        if self.street or self.city:
-            address_parts = []
-            if self.street:
-                address_parts.append(self.street)
-            if self.city:
-                address_parts.append(self.city)
-            if self.state_id and self.state_id.name:
-                address_parts.append(self.state_id.name)
-            if self.zip:
-                address_parts.append(f' {self.zip}')
-            if self.country_id and self.country_id.name:
-                address_parts.append(self.country_id.name)
-            address_display = ', '.join(address_parts)
-        
-        address_html = ''
-        if address_display:
-            address_html = f'''<p class="mb-3"><i class="fas fa-map-marker-alt me-2 text-primary"></i><span>{address_display}</span>{google_maps_button}</p>'''
-        
-        return f"""
-        <t t-name="website.{self.website_slug}">
-            <t t-set="partner" t-value="request.env['partner.vcard'].sudo().browse({self.id})"/>
-    
-            <!-- Dashboard Button (visible to logged-in internal users) -->
-            <t t-if="request.env.user and not request.env.user._is_public() and not request.env.user.share">
-                <style>
-                    @media only screen and (max-width: 600px) {{
-                        .dashboard-btn-container {{
-                            top: 10px !important;
-                            right: 10px !important;
-                        }}
-                        .dashboard-btn-container a {{
-                            padding: 10px 16px !important;
-                            font-size: 12px !important;
-                        }}
-                        .dashboard-btn-container .fa {{
-                            font-size: 14px !important;
-                        }}
-                    }}
-                </style>
-                <div class="dashboard-btn-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
-                    <a href="/web#action=qr_code_odoo.action_user_dashboard" 
-                       style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: rgba(69, 126, 184, 0.9); color: white; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 14px; font-weight: 500; transition: all 0.3s ease;"
-                       onmouseover="this.style.background='rgba(69, 126, 184, 1)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)';"
-                       onmouseout="this.style.background='rgba(69, 126, 184, 0.9)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)';">
-                        <i class="fa fa-dashboard" style="font-size: 16px;"></i>
-                        <span>Back to Dashboard</span>
-                    </a>
-                </div>
-            </t>
-    
-            <t t-call="website.layout">
-                <div class="corporate-vcard-container">
-                    <div class="header-section" style="background: {self.primary_color or '#2c3e50'}; padding: 50px 0; border-bottom: 4px solid #34495e;">
-                        <div class="container">
-                            <div class="row align-items-center">
-                                <div class="col-md-8">
-                                    <h1 class="text-white display-6 fw-bold mb-2">{self.name or ''}</h1>
-                                    <h2 class="text-white h4 mb-3">{self.company_name or ''}</h2>
-                                    <p class="text-white-50 mb-0">{self.function or ''}</p>
-                                        </div>
-                                <div class="col-md-4 text-end">
-                                    <img t-att-src="'{image_url}'" alt="Profile" style="width: 120px; height: 120px; border-radius: 10px; object-fit: cover; border: 2px solid white;"/>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="content-section py-5">
-                        <div class="container">
-                            <div class="row">
-                                <div class="col-lg-8">
-                                    <h4 class="mb-4">Contact Information</h4>
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <t t-if="partner.email">
-                                                <p class="mb-3"><i class="fas fa-envelope me-2 text-primary"></i><a t-att-href="'mailto:' + partner.email" class="text-decoration-none" t-esc="partner.email"/></p>
-                                            </t>
-                                            <t t-if="partner.phone">
-                                                <p class="mb-3"><i class="fas fa-phone me-2 text-primary"></i><a t-att-href="'tel:' + partner.phone" class="text-decoration-none" t-esc="partner.phone"/></p>
-                                            </t>
-                                            {address_html}
-                                        </div>
-                                        <div class="col-md-6 text-center">
-                                            <img t-att-src="'/vcard/qr_code/download/' + str(partner.id)" alt="QR Code" style="width: 150px; height: 150px; border-radius: 5px;"/>
-                                        </div>
-                                    </div>
-                                    <div class="mt-4">
-                                        <a t-att-href="'/website/vcard/download/' + str(partner.id)" class="btn btn-primary btn-lg">
-                                            <i class="fa fa-download me-2"></i>Download vCard
-                                        </a>
-                                    </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Vinculum Footer Banner -->
-                    <div style="padding: 20px 0; background: ' + (partner.primary_color or '#ffffff') + '; border-top: 1px solid #e9ecef; text-align: center;">
-                        <a href="{referral_url}" target="_blank" style="display: inline-block; color: #6c757d; text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.3s ease; padding: 8px 16px; border-radius: 20px;">
-                            Built with Vinc <span style="display: inline-block; transition: transform 0.3s ease; margin: 0 4px;">→</span> Create yours
-                        </a>
-                    </div>
-                </div>
-            </t>
-        </t>
-        """
-    
-    def _build_creative_template(self, image_url, banner_url=None, referral_url=None):
-        """Build the creative vCard template with animated background."""
-        if referral_url is None:
-            referral_url = self.get_referral_signup_url()
-        
-        google_maps_url = self._get_google_maps_url()
-        google_maps_button = ''
-        if google_maps_url:
-            google_maps_button = f'<a href="{google_maps_url}" target="_blank" class="btn btn-sm ms-2" style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; border: none; padding: 2px 8px; font-size: 0.75rem; margin-top: 4px; display: inline-block;"><i class="fas fa-map me-1"></i>Directions</a>'
-        
-        address_display = ''
-        if self.street or self.city:
-            address_parts = []
-            if self.street:
-                address_parts.append(self.street)
-            if self.city:
-                address_parts.append(self.city)
-            if self.state_id and self.state_id.name:
-                address_parts.append(self.state_id.name)
-            if self.zip:
-                address_parts.append(f' {self.zip}')
-            if self.country_id and self.country_id.name:
-                address_parts.append(self.country_id.name)
-            address_display = ', '.join(address_parts)
-        
-        address_html = ''
-        if address_display:
-            address_html = f'''<div class="col-12 mb-3"><div class="p-3 bg-light rounded"><i class="fas fa-map-marker-alt me-2" style="color: #667eea;"></i><span>{address_display}</span>{google_maps_button}</div></div>'''
-        
-        return f"""
-        <t t-name="website.{self.website_slug}">
-            <t t-set="partner" t-value="request.env['partner.vcard'].sudo().browse({self.id})"/>
-    
-            <!-- Dashboard Button (visible to logged-in internal users) -->
-            <t t-if="request.env.user and not request.env.user._is_public() and not request.env.user.share">
-                <style>
-                    @media only screen and (max-width: 600px) {{
-                        .dashboard-btn-container {{
-                            top: 10px !important;
-                            right: 10px !important;
-                        }}
-                        .dashboard-btn-container a {{
-                            padding: 10px 16px !important;
-                            font-size: 12px !important;
-                        }}
-                        .dashboard-btn-container .fa {{
-                            font-size: 14px !important;
-                        }}
-                    }}
-                </style>
-                <div class="dashboard-btn-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
-                    <a href="/web#action=qr_code_odoo.action_user_dashboard" 
-                       style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: rgba(69, 126, 184, 0.9); color: white; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 14px; font-weight: 500; transition: all 0.3s ease;"
-                       onmouseover="this.style.background='rgba(69, 126, 184, 1)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)';"
-                       onmouseout="this.style.background='rgba(69, 126, 184, 0.9)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)';">
-                        <i class="fa fa-dashboard" style="font-size: 16px;"></i>
-                        <span>Back to Dashboard</span>
-                    </a>
-                </div>
-            </t>
-    
-            <t t-call="website.layout">
-                <style>
-                    @keyframes gradientShift {{
-                        0% {{ background-position: 0% 50%; }}
-                        50% {{ background-position: 100% 50%; }}
-                        100% {{ background-position: 0% 50%; }}
-                    }}
-                    .creative-bg {{
-                        background: linear-gradient(45deg, #667eea, #764ba2, #f093fb);
-                        background-size: 400% 400%;
-                        animation: gradientShift 15s ease infinite;
-                        min-height: 100vh;
-                        padding: 50px 0;
-                    }}
-                    .creative-card {{
-                        background: rgba(255,255,255,0.95);
-                        border-radius: 30px;
-                        padding: 40px;
-                        box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-                    }}
-                    .creative-name {{
-                        font-size: 2.5rem;
-                        font-weight: 700;
-                        background: linear-gradient(45deg, #667eea, #764ba2);
-                        -webkit-background-clip: text;
-                        -webkit-text-fill-color: transparent;
-                        background-clip: text;
-                    }}
-                </style>
-                <div class="creative-bg">
-                    <div class="container">
-                        <div class="row justify-content-center">
-                            <div class="col-lg-8">
-                                <div class="creative-card">
-                                    <div class="text-center mb-4">
-                                        <img t-att-src="'{image_url}'" alt="Profile" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid white; box-shadow: 0 5px 15px rgba(0,0,0,0.2);"/>
-                                        <h1 class="creative-name mt-3 mb-2">{self.name or ''}</h1>
-                                        <h2 class="h5 text-muted mb-2">{self.function or ''}</h2>
-                                        <h3 class="h6 text-secondary mb-4">{self.company_name or ''}</h3>
-                </div>
-                
-                                    <div class="row mb-4">
-                                        <div class="col-md-6 mb-3" t-if="partner.email">
-                                            <div class="p-3 bg-light rounded">
-                                                <i class="fas fa-envelope me-2" style="color: #667eea;"></i>
-                                                <a t-att-href="'mailto:' + partner.email" class="text-decoration-none text-dark" t-esc="partner.email"/>
-                                </div>
-                                        </div>
-                                        <div class="col-md-6 mb-3" t-if="partner.phone">
-                                            <div class="p-3 bg-light rounded">
-                                                <i class="fas fa-phone me-2" style="color: #667eea;"></i>
-                                                <a t-att-href="'tel:' + partner.phone" class="text-decoration-none text-dark" t-esc="partner.phone"/>
-                                        </div>
-                                        </div>
-                                        {address_html}
-                                    </div>
-                                    
-                                    <div class="text-center mb-4">
-                                        <img t-att-src="'/vcard/qr_code/download/' + str(partner.id)" alt="QR Code" style="width: 200px; height: 200px; border-radius: 20px; background: white; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);"/>
-                                </div>
-                                    
-                                    <div class="text-center">
-                                        <a t-att-href="'/website/vcard/download/' + str(partner.id)" class="btn btn-lg text-white" style="background: linear-gradient(45deg, #667eea, #764ba2); border: none;">
-                                            <i class="fa fa-download me-2"></i>Download vCard
-                                        </a>
-                                    </div>
-                                </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Vinculum Footer Banner -->
-                        <div style="padding: 25px 0; background: rgba(255,255,255,0.95); border-top: 1px solid rgba(255,255,255,0.3); text-align: center;">
-                            <a href="{referral_url}" target="_blank" style="display: inline-block; color: #6c757d; text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.3s ease; padding: 8px 16px; border-radius: 20px;">
-                                Built with Vinc <span style="display: inline-block; transition: transform 0.3s ease; margin: 0 4px;">→</span> Create yours
-                            </a>
-                        </div>
-                    </div>
-            </t>
-        </t>
-        """
-
-    @api.model
-    def create(self, vals):
-        partner = super(PartnerVCard, self).create(vals)
-        # Generate QR code data during creation
-        partner._generate_qr_code_data()
-        # Generate QR code image with initial pattern
-        partner._generate_qr_code_image()
-        
-        # Ensure referral_signup_url is computed
-        partner._compute_referral_signup_url()
-        
-        return partner
+    @api.model_create_multi
+    def create(self, vals_list):
+        partners = super().create(vals_list)
+        for partner in partners:
+            # Generate QR code data + initial image for every new vCard.
+            partner._generate_qr_code_data()
+            partner._generate_qr_code_image()
+            partner._compute_referral_signup_url()
+        return partners
 
     # Field set whose changes should auto-regenerate the published website page.
     # Mirrors the inputs read by _build_dynamic_template plus the image/banner
@@ -4225,29 +3378,26 @@ If you'd like to save my info again later, here's my card: {vcard_url}
     @api.depends('website_slug')
     def _compute_website_full_url(self):
         # Try to get base URL, but handle transaction errors gracefully
+        # When web.base.url can't be read (aborted txn, config missing), fall
+        # back to the current request URL if one exists, else leave base_url
+        # empty so downstream URLs stay relative (or the compute returns ''
+        # and the caller decides). Never emit hardcoded localhost:8069 — that
+        # shows up in customer emails with broken links.
         import psycopg2
+        base_url = ''
         try:
-            base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+            base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url') or ''
         except psycopg2.errors.InFailedSqlTransaction:
-            # If transaction is aborted, we cannot query the database.
-            # Return a placeholder or default URL to avoid crashing.
-            base_url = 'http://localhost:8069'  # Fallback to a generic base URL
-            import logging
-            _logger = logging.getLogger(__name__)
-            _logger.warning("Transaction aborted, using fallback base_url for _compute_website_full_url")
+            _logger.warning("Transaction aborted; falling back to request URL for web.base.url")
         except Exception as e:
-            # If we can't access the database for any other reason, use request URL or fallback
+            _logger.error("Error getting base_url in _compute_website_full_url: %s", e)
+        if not base_url:
             try:
-                from odoo import request
-                if hasattr(request, 'httprequest') and request.httprequest:
-                    base_url = request.httprequest.host_url.rstrip('/')
-                else:
-                    base_url = 'http://localhost:8069'  # Fallback
-            except:
-                base_url = 'http://localhost:8069'  # Final fallback
-            import logging
-            _logger = logging.getLogger(__name__)
-            _logger.error(f"Error getting base_url in _compute_website_full_url: {e}")
+                from odoo.http import request as _req
+                if hasattr(_req, 'httprequest') and _req.httprequest:
+                    base_url = _req.httprequest.host_url.rstrip('/')
+            except Exception:
+                pass
         
         for record in self:
             if record.website_slug:

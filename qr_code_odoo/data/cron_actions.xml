@@ -45,4 +45,19 @@
         <field name="active" eval="True"/>
     </record>
 
+    <!-- Enrich leads / downloads with IP-based geolocation asynchronously.
+         The public /create_lead and /vcard/download handlers previously called
+         two upstream geo providers inline, blocking the POST for up to 4s.
+         Now they only record submission_ip; this cron fills in country, city
+         and timezone in the background. -->
+    <record id="ir_cron_enrich_lead_geolocation" model="ir.cron">
+        <field name="name">Vinc: Enrich lead geolocation</field>
+        <field name="model_id" ref="model_partner_vcard"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_enrich_geolocation()</field>
+        <field name="interval_number">5</field>
+        <field name="interval_type">minutes</field>
+        <field name="active" eval="True"/>
+    </record>
+
 </odoo>
