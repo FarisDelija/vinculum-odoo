@@ -226,6 +226,89 @@ All templates feature:
 
 ---
 
+## 🔐 Permissions & Access Control
+
+Vinc ships with a two-tier permission model enforced at the Odoo ORM layer
+via `ir.rule` records — no application-level sprinkling, no trust on client
+code.
+
+| Role | Who | Sees / can modify |
+| --- | --- | --- |
+| **Regular internal user** (`base.group_user`) | Every user you create in Odoo | Only the vCards, leads, reviews, downloads, follow-up reminders and leadback settings that **they themselves created**. Cannot read / write / unlink another user's records, and has **no access** to the bulk onboarding models. |
+| **Vinc Manager** (`qr_code_odoo.group_vinc_manager`) | Granted manually from Settings → Users & Companies → Users → *Vinc* tab | Sees and manages **every** vCard, lead, review, tracking row and bulk-onboarding batch on the instance. Required for the `/bulk-onboard` flow. |
+| **Odoo administrator** (`base.group_system`) | Odoo's built-in Administration group | Implicitly gets Vinc Manager via `implied_ids` — no extra step. |
+
+### Granting the Vinc Manager role
+
+1. Go to **Settings → Users & Companies → Users** and pick a user.
+2. Switch to the **Access Rights** tab.
+3. Under the **Vinc** category, set the access level to **Vinc Manager**.
+4. Save.
+
+The user can now see all cards on the instance and run bulk-onboarding campaigns.
+
+### What's locked down
+
+- `bulk.onboarding.batch`, `bulk.onboarding.rep`, and `bulk.onboarding.token` are
+  **Vinc-Manager-only** at the ACL level. Regular users cannot enumerate magic-link
+  tokens even via direct RPC. The activation controller itself uses `sudo()` to
+  look up tokens by value, so the flow still works for recipients.
+- `partner.vcard` and all its children (`.website`, `.videos`, `.reviews`,
+  `.speciality`, `.service`, `.service.question`) are scoped to the creator's
+  `create_uid` for non-managers.
+- `vcard.download.tracking`, `followup.reminder`, `followup.scheduled.reminder`,
+  `leadback.*` and `user.dashboard` all get the same per-owner isolation.
+- Service descriptions, review text and the free-form About field are stored as
+  sanitised HTML (`sanitize=True, sanitize_tags=True, sanitize_attributes=True`).
+  Published-card templates render these fields with `t-esc` as defense-in-depth.
+
+### Required Odoo / server configuration
+
+A few instance-level settings must be correct for Vinc to work well in production:
+
+- **`web.base.url`** — *Settings → Technical → System Parameters*. The
+  full `https://yourdomain.com` (no trailing slash). Vinc uses this for
+  QR-code URLs, vCard download links, intro / notification / digest email
+  bodies, and magic-link activations. If this is wrong or blank, customers
+  receive emails and QR codes pointing at the wrong host.
+- **Outgoing mail server** — *Settings → Technical → Outgoing Mail Servers*.
+  Required for lead-notification emails, intro emails, digest emails,
+  leadback emails, and bulk-onboarding magic links. Without a working SMTP
+  relay the "Mail: Send Email Queue" cron silently fails.
+- **Website host** — the module binds its routes under the default website.
+  If you run multi-website, pick which website hosts the `/get-started`,
+  `/vinculum/guide`, `/nfc/setup/<id>`, and `/bulk-onboard` routes.
+
+### Optional modules that change behaviour
+
+- **`auth_signup`** — if installed, anyone can self-register via `/web/signup`.
+  New signups get a plain `base.group_user` with zero access to existing
+  cards / leads (thanks to the record rules above). They can only create
+  their own card from `/get-started`. Grant Vinc Manager manually if you
+  want that user to see everything.
+- **`crm`** is a hard dependency — leads captured through the public lead
+  form land in the CRM pipeline of the card owner.
+
+### Public vs. authenticated routes
+
+| Route | Auth | Purpose |
+| --- | --- | --- |
+| `/<slug>` | public | Published vCard page |
+| `/create_lead` | public (JSON, csrf=False) | Lead form submission from a published card |
+| `/create_review` | public | Review submission |
+| `/create_service_request` | public | Service request submission |
+| `/vcard/qr_code/download/<id>` | public | QR code image download |
+| `/website/vcard/download/<id>` | public | `.vcf` download |
+| `/get-started` | user | Card creation wizard (5-chapter editorial flow) |
+| `/vcard/submit` | user | POST target of `/get-started` |
+| `/vcard/preview` | user (JSON-RPC) | Live preview used by the `/get-started` iframe |
+| `/nfc/setup/<partner_id>` | public | NFC programming walkthrough, linked from the card form |
+| `/vinculum/guide` | public | In-product user + admin guide (8 topics) |
+| `/bulk-onboard` | manager | CSV / Excel bulk card creation + magic-link activation |
+| `/bulk-onboard/activate/<token>` | public | Magic-link activation for invited users |
+
+---
+
 ## 📖 User Guide
 
 ### Creating a Card

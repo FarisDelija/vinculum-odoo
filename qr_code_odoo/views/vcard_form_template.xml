@@ -645,7 +645,6 @@
                   </div>
                 </div>
               </div>
-              <span class="gs-preview-url" data-preview-url="true"><t t-esc="base_url_display or 'your-domain.com'"/>/<span data-slug-echo="true">your-slug</span></span>
             </div>
           </aside>
         </div>

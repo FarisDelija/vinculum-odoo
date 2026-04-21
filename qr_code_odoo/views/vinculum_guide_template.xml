@@ -607,11 +607,11 @@
                 <footer class="vg-footer">
                     <div class="vg-feedback">
                         <span>Was this page helpful?</span>
-                        <a href="mailto:support@getvinc.com?subject=Vinc%20Guide%20feedback%20(helpful)" title="Yes, helpful"><button type="button">👍</button></a>
-                        <a href="mailto:support@getvinc.com?subject=Vinc%20Guide%20feedback%20(needs%20work)" title="Needs work"><button type="button">👎</button></a>
+                        <a href="https://getvinc.com/contact" target="_blank" rel="noopener" title="Yes, helpful"><button type="button">👍</button></a>
+                        <a href="https://getvinc.com/contact" target="_blank" rel="noopener" title="Needs work"><button type="button">👎</button></a>
                     </div>
                     <div>
-                        Need more? <a href="mailto:support@getvinc.com">support@getvinc.com</a>
+                        Need more? <a href="https://getvinc.com/contact" target="_blank" rel="noopener">getvinc.com/contact</a>
                         <span style="color: var(--vg-sand); margin: 0 10px;">·</span>
                         <a href="/web">Open Vinc</a>
                     </div>

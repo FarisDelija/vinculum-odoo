@@ -225,11 +225,21 @@ class UserDashboard(models.TransientModel):
         }
     
     def action_open_nfc_setup(self):
-        """Open NFC setup guide"""
-        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        """Open the NFC card programming walkthrough.
+
+        The NFC walkthrough at /nfc/setup/<partner_id> is scoped to a single
+        vCard (it embeds the card's public URL). If the user has at least one
+        card we deep-link to that; otherwise we fall back to the admin-track
+        NFC topic in the Vinc Guide so the user still has instructions to
+        read before they create a card.
+        """
+        if self.vcard_ids:
+            target_url = f"/nfc/setup/{self.vcard_ids[0].id}"
+        else:
+            target_url = "/vinculum/guide/nfc"
         return {
             'type': 'ir.actions.act_url',
-            'url': f"{base_url}/nfc/onboarding",
+            'url': target_url,
             'target': 'new',
         }
     

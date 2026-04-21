@@ -205,6 +205,56 @@ All templates feature:
 
 ---
 
+## 🔐 Permissions & Access Control
+
+Vinc enforces a two-tier permission model at the Odoo ORM layer via
+`ir.rule` records (see `qr_code_odoo/security/vinc_record_rules.xml`).
+
+| Role | Scope |
+| --- | --- |
+| **Regular internal user** (`base.group_user`) | Only records **they created** — their own cards, leads, reviews, tracking, follow-up reminders, leadback settings. Cannot touch other users' data. No access to `bulk.onboarding.*` models. |
+| **Vinc Manager** (`qr_code_odoo.group_vinc_manager`) | Everything — every card, lead, tracking row, and bulk-onboarding batch on the instance. Required for the `/bulk-onboard` flow. |
+| **Odoo administrator** (`base.group_system`) | Implicitly gets Vinc Manager via `implied_ids`. |
+
+**Granting Vinc Manager:** Settings → Users & Companies → Users → pick user → *Access Rights* tab → **Vinc** field → *Vinc Manager* → Save.
+
+### Required server configuration
+
+| Setting | Where | Why |
+| --- | --- | --- |
+| `web.base.url` | Settings → Technical → System Parameters | QR links, emails, magic-link activations all reference this. If wrong, customers receive links pointing at the wrong host. |
+| Outgoing Mail Server | Settings → Technical → Outgoing Mail Servers | Lead / intro / digest / leadback emails and bulk-onboarding magic links are queued via `mail.mail`. Without SMTP the queue silently stalls. |
+| Default website | Website → Configuration → Websites | Vinc routes (`/get-started`, `/vinculum/guide`, `/<slug>`, etc.) bind to the default website. For multi-website instances, choose which one hosts them. |
+
+### Route map
+
+**Public:** `/<slug>` (published card), `/create_lead`, `/create_review`,
+`/create_service_request`, `/vcard/qr_code/download/<id>`, `/website/vcard/download/<id>`,
+`/nfc/setup/<partner_id>`, `/vinculum/guide`, `/bulk-onboard/activate/<token>`.
+
+**Authenticated user:** `/get-started`, `/vcard/submit`, `/vcard/preview`,
+`/vcard/check_slug_availability`.
+
+**Vinc Manager only:** `/bulk-onboard`, `/bulk-onboard/upload`, `/bulk-onboard/submit`.
+
+### Optional module: `auth_signup`
+
+If you install Odoo's `auth_signup` module, anyone can self-register via
+`/web/signup`. New signups get a plain `base.group_user` — the record rules
+ensure they only see their own data. They can create a card via `/get-started`.
+Grant Vinc Manager manually if you want the user to see everything.
+
+### Security hardening already in place
+
+- Service descriptions, review text and the About field are `fields.Html(sanitize=True, sanitize_tags=True, sanitize_attributes=True)` and rendered via `t-esc` (defense in depth).
+- Lead-notification emails HTML-escape every attacker-controlled field before interpolation.
+- `Content-Disposition` filename on QR / vCard downloads is sanitised and quoted.
+- Bulk-onboarding CSV/Excel upload is capped at 2 MB and 500 rows per batch.
+- Bulk-onboarding profile-photo upload is capped at 5 MB with a MIME whitelist.
+- Magic-link activation auto-logs-in server-side; passwords never appear in redirect URLs.
+
+---
+
 ## 📖 User Guide
 
 ### Creating a Card

@@ -1177,9 +1177,16 @@ body:has(.vg-getstarted) #wrapwrap > main { background: #FFFFFF !important; }
     position: relative;
     background: #fff;
     border-radius: 30px;
-    overflow: hidden;
+    /* Scroll the tall scaled iframe vertically but hide the scrollbar so the
+       "phone screen" illusion stays clean. Users can still scroll with wheel,
+       touch, or keyboard within the frame. */
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;           /* Firefox */
+    -ms-overflow-style: none;        /* old IE/Edge */
     height: 570px;
 }
+.vg-getstarted .gs-phone-screen::-webkit-scrollbar { display: none; }
 .vg-getstarted .gs-phone-screen iframe {
     display: block;
     width: 125%;
@@ -1188,7 +1195,8 @@ body:has(.vg-getstarted) #wrapwrap > main { background: #FFFFFF !important; }
     transform: scale(0.8);
     transform-origin: top left;
     background: #fff;
-    /* Scrolling stays enabled; clicks are blocked via JS on load (same-origin) */
+    /* Clicks are blocked via JS on load (same-origin); scroll events pass
+       through to the parent .gs-phone-screen so the wrapper scrolls. */
 }
 .vg-getstarted .gs-phone-loading {
     position: absolute;
@@ -1210,11 +1218,6 @@ body:has(.vg-getstarted) #wrapwrap > main { background: #FFFFFF !important; }
     border: 2px solid var(--gs-line);
     border-top-color: var(--gs-blue);
     animation: gsSpin 0.7s linear infinite;
-}
-.vg-getstarted .gs-preview-url {
-    font-family: var(--gs-font-mono);
-    font-size: 12px;
-    color: var(--gs-ink-faint);
 }
 
 /* ==========  Mobile floating preview pill + sheet  ========== */
@@ -1255,28 +1258,27 @@ body:has(.vg-getstarted) #wrapwrap > main { background: #FFFFFF !important; }
 }
 .vg-getstarted .gs-preview-sheet[data-open="true"] { display: block; }
 @keyframes gsFadeBg { from { opacity: 0; } to { opacity: 1; } }
+/* Full-viewport sheet. Previously a bottom-docked sheet with 92vh max —
+   on short screens the phone overflowed below the fold so the bottom half
+   was cut off. Going full-screen lets us vertically center the phone and
+   guarantee it fits regardless of viewport height. */
 .vg-getstarted .gs-preview-sheet-inner {
     position: absolute;
-    left: 50%;
-    bottom: 0;
-    transform: translateX(-50%);
-    width: min(100%, 440px);
-    max-height: 92vh;
+    inset: 0;
     background: var(--gs-bg);
-    border-radius: 22px 22px 0 0;
-    overflow: hidden;
     display: flex;
     flex-direction: column;
-    animation: gsSheetUp 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+    animation: gsSheetFade 0.22s ease;
 }
-@keyframes gsSheetUp {
-    from { transform: translate(-50%, 30%); opacity: 0; }
-    to   { transform: translate(-50%, 0); opacity: 1; }
+@keyframes gsSheetFade {
+    from { opacity: 0; transform: scale(0.98); }
+    to   { opacity: 1; transform: scale(1); }
 }
 .vg-getstarted .gs-preview-sheet-head {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 20px;
     border-bottom: 1px solid var(--gs-line);
+    flex: 0 0 auto;
 }
 .vg-getstarted .gs-preview-sheet-head span {
     font-family: var(--gs-font-serif);
@@ -1286,27 +1288,37 @@ body:has(.vg-getstarted) #wrapwrap > main { background: #FFFFFF !important; }
 }
 .vg-getstarted .gs-preview-sheet-close {
     background: none; border: none; padding: 6px;
-    color: var(--gs-ink-faint); font-size: 20px; cursor: pointer;
+    color: var(--gs-ink-faint); font-size: 22px; cursor: pointer;
     border-radius: 999px;
-    width: 32px; height: 32px;
+    width: 36px; height: 36px;
     display: inline-flex; align-items: center; justify-content: center;
+    line-height: 1;
 }
 .vg-getstarted .gs-preview-sheet-close:hover {
     background: var(--gs-bg-soft); color: var(--gs-ink);
 }
 .vg-getstarted .gs-preview-sheet-body {
     flex: 1 1 auto;
+    min-height: 0;
     overflow: hidden;
-    padding: 18px;
-    display: flex; justify-content: center; align-items: flex-start;
+    padding: 16px;
+    display: flex; justify-content: center; align-items: center;
     background: var(--gs-bg-soft);
 }
+/* Phone inside the sheet: cap its dimensions to the available viewport so
+   it never overflows. The screen shrinks proportionally to the body width. */
 .vg-getstarted .gs-preview-sheet-body .gs-phone {
-    width: 296px;
+    width: min(296px, calc(100vw - 48px));
+    max-width: 296px;
     padding: 12px 8px;
     box-shadow: 0 20px 40px rgba(14, 27, 58, 0.30);
 }
-.vg-getstarted .gs-preview-sheet-body .gs-phone-screen { height: 60vh; max-height: 600px; }
+.vg-getstarted .gs-preview-sheet-body .gs-phone-screen {
+    /* Leave room for head (~56px) + body padding (32px) + phone padding/shadow. */
+    height: calc(100vh - 180px);
+    max-height: 620px;
+    min-height: 360px;
+}
 
 /* Prevent body scroll when sheet open */
 body.gs-sheet-open { overflow: hidden; }

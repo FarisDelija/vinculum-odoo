@@ -22,6 +22,10 @@
             </div>
             <div class="vg-content">
 
+                <div class="vg-callout" style="background: #EEF2FF; border-left: 3px solid #2D5BFF; padding: 14px 18px; border-radius: 8px; margin-bottom: 28px;">
+                    <strong>Who can run this:</strong> the <code>/bulk-onboard</code> flow is locked to users with the <em>Vinc Manager</em> role (or Odoo system admins, who inherit it). Grant it from <em>Settings → Users &amp; Companies → Users → Access Rights → Vinc</em>. Regular internal users have no access to the bulk-onboarding models via RPC or UI.
+                </div>
+
                 <h2><span class="vg-h2-num">01</span>The CSV format</h2>
                 <p>Bulk onboarding takes a CSV with one row per future card. Two columns are required, the rest are optional:</p>
                 <ul>

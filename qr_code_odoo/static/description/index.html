@@ -784,6 +784,69 @@
   </section>
 
 
+  <!-- ========== SETUP & PERMISSIONS ========== -->
+  <section class="sec" style="background: #F4F7FC;">
+    <div class="wrap">
+      <span class="kicker">Setup &amp; permissions</span>
+      <h2>Install it, <em>wire it</em>, hand out roles.</h2>
+      <p class="lede">
+        The sub-ten-minute path from a fresh Odoo to a published Vinc card. Everything below is enforced at the ORM layer, not the UI.
+      </p>
+
+      <div class="specs-grid">
+        <div class="spec">
+          <h4>1 &middot; Install</h4>
+          <ul>
+            <li><code>pip install -r requirements.txt</code> (installs <code>qrcode</code>, <code>Pillow</code>, <code>openpyxl</code>)</li>
+            <li>Drop <code>qr_code_odoo/</code> in your <code>addons_path</code></li>
+            <li>Restart Odoo, then <em>Apps &rarr; Update Apps List &rarr; search "Vinc" &rarr; Install</em></li>
+          </ul>
+        </div>
+
+        <div class="spec">
+          <h4>2 &middot; Configure the instance</h4>
+          <ul>
+            <li><em>Settings &rarr; Technical &rarr; System Parameters &rarr; <code>web.base.url</code></em> &mdash; set to your public HTTPS host. All QR links, emails, magic-link activations reference this.</li>
+            <li><em>Settings &rarr; Technical &rarr; Outgoing Mail Servers</em> &mdash; configure SMTP. Lead notifications, intro / digest / leadback emails and bulk-onboarding activation mails queue through <code>mail.mail</code>.</li>
+            <li>Multi-website? Pick which website hosts <code>/get-started</code>, <code>/vinculum/guide</code>, <code>/bulk-onboard</code>.</li>
+          </ul>
+        </div>
+
+        <div class="spec">
+          <h4>3 &middot; Two roles, enforced by record rules</h4>
+          <ul>
+            <li><strong>Regular internal user</strong> (<code>base.group_user</code>) &mdash; sees only records they created. No access to <code>bulk.onboarding.*</code>.</li>
+            <li><strong>Vinc Manager</strong> (<code>qr_code_odoo.group_vinc_manager</code>) &mdash; sees every card, lead and tracking row on the instance. Required to run <code>/bulk-onboard</code>.</li>
+            <li>Odoo administrators (<code>base.group_system</code>) implicitly get Vinc Manager via <code>implied_ids</code>.</li>
+          </ul>
+        </div>
+
+        <div class="spec">
+          <h4>4 &middot; Grant the manager role</h4>
+          <ul>
+            <li><em>Settings &rarr; Users &amp; Companies &rarr; Users</em> &rarr; pick the user &rarr; <em>Access Rights</em> tab &rarr; <strong>Vinc</strong> &rarr; <em>Vinc Manager</em> &rarr; Save.</li>
+            <li>Everyone else stays scoped to their own records via <code>ir.rule</code>.</li>
+          </ul>
+        </div>
+
+        <div class="spec">
+          <h4>Public vs authenticated routes</h4>
+          <ul>
+            <li><strong>Public:</strong> <code>/&lt;slug&gt;</code>, <code>/create_lead</code>, <code>/create_review</code>, <code>/create_service_request</code>, <code>/vcard/qr_code/download/&lt;id&gt;</code>, <code>/nfc/setup/&lt;id&gt;</code>, <code>/vinculum/guide</code>, <code>/bulk-onboard/activate/&lt;token&gt;</code></li>
+            <li><strong>User:</strong> <code>/get-started</code>, <code>/vcard/submit</code>, <code>/vcard/preview</code></li>
+            <li><strong>Vinc Manager only:</strong> <code>/bulk-onboard</code>, <code>/bulk-onboard/upload</code>, <code>/bulk-onboard/submit</code></li>
+          </ul>
+        </div>
+
+        <div class="spec">
+          <h4>Optional: self-serve signup</h4>
+          <p>Install Odoo's <code>auth_signup</code> module and new signups land as <code>base.group_user</code> &mdash; zero access to existing cards thanks to the record rules. They can create their own via <code>/get-started</code>. Promote to Vinc Manager manually if wanted.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
   <!-- ========== FAQ ========== -->
   <section class="sec faq-section">
     <div class="wrap">
