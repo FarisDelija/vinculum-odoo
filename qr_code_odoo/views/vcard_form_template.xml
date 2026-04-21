@@ -59,6 +59,18 @@
               </div>
             </div>
 
+            <!-- Invited-card banner: shown when the recipient lands here via
+                 /bulk-onboard/complete-vcard (i.e. flow=bulk-activate). -->
+            <t t-if="bulk_mode">
+              <div class="gs-invite-banner" role="status">
+                <div class="gs-invite-icon" aria-hidden="true">✉</div>
+                <div class="gs-invite-body">
+                  <strong>You're completing an invited card.</strong>
+                  <span>Your administrator pre-filled some details — change anything you'd like, then click <em>Create my Vinc card</em> to publish.</span>
+                </div>
+              </div>
+            </t>
+
             <!-- Server error banner (re-render path) -->
             <t t-if="error">
               <div class="gs-error-banner" role="alert">
@@ -76,7 +88,10 @@
               <!-- Primary color is fixed white; historically part of submit payload. -->
               <input type="hidden" name="primary_color" value="#ffffff"/>
               <!-- Default template = modern; updated by the template picker in chapter 5. -->
-              <input type="hidden" name="website_template" id="selected_template" value="modern"/>
+              <input type="hidden" name="website_template" id="selected_template" t-att-value="default_website_template or 'modern'"/>
+              <!-- Flow flag: 'bulk-activate' tells /vcard/submit to UPDATE the
+                   user's bulk-onboarded card instead of creating a new one. -->
+              <input type="hidden" name="flow" t-att-value="flow or ''"/>
 
               <!-- =============================================== -->
               <!-- Chapter 1 · Identity                           -->
@@ -152,7 +167,7 @@
                     <div class="gs-field gs-col-full">
                       <label class="gs-label" for="gs-about">About You <span class="gs-req">Required</span></label>
                       <textarea class="gs-textarea" id="gs-about" name="about" required="required"
-                                placeholder="Tell people who you are, what you do, and why someone would want to work with you."></textarea>
+                                placeholder="Tell people who you are, what you do, and why someone would want to work with you."><t t-esc="default_about or ''"/></textarea>
                       <p class="gs-hint">Tip: your LinkedIn summary usually works well here.</p>
                       <p class="gs-err">Please tell us about yourself.</p>
                     </div>
@@ -186,7 +201,7 @@
                     </div>
                     <div class="gs-field">
                       <label class="gs-label" for="gs-calendly">Calendar URL</label>
-                      <input class="gs-input" type="url" id="gs-calendly" name="calendly_url" placeholder="https://calendly.com/your-link"/>
+                      <input class="gs-input" type="url" id="gs-calendly" name="calendly_url" placeholder="https://calendly.com/your-link" t-att-value="default_calendly or ''"/>
                       <p class="gs-hint">Calendly, Google Calendar, Cal.com — whichever you use.</p>
                     </div>
                     <div class="gs-field gs-col-full">
@@ -194,7 +209,8 @@
                       <div class="gs-input-addon" data-slug-shell="true">
                         <span class="gs-addon-prefix"><t t-esc="base_url_display or 'your-domain.com'"/>/</span>
                         <input class="gs-input" type="text" id="gs-slug" name="website_slug"
-                               required="required" placeholder="jane-doe" autocomplete="off"/>
+                               required="required" placeholder="jane-doe" autocomplete="off"
+                               t-att-value="default_slug or ''"/>
                         <span class="gs-addon-suffix">
                           <span class="gs-slug-status" data-slug-status="true" aria-live="polite"/>
                         </span>
@@ -216,7 +232,7 @@
                           <span class="gs-swatch-custom-display"/>
                         </button>
                       </div>
-                      <input class="gs-native-color" type="color" id="secondary_color" name="secondary_color" required="required" value="#2D5BFF"/>
+                      <input class="gs-native-color" type="color" id="secondary_color" name="secondary_color" required="required" t-att-value="default_secondary_color or '#2D5BFF'"/>
                       <p class="gs-hint">Accent colour used for buttons, borders, and highlights on your card.</p>
                       <p class="gs-err">Please pick a brand colour.</p>
                     </div>
@@ -253,26 +269,26 @@
                   <div class="gs-grid">
                     <div class="gs-field">
                       <label class="gs-label" for="gs-street">Street Address</label>
-                      <input class="gs-input" type="text" id="gs-street" name="street" placeholder="123 Main Street"/>
+                      <input class="gs-input" type="text" id="gs-street" name="street" placeholder="123 Main Street" t-att-value="default_street or ''"/>
                     </div>
                     <div class="gs-field">
                       <label class="gs-label" for="gs-street2">Address Line 2</label>
-                      <input class="gs-input" type="text" id="gs-street2" name="street2" placeholder="Suite 100"/>
+                      <input class="gs-input" type="text" id="gs-street2" name="street2" placeholder="Suite 100" t-att-value="default_street2 or ''"/>
                     </div>
                     <div class="gs-field">
                       <label class="gs-label" for="gs-city">City</label>
-                      <input class="gs-input" type="text" id="gs-city" name="city" placeholder="San Francisco"/>
+                      <input class="gs-input" type="text" id="gs-city" name="city" placeholder="San Francisco" t-att-value="default_city or ''"/>
                     </div>
                     <div class="gs-field">
                       <label class="gs-label" for="gs-zip">ZIP / Postal Code</label>
-                      <input class="gs-input" type="text" id="gs-zip" name="zip" placeholder="94103"/>
+                      <input class="gs-input" type="text" id="gs-zip" name="zip" placeholder="94103" t-att-value="default_zip or ''"/>
                     </div>
                     <div class="gs-field">
                       <label class="gs-label" for="vcard_country">Country</label>
                       <select class="gs-select" id="vcard_country" name="country_id">
                         <option value="">Select a country</option>
                         <t t-foreach="countries" t-as="country">
-                          <option t-att-value="country.id"><t t-esc="country.name"/></option>
+                          <option t-att-value="country.id" t-att-selected="'selected' if default_country_id and country.id == default_country_id else None"><t t-esc="country.name"/></option>
                         </t>
                       </select>
                     </div>
@@ -281,7 +297,7 @@
                       <select class="gs-select" id="vcard_state" name="state_id">
                         <option value="">Select a state</option>
                         <t t-foreach="states" t-as="state">
-                          <option t-att-value="state.id" t-att-data-country-id="state.country_id.id">
+                          <option t-att-value="state.id" t-att-data-country-id="state.country_id.id" t-att-selected="'selected' if default_state_id and state.id == default_state_id else None">
                             <t t-esc="state.name"/>
                           </option>
                         </t>
@@ -297,27 +313,27 @@
                   <div class="gs-grid">
                     <div class="gs-field">
                       <label class="gs-label" for="gs-linkedin">LinkedIn</label>
-                      <input class="gs-input" type="url" id="gs-linkedin" name="linkedin_url" placeholder="https://www.linkedin.com/in/username"/>
+                      <input class="gs-input" type="url" id="gs-linkedin" name="linkedin_url" placeholder="https://www.linkedin.com/in/username" t-att-value="default_linkedin or ''"/>
                     </div>
                     <div class="gs-field">
                       <label class="gs-label" for="gs-twitter">Twitter / X</label>
-                      <input class="gs-input" type="url" id="gs-twitter" name="twitter_url" placeholder="https://twitter.com/username"/>
+                      <input class="gs-input" type="url" id="gs-twitter" name="twitter_url" placeholder="https://twitter.com/username" t-att-value="default_twitter or ''"/>
                     </div>
                     <div class="gs-field">
                       <label class="gs-label" for="gs-instagram">Instagram</label>
-                      <input class="gs-input" type="url" id="gs-instagram" name="instagram_url" placeholder="https://www.instagram.com/username"/>
+                      <input class="gs-input" type="url" id="gs-instagram" name="instagram_url" placeholder="https://www.instagram.com/username" t-att-value="default_instagram or ''"/>
                     </div>
                     <div class="gs-field">
                       <label class="gs-label" for="gs-facebook">Facebook</label>
-                      <input class="gs-input" type="url" id="gs-facebook" name="facebook_url" placeholder="https://www.facebook.com/username"/>
+                      <input class="gs-input" type="url" id="gs-facebook" name="facebook_url" placeholder="https://www.facebook.com/username" t-att-value="default_facebook or ''"/>
                     </div>
                     <div class="gs-field">
                       <label class="gs-label" for="gs-youtube">YouTube</label>
-                      <input class="gs-input" type="url" id="gs-youtube" name="youtube_url" placeholder="https://www.youtube.com/@username"/>
+                      <input class="gs-input" type="url" id="gs-youtube" name="youtube_url" placeholder="https://www.youtube.com/@username" t-att-value="default_youtube or ''"/>
                     </div>
                     <div class="gs-field">
                       <label class="gs-label" for="gs-whatsapp">WhatsApp</label>
-                      <input class="gs-input" type="url" id="gs-whatsapp" name="whatsapp_url" placeholder="https://wa.me/1234567890"/>
+                      <input class="gs-input" type="url" id="gs-whatsapp" name="whatsapp_url" placeholder="https://wa.me/1234567890" t-att-value="default_whatsapp or ''"/>
                     </div>
                   </div>
 
@@ -328,19 +344,19 @@
                   <div class="gs-grid">
                     <div class="gs-field">
                       <label class="gs-label" for="gs-linkedin-company">Company LinkedIn</label>
-                      <input class="gs-input" type="url" id="gs-linkedin-company" name="linkedin_url_company" placeholder="https://www.linkedin.com/company/companyname"/>
+                      <input class="gs-input" type="url" id="gs-linkedin-company" name="linkedin_url_company" placeholder="https://www.linkedin.com/company/companyname" t-att-value="default_linkedin_company or ''"/>
                     </div>
                     <div class="gs-field">
                       <label class="gs-label" for="gs-twitter-company">Company Twitter / X</label>
-                      <input class="gs-input" type="url" id="gs-twitter-company" name="twitter_url_company" placeholder="https://twitter.com/companyname"/>
+                      <input class="gs-input" type="url" id="gs-twitter-company" name="twitter_url_company" placeholder="https://twitter.com/companyname" t-att-value="default_twitter_company or ''"/>
                     </div>
                     <div class="gs-field">
                       <label class="gs-label" for="gs-instagram-company">Company Instagram</label>
-                      <input class="gs-input" type="url" id="gs-instagram-company" name="instagram_url_company" placeholder="https://www.instagram.com/companyname"/>
+                      <input class="gs-input" type="url" id="gs-instagram-company" name="instagram_url_company" placeholder="https://www.instagram.com/companyname" t-att-value="default_instagram_company or ''"/>
                     </div>
                     <div class="gs-field">
                       <label class="gs-label" for="gs-facebook-company">Company Facebook</label>
-                      <input class="gs-input" type="url" id="gs-facebook-company" name="facebook_url_company" placeholder="https://www.facebook.com/companyname"/>
+                      <input class="gs-input" type="url" id="gs-facebook-company" name="facebook_url_company" placeholder="https://www.facebook.com/companyname" t-att-value="default_facebook_company or ''"/>
                     </div>
                   </div>
 

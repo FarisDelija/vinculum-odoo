@@ -752,127 +752,16 @@ class BulkOnboardingController(http.Controller):
 
     @http.route('/bulk-onboard/complete-vcard', type='http', auth='user', website=True)
     def complete_vcard(self, **kwargs):
-        """Card completion page for newly activated reps"""
-        user = request.env.user
-        
-        # Find rep record
-        rep = request.env['bulk.onboarding.rep'].sudo().search([
-            ('user_id', '=', user.id)
-        ], limit=1)
-        
-        if not rep or not rep.vcard_id:
-            return request.render('qr_code_odoo.error_page', {
-                'error': 'Card not found. Please contact support.'
-            })
-        
-        vcard = rep.vcard_id
-        
-        # Check if already completed
-        if rep.status == 'completed':
-            return request.redirect('/web')
-        
-        # Get countries and states
-        countries = request.env['res.country'].sudo().search([], order='name')
-        states = request.env['res.country.state'].sudo().search([], order='name')
-        
-        # Strip HTML from about field for textarea display
-        about_text = ''
-        if vcard.about:
-            import re
-            from html import unescape
-            # Remove HTML tags
-            about_text = re.sub(r'<[^>]+>', '', vcard.about)
-            # Decode HTML entities
-            about_text = unescape(about_text)
-            # Clean up whitespace
-            about_text = ' '.join(about_text.split())
-        
-        return request.render('qr_code_odoo.complete_vcard_page', {
-            'vcard': vcard,
-            'rep': rep,
-            'countries': countries,
-            'states': states,
-            'about_text': about_text,  # Pass as separate variable in template context
-        })
+        """Legacy route — recipients are now funnelled through /get-started
+        with a bulk-activate flag so admin-pre-filled values pre-populate the
+        editorial form and the same validation / live-preview surface that
+        admins use is available to recipients. The dedicated complete_vcard
+        template has been removed.
+        """
+        return request.redirect('/get-started?flow=bulk-activate')
 
-    @http.route('/bulk-onboard/complete-vcard/submit', type='http', auth='user', website=True, csrf=True, methods=['POST'])
-    def complete_vcard_submit(self, **post):
-        """Submit Card completion"""
-        user = request.env.user
-        
-        rep = request.env['bulk.onboarding.rep'].sudo().search([
-            ('user_id', '=', user.id)
-        ], limit=1)
-        
-        if not rep or not rep.vcard_id:
-            return request.render('qr_code_odoo.error_page', {
-                'error': 'Card not found'
-            })
-        
-        vcard = rep.vcard_id
-        
-        # Update Card with user-provided data
-        vals = {}
-        
-        # Profile photo (required).
-        # Validate MIME/extension and size BEFORE reading into memory — the
-        # public /vcard/submit enforces the same rules and this endpoint must
-        # not be a softer path around them.
-        image_file = request.httprequest.files.get('image_url')
-        if image_file and image_file.filename:
-            import os
-            _allowed_image_ext = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'}
-            file_extension = os.path.splitext(image_file.filename.lower())[1]
-            if file_extension not in _allowed_image_ext:
-                return request.render('qr_code_odoo.complete_vcard_page', {
-                    'error': 'Please upload a valid image (JPG, PNG, GIF, BMP, or WebP).',
-                    'vcard': vcard,
-                    'rep': rep,
-                })
-            # 5 MB cap, matching the public submit endpoint.
-            image_file.seek(0, 2)
-            file_size = image_file.tell()
-            image_file.seek(0)
-            if file_size > 5 * 1024 * 1024:
-                return request.render('qr_code_odoo.complete_vcard_page', {
-                    'error': 'Image file is too large. Maximum size is 5 MB.',
-                    'vcard': vcard,
-                    'rep': rep,
-                })
-            vals['image_url'] = base64.b64encode(image_file.read())
-        elif not vcard.image_url:
-            return request.render('qr_code_odoo.complete_vcard_page', {
-                'error': 'Please upload a profile photo',
-                'vcard': vcard,
-                'rep': rep,
-            })
-        
-        # About section
-        if post.get('about'):
-            vals['about'] = post.get('about')
-        
-        # Personal social links
-        if post.get('linkedin_url'):
-            vals['linkedin_url'] = post.get('linkedin_url')
-        if post.get('facebook_url'):
-            vals['facebook_url'] = post.get('facebook_url')
-        if post.get('twitter_url'):
-            vals['twitter_url'] = post.get('twitter_url')
-        if post.get('instagram_url'):
-            vals['instagram_url'] = post.get('instagram_url')
-        if post.get('whatsapp_url'):
-            vals['whatsapp_url'] = post.get('whatsapp_url')
-        
-        # Update Card
-        vcard.sudo().write(vals)
-        
-        # Generate website page if not already done
-        if hasattr(vcard, 'action_generate_website_page'):
-            vcard.action_generate_website_page()
-        
-        # Mark as completed
-        rep.status = 'completed'
-        
-        # Redirect to dashboard
-        return request.redirect('/web')
+    # /bulk-onboard/complete-vcard/submit removed — the recipient flow now
+    # posts through /vcard/submit (same editorial form used on /get-started)
+    # with the `flow=bulk-activate` hidden field, and /vcard/submit handles
+    # the "update existing card instead of creating" branch.
 

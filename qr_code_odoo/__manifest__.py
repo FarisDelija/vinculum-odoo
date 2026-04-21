@@ -1,6 +1,6 @@
 {
     'name': 'Vinc',
-    'version': '17.0.1.0.26',
+    'version': '17.0.1.0.27',
     'category': 'Tools',
     'summary': 'Digital business cards, lead capture & analytics inside Odoo',
     'description': """
@@ -65,6 +65,8 @@ This module is designed for companies that want Vinc-style digital cards and lea
             '/qr_code_odoo/static/src/js/vg_fonts.js',
             '/qr_code_odoo/static/src/css/get_started.css',
             '/qr_code_odoo/static/src/js/get_started.js',
+            '/qr_code_odoo/static/src/css/bulk_onboard.css',
+            '/qr_code_odoo/static/src/js/bulk_onboard.js',
         ],
         'web.assets_backend': [
             '/qr_code_odoo/static/src/css/reviews_backend.css',

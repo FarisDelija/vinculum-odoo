@@ -877,8 +877,16 @@
         if (pillBtn) { pillBtn.addEventListener("click", openSheet); }
         if (sheet) {
             sheet.addEventListener("click", function (e) {
+                // Sheet itself (backdrop outside the inner) — kept for legacy
                 if (e.target === sheet) { closeSheet(); return; }
-                if (e.target.closest('[data-action="close-sheet"]')) { closeSheet(); }
+                // Close button
+                if (e.target.closest('[data-action="close-sheet"]')) { closeSheet(); return; }
+                // Click on the sheet body whitespace around the phone — close.
+                // The phone itself (.gs-phone) and its descendants do NOT match
+                // because e.target lands inside it, not on the body element.
+                if (e.target.classList && e.target.classList.contains('gs-preview-sheet-body')) {
+                    closeSheet();
+                }
             });
         }
         document.addEventListener("keydown", function (e) {

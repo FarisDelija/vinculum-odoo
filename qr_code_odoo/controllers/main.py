@@ -1370,52 +1370,119 @@ class VCardFormController(http.Controller):
         })
 
     @http.route(['/get-started'], type='http', auth='public', website=True)
-    def get_started_form_page(self, **kwargs):
+    def get_started_form_page(self, flow=None, **kwargs):
         # Check if user is authenticated by checking session UID
         if not request.session.uid or request.session.uid == 1:  # 1 is public user
             return request.redirect('/web/login')
-        
+
         # Get the actual user from the session
         user = request.env['res.users'].sudo().browse(request.session.uid)
         if not user.exists():
             return request.redirect('/web/login')
-        
+
         # Allow users to create multiple vCards - no restriction
         countries = request.env['res.country'].sudo().search([], order='name')
         states = request.env['res.country.state'].sudo().search([], order='name')
 
-        # Prefill defaults from user + linked res.partner
+        # Detect "completing a bulk-onboarded card" flow. Recipients arrive
+        # here via /bulk-onboard/complete-vcard → redirect with flow=bulk-activate.
+        # When in this mode we prefill EVERY input from the admin-created card
+        # and the submit handler UPDATEs instead of CREATEs (see handle_form_submission).
+        bulk_rep = None
+        bulk_vcard = None
+        if flow == 'bulk-activate':
+            bulk_rep = request.env['bulk.onboarding.rep'].sudo().search([
+                ('user_id', '=', user.id),
+            ], limit=1)
+            if bulk_rep and bulk_rep.vcard_id:
+                bulk_vcard = bulk_rep.vcard_id
+
+        # Prefill defaults
         default_name = ''
         default_email = ''
         default_company = ''
         default_phone = ''
         default_mobile = ''
         default_function = ''
+        default_about = ''
+        default_slug = ''
+        default_street = ''
+        default_street2 = ''
+        default_city = ''
+        default_zip = ''
+        default_country_id = ''
+        default_state_id = ''
+        default_secondary_color = '#2D5BFF'
+        default_website_template = 'modern'
+        default_linkedin = ''
+        default_linkedin_company = ''
+        default_twitter = ''
+        default_twitter_company = ''
+        default_facebook = ''
+        default_facebook_company = ''
+        default_instagram = ''
+        default_instagram_company = ''
+        default_whatsapp = ''
+        default_youtube = ''
+        default_calendly = ''
 
         try:
-            default_name = user.name or ''
-            default_email = getattr(user, 'email', None) or getattr(user, 'login', '') or ''
-
-            if hasattr(user, 'company_id') and user.company_id:
-                company = request.env['res.company'].sudo().browse(user.company_id.id)
-                if company.exists() and company.name:
-                    default_company = company.name
-
-            # Pull phone / mobile / job title from the partner record linked to the user
-            partner = getattr(user, 'partner_id', None)
-            if partner and partner.exists():
-                default_phone = partner.phone or ''
-                default_mobile = partner.mobile or ''
-                default_function = partner.function or ''
+            if bulk_vcard:
+                # Bulk-onboarded recipients: every field prefills from the
+                # admin-created card. They edit the ones they want to change
+                # and /vcard/submit updates the existing record in place.
+                default_name = bulk_vcard.name or user.name or ''
+                default_email = bulk_vcard.email or user.login or ''
+                default_company = bulk_vcard.company_name or ''
+                default_phone = bulk_vcard.phone or ''
+                default_mobile = bulk_vcard.mobile or ''
+                default_function = bulk_vcard.function or ''
+                # Strip HTML from the About field for the textarea display.
+                if bulk_vcard.about:
+                    import re as _re
+                    from html import unescape as _unescape
+                    default_about = _unescape(_re.sub(r'<[^>]+>', '', bulk_vcard.about))
+                default_slug = bulk_vcard.website_slug or ''
+                default_street = bulk_vcard.street or ''
+                default_street2 = bulk_vcard.street2 or ''
+                default_city = bulk_vcard.city or ''
+                default_zip = bulk_vcard.zip or ''
+                default_country_id = bulk_vcard.country_id.id if bulk_vcard.country_id else ''
+                default_state_id = bulk_vcard.state_id.id if bulk_vcard.state_id else ''
+                default_secondary_color = bulk_vcard.secondary_color or '#2D5BFF'
+                default_website_template = bulk_vcard.website_template or 'modern'
+                default_linkedin = bulk_vcard.linkedin_url or ''
+                default_linkedin_company = bulk_vcard.linkedin_url_company or ''
+                default_twitter = bulk_vcard.twitter_url or ''
+                default_twitter_company = bulk_vcard.twitter_url_company or ''
+                default_facebook = bulk_vcard.facebook_url or ''
+                default_facebook_company = bulk_vcard.facebook_url_company or ''
+                default_instagram = bulk_vcard.instagram_url or ''
+                default_instagram_company = bulk_vcard.instagram_url_company or ''
+                default_whatsapp = bulk_vcard.whatsapp_url or ''
+                default_youtube = bulk_vcard.youtube_url or ''
+                default_calendly = bulk_vcard.calendly_url or ''
+            else:
+                # Normal /get-started: prefill name / email from the user and
+                # phone / mobile / function from their linked partner record.
+                default_name = user.name or ''
+                default_email = getattr(user, 'email', None) or getattr(user, 'login', '') or ''
+                if hasattr(user, 'company_id') and user.company_id:
+                    company = request.env['res.company'].sudo().browse(user.company_id.id)
+                    if company.exists() and company.name:
+                        default_company = company.name
+                partner = getattr(user, 'partner_id', None)
+                if partner and partner.exists():
+                    default_phone = partner.phone or ''
+                    default_mobile = partner.mobile or ''
+                    default_function = partner.function or ''
         except Exception as e:
-            _logger.warning(f"Error accessing user fields: {e}")
+            _logger.warning(f"Error accessing prefill fields: {e}")
 
         # Get base URL for vCard URL prefix
         base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
-        # Remove protocol and trailing slash for display
         base_url_display = base_url.replace('http://', '').replace('https://', '').rstrip('/')
 
-        # No limits - all features enabled
         return request.render('qr_code_odoo.vcard_form_page', {
             'countries': countries,
             'states': states,
@@ -1425,9 +1492,32 @@ class VCardFormController(http.Controller):
             'default_phone': default_phone,
             'default_mobile': default_mobile,
             'default_function': default_function,
+            'default_about': default_about,
+            'default_slug': default_slug,
+            'default_street': default_street,
+            'default_street2': default_street2,
+            'default_city': default_city,
+            'default_zip': default_zip,
+            'default_country_id': default_country_id,
+            'default_state_id': default_state_id,
+            'default_secondary_color': default_secondary_color,
+            'default_website_template': default_website_template,
+            'default_linkedin': default_linkedin,
+            'default_linkedin_company': default_linkedin_company,
+            'default_twitter': default_twitter,
+            'default_twitter_company': default_twitter_company,
+            'default_facebook': default_facebook,
+            'default_facebook_company': default_facebook_company,
+            'default_instagram': default_instagram,
+            'default_instagram_company': default_instagram_company,
+            'default_whatsapp': default_whatsapp,
+            'default_youtube': default_youtube,
+            'default_calendly': default_calendly,
             'base_url_display': base_url_display,
             'max_websites': 999999,  # Unlimited
-            'max_videos': 999999,  # Unlimited
+            'max_videos': 999999,    # Unlimited
+            'flow': flow or '',
+            'bulk_mode': bool(bulk_vcard),
         })
 
     @http.route(['/vcard/check_slug_availability'], type='json', auth='user', methods=['POST'], csrf=False)
@@ -1873,8 +1963,22 @@ class VCardFormController(http.Controller):
         # Check if user is authenticated
         if not request.env.user or request.env.user._is_public():
             return request.redirect('/web/login')
-        
-        
+
+        # Detect the "completing a bulk-onboarded invited card" flow.
+        # The /get-started template carries `flow=bulk-activate` as a hidden
+        # input when the admin-pre-filled card is being completed by the
+        # recipient. We UPDATE that card instead of CREATE-ing a new one, and
+        # skip the slug uniqueness check (the slug already belongs to them).
+        flow = (post.get('flow') or '').strip()
+        bulk_vcard = None
+        bulk_rep = None
+        if flow == 'bulk-activate':
+            bulk_rep = request.env['bulk.onboarding.rep'].sudo().search([
+                ('user_id', '=', request.env.user.id),
+            ], limit=1)
+            if bulk_rep and bulk_rep.vcard_id:
+                bulk_vcard = bulk_rep.vcard_id
+
         # Validate required fields
         required_fields = {
             'name': 'Full Name',
@@ -1951,11 +2055,13 @@ class VCardFormController(http.Controller):
                 'states': request.env['res.country.state'].sudo().search([]),
             })
         
-        # Check if website_slug is already taken
+        # Check if website_slug is already taken. In bulk-activate mode, the
+        # slug can legitimately already belong to the recipient's own card —
+        # only flag a collision if it belongs to a *different* card.
         existing_partner = request.env['partner.vcard'].sudo().search([
             ('website_slug', '=', website_slug)
         ], limit=1)
-        if existing_partner:
+        if existing_partner and (not bulk_vcard or existing_partner.id != bulk_vcard.id):
             error_message = f"The vCard URL '{website_slug}' is already taken. Please choose a different one."
             _logger.warning(f"Website slug already exists: {website_slug}")
             return request.render('qr_code_odoo.vcard_form_page', {
@@ -2095,19 +2201,40 @@ class VCardFormController(http.Controller):
             preview_vcard.sudo().unlink()
             _logger.info(f"Deleted preview vCard {preview_vcard.id} before creating real vCard")
 
-        # Create the partner vCard record
-        partner = request.env['partner.vcard'].sudo().with_context(skip_vcard_limit_check=True).create(vals)
+        # Bulk-activate mode updates the existing admin-created card in place
+        # so the recipient's activation doesn't spawn a duplicate. Otherwise,
+        # create a new card for this submission.
+        if bulk_vcard:
+            bulk_vcard.sudo().with_context(skip_vcard_limit_check=True).write(vals)
+            partner = bulk_vcard
+            # Flag rep as completed so the admin batch view reflects it.
+            if bulk_rep:
+                try:
+                    bulk_rep.sudo().write({'status': 'completed'})
+                except Exception as _e:
+                    _logger.warning("Could not mark bulk rep as completed: %s", _e)
+        else:
+            partner = request.env['partner.vcard'].sudo().with_context(skip_vcard_limit_check=True).create(vals)
         
         # Ensure banner attachment is created if banner_image was set (including default)
         if vals.get('banner_image'):
             partner.sudo()._update_banner_attachment_if_image_changed()
             request.env.cr.flush()
         
+        # In bulk-activate mode the admin may have seeded websites / videos on
+        # the card before the recipient arrived. The form is now the source of
+        # truth, so clear existing ones before re-creating from the submission.
+        if bulk_vcard:
+            if partner.website_ids:
+                partner.website_ids.sudo().unlink()
+            if partner.video_ids:
+                partner.video_ids.sudo().unlink()
+
         # Handle websites data
         website_urls = request.httprequest.form.getlist('website_url[]')
         website_names = request.httprequest.form.getlist('website_name[]')
         website_colors = request.httprequest.form.getlist('website_color[]')
-        
+
         if website_urls and website_urls[0]:  # Check if at least one website URL is provided
             website_data = []
             # Get secondary color as default
