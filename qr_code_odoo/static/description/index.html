@@ -1,955 +1,507 @@
-<section id="vinc-apps-listing">
-<style>
-/* ---------------------------------------------------------------
-   All selectors are scoped under #vinc-apps-listing so the apps.odoo.com
-   page stylesheet cannot leak in and our rules cannot leak out.
-   All class names use the `v-` prefix to avoid collisions with
-   Bootstrap/Odoo utility classes that the parent page already loads.
-   No external stylesheets — apps.odoo.com CSP blocks fonts.googleapis.com,
-   so typography relies on system font stacks.
---------------------------------------------------------------- */
+<!--
+  apps.odoo.com strips <style>, <link>, <script>. Only inline style="..."
+  survives sanitization, so every visual rule is inline. No @media, no
+  pseudo-elements, no :hover — fixed desktop layout, degrades gracefully
+  to narrow widths via parent container.
+-->
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 16px; line-height: 1.65; color: #0B162E; background: #FFFFFF; -webkit-font-smoothing: antialiased;">
 
-#vinc-apps-listing {
-  --ink: #0B162E;
-  --ink-soft: #3A4569;
-  --ink-faint: #6B7494;
-  --bg: #FFFFFF;
-  --bg-soft: #F4F1E8;
-  --bg-cream: #F8F5EB;
-  --line: rgba(14,27,58,.10);
-  --line-soft: rgba(14,27,58,.05);
-  --sand: #E8D9B7;
-  --sand-deep: #C9B37A;
-  --blue: #2D5BFF;
-  --blue-deep: #1E40AF;
-  --navy: #0B162E;
-  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
-  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
-  --shadow-soft: 0 1px 2px rgba(14,27,58,.04), 0 10px 30px rgba(14,27,58,.08);
-  --shadow-strong: 0 18px 40px rgba(14,27,58,.22);
-  --radius: 18px;
-  --radius-sm: 12px;
-
-  font-family: var(--sans);
-  font-size: 16px;
-  line-height: 1.65;
-  color: var(--ink);
-  background: var(--bg);
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-}
-#vinc-apps-listing *, #vinc-apps-listing *::before, #vinc-apps-listing *::after { box-sizing: border-box; }
-#vinc-apps-listing a { color: inherit; text-decoration: none; }
-#vinc-apps-listing img { max-width: 100%; height: auto; display: block; }
-
-/* —— layout helpers —— */
-#vinc-apps-listing .v-wrap { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
-
-#vinc-apps-listing .v-kicker {
-  font-family: var(--sans); font-weight: 500;
-  font-size: 11px; letter-spacing: .22em;
-  text-transform: uppercase; color: var(--ink-faint);
-  display: inline-flex; align-items: center; gap: 10px;
-}
-#vinc-apps-listing .v-kicker::before {
-  content: ""; width: 24px; height: 1px; background: var(--sand-deep);
-}
-
-/* —— HERO —— */
-#vinc-apps-listing .v-hero {
-  position: relative; overflow: hidden;
-  background: linear-gradient(135deg, #0B162E 0%, #142646 55%, #2C4275 100%);
-  color: #fff; padding: 88px 0 96px;
-}
-#vinc-apps-listing .v-hero::before {
-  content: ""; position: absolute; top: -10%; right: -15%;
-  width: 720px; height: 720px; border-radius: 50%; pointer-events: none;
-  background: radial-gradient(closest-side, rgba(232,217,183,.32), transparent 70%);
-  z-index: 0;
-}
-#vinc-apps-listing .v-hero::after {
-  content: ""; position: absolute; bottom: -40%; left: 10%;
-  width: 640px; height: 640px; border-radius: 50%; pointer-events: none;
-  background: radial-gradient(closest-side, rgba(45,91,255,.28), transparent 70%);
-  z-index: 0;
-}
-#vinc-apps-listing .v-hero .v-wrap { position: relative; z-index: 1; }
-#vinc-apps-listing .v-hero .v-kicker { color: rgba(255,255,255,.72); }
-#vinc-apps-listing .v-hero .v-kicker::before { background: var(--sand); }
-#vinc-apps-listing .v-hero h1 {
-  font-family: var(--serif);
-  font-size: 72px; line-height: 1;
-  font-weight: 500;
-  letter-spacing: -0.028em;
-  margin: 22px 0 28px; color: #fff; max-width: 18ch;
-}
-#vinc-apps-listing .v-hero h1 em {
-  font-style: italic; color: var(--sand); font-weight: 400;
-}
-#vinc-apps-listing .v-hero-sub {
-  font-size: 20px; line-height: 1.55; max-width: 60ch;
-  color: rgba(255,255,255,.82); margin: 0 0 32px;
-}
-#vinc-apps-listing .v-hero-tags {
-  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 36px;
-}
-#vinc-apps-listing .v-hero-tag {
-  padding: 7px 13px; border-radius: 999px;
-  background: rgba(255,255,255,.08); color: rgba(255,255,255,.86);
-  border: 1px solid rgba(255,255,255,.18);
-  font-size: 12.5px; letter-spacing: .02em; font-weight: 500;
-  font-family: var(--mono);
-}
-#vinc-apps-listing .v-hero-price {
-  position: absolute; top: 88px; right: 32px;
-  text-align: right; z-index: 2;
-  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.16);
-  padding: 18px 22px; border-radius: var(--radius-sm);
-}
-#vinc-apps-listing .v-hero-price .v-hp-label {
-  font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase;
-  color: rgba(255,255,255,.62); font-weight: 500;
-}
-#vinc-apps-listing .v-hero-price .v-hp-number {
-  font-family: var(--serif); font-size: 38px; line-height: 1; font-weight: 500;
-  color: #fff; margin: 4px 0 0;
-}
-#vinc-apps-listing .v-hero-price .v-hp-number em {
-  font-style: italic; color: var(--sand); font-weight: 400; margin-right: 4px;
-}
-#vinc-apps-listing .v-hero-price .v-hp-meta {
-  font-size: 11.5px; color: rgba(255,255,255,.72); margin-top: 4px;
-  font-family: var(--mono);
-}
-
-/* —— section generic —— */
-#vinc-apps-listing .v-sec { padding: 88px 0; position: relative; }
-#vinc-apps-listing .v-sec + .v-sec { border-top: 1px solid var(--line-soft); }
-#vinc-apps-listing .v-sec h2 {
-  font-family: var(--serif); color: var(--ink);
-  font-size: 44px; line-height: 1.08; font-weight: 500;
-  letter-spacing: -0.02em;
-  margin: 16px 0 22px; max-width: 22ch;
-}
-#vinc-apps-listing .v-sec h2 em {
-  font-style: italic; color: var(--blue-deep); font-weight: 400;
-}
-#vinc-apps-listing .v-sec .v-lede {
-  font-size: 19px; line-height: 1.6; color: var(--ink-soft); max-width: 60ch;
-  margin: 0 0 48px;
-}
-
-/* —— "for whom" personas —— */
-#vinc-apps-listing .v-personas {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
-}
-#vinc-apps-listing .v-persona {
-  padding: 32px 30px; border-radius: var(--radius);
-  border: 1px solid var(--line); background: var(--bg);
-  position: relative; overflow: hidden;
-}
-#vinc-apps-listing .v-persona .v-p-num {
-  font-family: var(--mono); font-size: 12px; color: var(--blue);
-  letter-spacing: .14em; font-weight: 500; margin-bottom: 18px;
-}
-#vinc-apps-listing .v-persona h3 {
-  font-family: var(--serif); font-size: 26px; line-height: 1.15; font-weight: 600;
-  margin: 0 0 14px; letter-spacing: -0.012em; color: var(--ink);
-}
-#vinc-apps-listing .v-persona p {
-  margin: 0 0 18px; color: var(--ink-soft); font-size: 15.5px; line-height: 1.6;
-}
-#vinc-apps-listing .v-persona ul { list-style: none; padding: 0; margin: 0; }
-#vinc-apps-listing .v-persona li {
-  padding: 6px 0 6px 18px; position: relative; font-size: 14.5px; color: var(--ink);
-}
-#vinc-apps-listing .v-persona li::before {
-  content: ""; position: absolute; left: 0; top: 16px;
-  width: 10px; height: 1px; background: var(--sand-deep);
-}
-
-/* —— feature showcases (image + text) —— */
-#vinc-apps-listing .v-feature {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 56px;
-  align-items: center; margin-top: 48px;
-}
-#vinc-apps-listing .v-feature.v-reversed { direction: rtl; }
-#vinc-apps-listing .v-feature.v-reversed > * { direction: ltr; }
-#vinc-apps-listing .v-feature-copy h3 {
-  font-family: var(--serif); font-size: 32px; line-height: 1.12; font-weight: 600;
-  letter-spacing: -0.015em; margin: 0 0 14px; color: var(--ink);
-}
-#vinc-apps-listing .v-feature-copy h3 em {
-  font-style: italic; color: var(--blue-deep); font-weight: 500;
-}
-#vinc-apps-listing .v-feature-copy .v-f-sub {
-  font-family: var(--sans); font-size: 12px; letter-spacing: .16em;
-  text-transform: uppercase; color: var(--ink-faint); font-weight: 600;
-  margin-bottom: 10px;
-}
-#vinc-apps-listing .v-feature-copy p {
-  font-size: 16px; line-height: 1.7; color: var(--ink-soft); margin: 0 0 16px;
-}
-#vinc-apps-listing .v-feature-copy ul { list-style: none; padding: 0; margin: 0; }
-#vinc-apps-listing .v-feature-copy li {
-  padding: 6px 0 6px 20px; position: relative; font-size: 15px; color: var(--ink);
-}
-#vinc-apps-listing .v-feature-copy li::before {
-  content: ""; position: absolute; left: 0; top: 14px;
-  width: 10px; height: 1px; background: var(--sand-deep);
-}
-#vinc-apps-listing .v-feature-img {
-  position: relative; border-radius: var(--radius);
-  overflow: hidden; border: 1px solid var(--line);
-  box-shadow: var(--shadow-soft);
-  background: var(--bg-soft);
-}
-#vinc-apps-listing .v-feature-img img { display: block; width: 100%; height: auto; }
-
-/* —— four-step mental model —— */
-#vinc-apps-listing .v-steps {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
-  margin-top: 40px;
-}
-#vinc-apps-listing .v-step {
-  padding: 28px 24px; border-radius: var(--radius);
-  background: var(--bg-cream);
-  border: 1px solid var(--line-soft);
-  position: relative;
-}
-#vinc-apps-listing .v-step-num {
-  font-family: var(--mono); font-size: 11px; color: var(--blue);
-  letter-spacing: .12em; font-weight: 500; margin-bottom: 10px; display: block;
-}
-#vinc-apps-listing .v-step h4 {
-  font-family: var(--serif); font-size: 20px; line-height: 1.2; font-weight: 600;
-  margin: 0 0 8px; letter-spacing: -0.008em; color: var(--ink);
-}
-#vinc-apps-listing .v-step p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--ink-soft); }
-
-/* —— comparison —— */
-#vinc-apps-listing .v-compare-sec { background: var(--bg-cream); }
-#vinc-apps-listing .v-compare {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 40px;
-}
-#vinc-apps-listing .v-compare-card {
-  padding: 36px 34px; border-radius: var(--radius);
-  background: var(--bg); border: 1px solid var(--line);
-  position: relative;
-}
-#vinc-apps-listing .v-compare-card.v-is-this {
-  border: 2px solid var(--navy); background: var(--bg);
-  box-shadow: var(--shadow-soft);
-}
-#vinc-apps-listing .v-compare-card.v-is-this::before {
-  content: "YOU'RE READING THIS"; position: absolute;
-  top: -11px; left: 28px; padding: 3px 10px;
-  background: var(--navy); color: #fff;
-  font-family: var(--mono); font-size: 10px; letter-spacing: .16em;
-  border-radius: 4px;
-}
-#vinc-apps-listing .v-compare-card h3 {
-  font-family: var(--serif); font-size: 26px; margin: 0 0 6px; font-weight: 600;
-  letter-spacing: -0.012em; color: var(--ink);
-}
-#vinc-apps-listing .v-compare-card .v-cc-meta {
-  color: var(--ink-faint); font-size: 13px; margin: 0 0 22px;
-  font-family: var(--mono); letter-spacing: .03em;
-}
-#vinc-apps-listing .v-compare-card ul { list-style: none; padding: 0; margin: 0 0 20px; }
-#vinc-apps-listing .v-compare-card li {
-  padding: 8px 0 8px 22px; position: relative;
-  font-size: 14.5px; color: var(--ink); border-bottom: 1px solid var(--line-soft);
-}
-#vinc-apps-listing .v-compare-card li::before {
-  content: "\2713"; position: absolute; left: 0; top: 10px;
-  color: var(--sand-deep); font-family: var(--mono); font-weight: 500;
-}
-#vinc-apps-listing .v-compare-card.v-is-other li::before { color: var(--ink-faint); content: "\2014"; }
-#vinc-apps-listing .v-compare-card .v-cc-price {
-  font-family: var(--serif); font-size: 26px; font-weight: 500;
-  letter-spacing: -0.012em; margin-top: 10px; color: var(--ink);
-}
-#vinc-apps-listing .v-compare-card .v-cc-price em {
-  font-style: italic; color: var(--blue-deep); font-weight: 400;
-}
-
-/* —— quote —— */
-#vinc-apps-listing .v-quote-sec { background: var(--bg); }
-#vinc-apps-listing .v-quote {
-  text-align: center; max-width: 920px; margin: 0 auto; padding: 24px 0;
-}
-#vinc-apps-listing .v-quote blockquote {
-  font-family: var(--serif);
-  font-size: 36px; line-height: 1.22; font-weight: 400;
-  letter-spacing: -0.015em; color: var(--ink);
-  font-style: italic; margin: 0 0 32px; position: relative;
-}
-#vinc-apps-listing .v-quote blockquote::before {
-  content: "\201C"; position: absolute; top: -40px; left: 50%;
-  transform: translateX(-50%); font-size: 140px; color: var(--sand);
-  line-height: 1; opacity: .8;
-  font-family: var(--serif); font-weight: 400;
-}
-#vinc-apps-listing .v-quote-cite {
-  font-family: var(--mono); font-size: 12.5px; color: var(--ink-faint);
-  letter-spacing: .06em;
-}
-
-/* —— specs block —— */
-#vinc-apps-listing .v-sec.v-specs-sec { background: var(--navy); color: #fff; }
-#vinc-apps-listing .v-sec.v-specs-sec h2 { color: #fff; }
-#vinc-apps-listing .v-sec.v-specs-sec h2 em { color: var(--sand); }
-#vinc-apps-listing .v-sec.v-specs-sec .v-lede { color: rgba(255,255,255,.75); }
-#vinc-apps-listing .v-sec.v-specs-sec .v-kicker { color: rgba(255,255,255,.72); }
-#vinc-apps-listing .v-sec.v-specs-sec .v-kicker::before { background: var(--sand); }
-#vinc-apps-listing .v-specs-grid {
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px 56px;
-  margin-top: 40px;
-}
-#vinc-apps-listing .v-spec h4 {
-  font-family: var(--sans); font-size: 11px; letter-spacing: .16em;
-  text-transform: uppercase; color: rgba(255,255,255,.6);
-  font-weight: 600; margin: 0 0 10px; padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255,255,255,.14);
-}
-#vinc-apps-listing .v-spec p, #vinc-apps-listing .v-spec ul { color: rgba(255,255,255,.92); font-size: 15px; margin: 0; }
-#vinc-apps-listing .v-spec ul { list-style: none; padding: 0; }
-#vinc-apps-listing .v-spec li { padding: 4px 0; }
-#vinc-apps-listing .v-spec li code {
-  background: rgba(255,255,255,.08); padding: 1px 7px; border-radius: 6px;
-  font-family: var(--mono); font-size: 13px;
-}
-#vinc-apps-listing .v-spec a { color: var(--sand); border-bottom: 1px solid rgba(232,217,183,.5); padding-bottom: 1px; }
-
-/* —— setup (light version of specs) —— */
-#vinc-apps-listing .v-sec.v-setup-sec { background: #F4F7FC; }
-#vinc-apps-listing .v-sec.v-setup-sec .v-spec h4 {
-  color: var(--ink-faint); border-bottom: 1px solid var(--line);
-}
-#vinc-apps-listing .v-sec.v-setup-sec .v-spec p,
-#vinc-apps-listing .v-sec.v-setup-sec .v-spec ul { color: var(--ink); }
-#vinc-apps-listing .v-sec.v-setup-sec .v-spec li code {
-  background: rgba(14,27,58,.06); color: var(--ink);
-}
-#vinc-apps-listing .v-sec.v-setup-sec .v-spec a { color: var(--blue-deep); border-bottom-color: rgba(30,64,175,.35); }
-
-/* —— FAQ —— */
-#vinc-apps-listing .v-faq-sec { background: var(--bg-cream); }
-#vinc-apps-listing .v-faq-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
-  margin-top: 40px; align-items: start;
-}
-#vinc-apps-listing .v-faq-col { display: flex; flex-direction: column; gap: 14px; }
-#vinc-apps-listing .v-faq-item {
-  background: var(--bg); border: 1px solid var(--line);
-  border-radius: var(--radius-sm); overflow: hidden;
-}
-#vinc-apps-listing .v-faq-item[open] {
-  border-color: var(--sand-deep);
-  box-shadow: var(--shadow-soft);
-}
-#vinc-apps-listing .v-faq-item summary {
-  list-style: none; cursor: pointer;
-  padding: 18px 22px;
-  font-family: var(--serif); font-size: 17px; font-weight: 500;
-  color: var(--ink); letter-spacing: -0.008em;
-  display: flex; justify-content: space-between; align-items: center;
-  gap: 16px;
-}
-#vinc-apps-listing .v-faq-item summary::-webkit-details-marker { display: none; }
-#vinc-apps-listing .v-faq-item summary::after {
-  content: "+"; font-family: var(--mono); font-size: 22px;
-  color: var(--ink-faint); font-weight: 400;
-  width: 22px; height: 22px; line-height: 18px; text-align: center;
-  flex-shrink: 0;
-}
-#vinc-apps-listing .v-faq-item[open] summary::after {
-  content: "\00D7"; color: var(--blue-deep);
-}
-#vinc-apps-listing .v-faq-body {
-  padding: 0 22px 22px; font-size: 15px; line-height: 1.65;
-  color: var(--ink-soft);
-}
-#vinc-apps-listing .v-faq-body p { margin: 0 0 10px; }
-#vinc-apps-listing .v-faq-body p:last-child { margin: 0; }
-#vinc-apps-listing .v-faq-body code {
-  background: var(--bg-soft); padding: 1px 7px; border-radius: 6px;
-  font-family: var(--mono); font-size: 13px; color: var(--ink);
-}
-#vinc-apps-listing .v-faq-body a {
-  color: var(--blue-deep);
-  border-bottom: 1px solid rgba(30,64,175,.35);
-  padding-bottom: 1px;
-}
-
-/* —— CTA bar —— */
-#vinc-apps-listing .v-cta-sec {
-  padding: 96px 0; text-align: center; background: var(--bg);
-  position: relative; overflow: hidden;
-}
-#vinc-apps-listing .v-cta-sec::before {
-  content: ""; position: absolute; bottom: -50%; left: 0; right: 0; height: 520px;
-  background: radial-gradient(50% 70% at 50% 0%, rgba(232,217,183,.35) 0%, transparent 60%);
-  z-index: 0;
-}
-#vinc-apps-listing .v-cta-sec .v-wrap { position: relative; z-index: 1; }
-#vinc-apps-listing .v-cta-sec h2 { margin: 0 auto 22px; }
-#vinc-apps-listing .v-cta-sec .v-lede { margin: 0 auto 40px; }
-#vinc-apps-listing .v-cta-line {
-  display: inline-flex; align-items: baseline; gap: 14px;
-  font-family: var(--serif); font-size: 22px; color: var(--ink); font-weight: 500;
-  border-top: 1px solid var(--line); padding-top: 22px; margin-top: 18px;
-}
-#vinc-apps-listing .v-cta-line em {
-  font-style: italic; color: var(--blue-deep); font-weight: 400;
-}
-#vinc-apps-listing .v-cta-line .v-cta-price { font-family: var(--mono); font-size: 14px; color: var(--ink-faint); letter-spacing: .06em; }
-
-/* —— footer —— */
-#vinc-apps-listing .v-foot {
-  background: var(--bg-soft); padding: 56px 0 64px;
-  border-top: 1px solid var(--line-soft);
-}
-#vinc-apps-listing .v-foot-row {
-  display: flex; justify-content: space-between; align-items: center;
-  gap: 24px; flex-wrap: wrap;
-}
-#vinc-apps-listing .v-foot-mark {
-  font-family: var(--serif); font-size: 26px; font-weight: 700;
-  letter-spacing: -0.02em; color: var(--ink);
-}
-#vinc-apps-listing .v-foot-mark::after {
-  content: " \00B7"; color: var(--sand-deep); margin-left: 2px;
-}
-#vinc-apps-listing .v-foot-meta { color: var(--ink-soft); font-size: 13.5px; }
-#vinc-apps-listing .v-foot a { color: var(--ink); border-bottom: 1px solid var(--sand-deep); padding-bottom: 1px; }
-
-/* —— responsive —— */
-@media (max-width: 900px) {
-  #vinc-apps-listing .v-personas { grid-template-columns: 1fr; }
-  #vinc-apps-listing .v-feature, #vinc-apps-listing .v-feature.v-reversed { grid-template-columns: 1fr; direction: ltr; gap: 32px; }
-  #vinc-apps-listing .v-steps { grid-template-columns: 1fr 1fr; }
-  #vinc-apps-listing .v-compare { grid-template-columns: 1fr; }
-  #vinc-apps-listing .v-faq-grid { grid-template-columns: 1fr; }
-}
-@media (max-width: 760px) {
-  #vinc-apps-listing .v-hero-price { position: static; margin: 0 0 28px; text-align: left; display: inline-block; }
-  #vinc-apps-listing .v-hero { padding: 56px 0 64px; }
-  #vinc-apps-listing .v-hero h1 { font-size: 48px; }
-  #vinc-apps-listing .v-sec h2 { font-size: 34px; }
-}
-@media (max-width: 700px) {
-  #vinc-apps-listing .v-specs-grid { grid-template-columns: 1fr; }
-}
-@media (max-width: 560px) {
-  #vinc-apps-listing .v-steps { grid-template-columns: 1fr; }
-}
-</style>
 
 <!-- ========== HERO ========== -->
-<section class="v-hero">
-  <div class="v-hero-price">
-    <div class="v-hp-label">One-time</div>
-    <div class="v-hp-number">343 <em>&euro;</em></div>
-    <div class="v-hp-meta">yours forever, no renewal</div>
-  </div>
-  <div class="v-wrap">
-    <span class="v-kicker">Vinc for Odoo 17</span>
-    <h1>Every handshake, a <em>lead-generating</em> channel.</h1>
-    <p class="v-hero-sub">
+<div style="position: relative; overflow: hidden; background: linear-gradient(135deg, #0B162E 0%, #142646 55%, #2C4275 100%); color: #fff; padding: 88px 32px 96px;">
+
+  <!-- decorative radial glow (top-right) -->
+  <div style="position: absolute; top: -80px; right: -120px; width: 720px; height: 720px; border-radius: 50%; pointer-events: none; background: radial-gradient(closest-side, rgba(232,217,183,0.32), transparent 70%); z-index: 0;"></div>
+  <!-- decorative radial glow (bottom-left) -->
+  <div style="position: absolute; bottom: -260px; left: 10%; width: 640px; height: 640px; border-radius: 50%; pointer-events: none; background: radial-gradient(closest-side, rgba(45,91,255,0.28), transparent 70%); z-index: 0;"></div>
+
+  <div style="max-width: 1200px; margin: 0 auto; position: relative; z-index: 1;">
+
+    <!-- price card (top-right floater) -->
+    <div style="position: absolute; top: 0; right: 0; text-align: right; z-index: 2; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.16); padding: 18px 22px; border-radius: 12px;">
+      <div style="font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.62); font-weight: 500;">One-time</div>
+      <div style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 38px; line-height: 1; font-weight: 500; color: #fff; margin: 4px 0 0;">343 <em style="font-style: italic; color: #E8D9B7; font-weight: 400; margin-right: 4px;">&euro;</em></div>
+      <div style="font-size: 11.5px; color: rgba(255,255,255,0.72); margin-top: 4px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;">yours forever, no renewal</div>
+    </div>
+
+    <span style="font-weight: 500; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.72); display: inline-block;">&mdash;&nbsp; Vinc for Odoo 17</span>
+    <h1 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 72px; line-height: 1; font-weight: 500; letter-spacing: -0.028em; margin: 22px 0 28px; color: #fff; max-width: 18ch;">Every handshake, a <em style="font-style: italic; color: #E8D9B7; font-weight: 400;">lead-generating</em> channel.</h1>
+    <p style="font-size: 20px; line-height: 1.55; max-width: 60ch; color: rgba(255,255,255,0.82); margin: 0 0 32px;">
       Digital business cards with QR &amp; NFC, a lead form that lands straight in CRM, email automations, and live analytics &mdash; self-hosted inside the Odoo you already run. Designed for the people who sell face-to-face.
     </p>
-    <div class="v-hero-tags">
-      <span class="v-hero-tag">Odoo 17</span>
-      <span class="v-hero-tag">Self-hosted</span>
-      <span class="v-hero-tag">One-time license</span>
-      <span class="v-hero-tag">CRM native</span>
-      <span class="v-hero-tag">NFC &amp; QR ready</span>
+    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 36px;">
+      <span style="padding: 7px 13px; border-radius: 999px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.86); border: 1px solid rgba(255,255,255,0.18); font-size: 12.5px; letter-spacing: 0.02em; font-weight: 500; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;">Odoo 17</span>
+      <span style="padding: 7px 13px; border-radius: 999px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.86); border: 1px solid rgba(255,255,255,0.18); font-size: 12.5px; letter-spacing: 0.02em; font-weight: 500; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;">Self-hosted</span>
+      <span style="padding: 7px 13px; border-radius: 999px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.86); border: 1px solid rgba(255,255,255,0.18); font-size: 12.5px; letter-spacing: 0.02em; font-weight: 500; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;">One-time license</span>
+      <span style="padding: 7px 13px; border-radius: 999px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.86); border: 1px solid rgba(255,255,255,0.18); font-size: 12.5px; letter-spacing: 0.02em; font-weight: 500; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;">CRM native</span>
+      <span style="padding: 7px 13px; border-radius: 999px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.86); border: 1px solid rgba(255,255,255,0.18); font-size: 12.5px; letter-spacing: 0.02em; font-weight: 500; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;">NFC &amp; QR ready</span>
     </div>
   </div>
-</section>
+</div>
 
 
-<!-- ========== THE PITCH &mdash; FOR WHOM ========== -->
-<section class="v-sec">
-  <div class="v-wrap">
-    <span class="v-kicker">Built for</span>
-    <h2>Teams who sell <em>face-to-face</em>.</h2>
-    <p class="v-lede">
+<!-- ========== PERSONAS ========== -->
+<div style="padding: 88px 32px; background: #FFFFFF;">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <span style="font-weight: 500; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: #6B7494; display: inline-block;">&mdash;&nbsp; Built for</span>
+    <h2 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; color: #0B162E; font-size: 44px; line-height: 1.08; font-weight: 500; letter-spacing: -0.02em; margin: 16px 0 22px; max-width: 22ch;">Teams who sell <em style="font-style: italic; color: #1E40AF; font-weight: 400;">face-to-face</em>.</h2>
+    <p style="font-size: 19px; line-height: 1.6; color: #3A4569; max-width: 60ch; margin: 0 0 48px;">
       Vinc isn't another business-card platform. It's an attribution layer on top of every in-person touchpoint your team already has. Three audiences get the most out of it.
     </p>
 
-    <div class="v-personas">
-      <div class="v-persona">
-        <div class="v-p-num">01 &nbsp;&middot;&nbsp; Sales reps</div>
-        <h3>Every demo, every conference, every cold coffee.</h3>
-        <p>
-          Hand someone a tap-to-contact card and their details are in your pipeline before you've put the jacket back on. No more business-card scan apps, no more typing contacts into Salesforce in the hotel lobby.
-        </p>
-        <ul>
-          <li>QR on the card, NFC in the chip</li>
-          <li>Capture form pre-tagged by event / territory</li>
-          <li>Intro email fires automatically</li>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
+
+      <div style="padding: 32px 30px; border-radius: 18px; border: 1px solid rgba(14,27,58,0.10); background: #FFFFFF; box-shadow: 0 1px 2px rgba(14,27,58,0.04), 0 10px 30px rgba(14,27,58,0.06);">
+        <div style="font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; color: #2D5BFF; letter-spacing: 0.14em; font-weight: 500; margin-bottom: 18px;">01 &nbsp;&middot;&nbsp; SALES REPS</div>
+        <h3 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 26px; line-height: 1.15; font-weight: 600; margin: 0 0 14px; letter-spacing: -0.012em; color: #0B162E;">Every demo, every conference, every cold coffee.</h3>
+        <p style="margin: 0 0 18px; color: #3A4569; font-size: 15.5px; line-height: 1.6;">Hand someone a tap-to-contact card and their details are in your pipeline before you've put the jacket back on. No more business-card scan apps, no more typing contacts into Salesforce in the hotel lobby.</p>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          <li style="padding: 6px 0 6px 20px; font-size: 14.5px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>QR on the card, NFC in the chip</li>
+          <li style="padding: 6px 0 6px 20px; font-size: 14.5px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>Capture form pre-tagged by event / territory</li>
+          <li style="padding: 6px 0 6px 20px; font-size: 14.5px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>Intro email fires automatically</li>
         </ul>
       </div>
 
-      <div class="v-persona">
-        <div class="v-p-num">02 &nbsp;&middot;&nbsp; Field service techs</div>
-        <h3>Leave the job site with a brand, not a scribble.</h3>
-        <p>
-          Field teams hand out cards at every install, service call, and site visit. Each one is a branded touchpoint that routes follow-up leads to the right rep &mdash; and tracks which technicians generate the most warm intros.
-        </p>
-        <ul>
-          <li>Per-technician cards, one corporate brand</li>
-          <li>Reviews collected from satisfied customers</li>
-          <li>Leads auto-assign back to the tech's manager</li>
+      <div style="padding: 32px 30px; border-radius: 18px; border: 1px solid rgba(14,27,58,0.10); background: #FFFFFF; box-shadow: 0 1px 2px rgba(14,27,58,0.04), 0 10px 30px rgba(14,27,58,0.06);">
+        <div style="font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; color: #2D5BFF; letter-spacing: 0.14em; font-weight: 500; margin-bottom: 18px;">02 &nbsp;&middot;&nbsp; FIELD SERVICE TECHS</div>
+        <h3 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 26px; line-height: 1.15; font-weight: 600; margin: 0 0 14px; letter-spacing: -0.012em; color: #0B162E;">Leave the job site with a brand, not a scribble.</h3>
+        <p style="margin: 0 0 18px; color: #3A4569; font-size: 15.5px; line-height: 1.6;">Field teams hand out cards at every install, service call, and site visit. Each one is a branded touchpoint that routes follow-up leads to the right rep &mdash; and tracks which technicians generate the most warm intros.</p>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          <li style="padding: 6px 0 6px 20px; font-size: 14.5px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>Per-technician cards, one corporate brand</li>
+          <li style="padding: 6px 0 6px 20px; font-size: 14.5px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>Reviews collected from satisfied customers</li>
+          <li style="padding: 6px 0 6px 20px; font-size: 14.5px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>Leads auto-assign back to the tech's manager</li>
         </ul>
       </div>
 
-      <div class="v-persona">
-        <div class="v-p-num">03 &nbsp;&middot;&nbsp; Founders &amp; small teams</div>
-        <h3>Look like you have an enterprise stack.</h3>
-        <p>
-          Consistent card design across the whole company, automatic lead capture, email nurturing &mdash; without buying a third-party platform. Everything lives in the Odoo you already pay for.
-        </p>
-        <ul>
-          <li>Bulk-onboard the whole roster in one CSV</li>
-          <li>No SaaS subscriptions, no seat fees</li>
-          <li>Brand colors + templates in under five minutes</li>
+      <div style="padding: 32px 30px; border-radius: 18px; border: 1px solid rgba(14,27,58,0.10); background: #FFFFFF; box-shadow: 0 1px 2px rgba(14,27,58,0.04), 0 10px 30px rgba(14,27,58,0.06);">
+        <div style="font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; color: #2D5BFF; letter-spacing: 0.14em; font-weight: 500; margin-bottom: 18px;">03 &nbsp;&middot;&nbsp; FOUNDERS &amp; SMALL TEAMS</div>
+        <h3 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 26px; line-height: 1.15; font-weight: 600; margin: 0 0 14px; letter-spacing: -0.012em; color: #0B162E;">Look like you have an enterprise stack.</h3>
+        <p style="margin: 0 0 18px; color: #3A4569; font-size: 15.5px; line-height: 1.6;">Consistent card design across the whole company, automatic lead capture, email nurturing &mdash; without buying a third-party platform. Everything lives in the Odoo you already pay for.</p>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          <li style="padding: 6px 0 6px 20px; font-size: 14.5px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>Bulk-onboard the whole roster in one CSV</li>
+          <li style="padding: 6px 0 6px 20px; font-size: 14.5px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>No SaaS subscriptions, no seat fees</li>
+          <li style="padding: 6px 0 6px 20px; font-size: 14.5px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>Brand colors + templates in under five minutes</li>
         </ul>
       </div>
+
     </div>
   </div>
-</section>
+</div>
 
 
 <!-- ========== WHAT'S INSIDE ========== -->
-<section class="v-sec">
-  <div class="v-wrap">
-    <span class="v-kicker">What's inside</span>
-    <h2>The quietly powerful part &mdash; <em>it's all Odoo</em>.</h2>
-    <p class="v-lede">
+<div style="padding: 88px 32px; background: #FFFFFF; border-top: 1px solid rgba(14,27,58,0.05);">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <span style="font-weight: 500; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: #6B7494; display: inline-block;">&mdash;&nbsp; What's inside</span>
+    <h2 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; color: #0B162E; font-size: 44px; line-height: 1.08; font-weight: 500; letter-spacing: -0.02em; margin: 16px 0 22px; max-width: 22ch;">The quietly powerful part &mdash; <em style="font-style: italic; color: #1E40AF; font-weight: 400;">it's all Odoo</em>.</h2>
+    <p style="font-size: 19px; line-height: 1.6; color: #3A4569; max-width: 60ch; margin: 0 0 48px;">
       Every card, every lead, every scan lives in the same database your sales team opens every morning. No integrations to maintain. No data locked in another vendor's cloud.
     </p>
 
     <!-- Feature 1 -->
-    <div class="v-feature">
-      <div class="v-feature-copy">
-        <div class="v-f-sub">Card setup &middot; in five minutes</div>
-        <h3>A card that looks <em>designed</em>, not generated.</h3>
-        <p>
-          Five templates, customizable colors, banner image, profile photo, and a unique slug that becomes your URL. Switch templates anytime &mdash; your data is preserved.
-        </p>
-        <ul>
-          <li>Modern, Classic, Minimal, Corporate, Creative</li>
-          <li>Live preview while you type</li>
-          <li>Works on any phone without an app install</li>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; margin-top: 48px;">
+      <div>
+        <div style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #6B7494; font-weight: 600; margin-bottom: 10px;">Card setup &middot; in five minutes</div>
+        <h3 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 32px; line-height: 1.12; font-weight: 600; letter-spacing: -0.015em; margin: 0 0 14px; color: #0B162E;">A card that looks <em style="font-style: italic; color: #1E40AF; font-weight: 500;">designed</em>, not generated.</h3>
+        <p style="font-size: 16px; line-height: 1.7; color: #3A4569; margin: 0 0 16px;">Five templates, customizable colors, banner image, profile photo, and a unique slug that becomes your URL. Switch templates anytime &mdash; your data is preserved.</p>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          <li style="padding: 6px 0 6px 20px; font-size: 15px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>Modern, Classic, Minimal, Corporate, Creative</li>
+          <li style="padding: 6px 0 6px 20px; font-size: 15px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>Live preview while you type</li>
+          <li style="padding: 6px 0 6px 20px; font-size: 15px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>Works on any phone without an app install</li>
         </ul>
       </div>
-      <div class="v-feature-img">
-        <img src="images/setup-form-photo-and-colors.png" alt="Card setup form with photo, banner, and color pickers"/>
+      <div style="border-radius: 18px; overflow: hidden; border: 1px solid rgba(14,27,58,0.10); box-shadow: 0 1px 2px rgba(14,27,58,0.04), 0 10px 30px rgba(14,27,58,0.08); background: #F4F1E8;">
+        <img src="images/setup-form-photo-and-colors.png" alt="Card setup form with photo, banner, and color pickers" style="display: block; width: 100%; height: auto;"/>
       </div>
     </div>
 
-    <!-- Feature 2 -->
-    <div class="v-feature v-reversed">
-      <div class="v-feature-copy">
-        <div class="v-f-sub">Distribution &middot; QR, NFC, signature</div>
-        <h3>Five surfaces. <em>One</em> card. Every scan attributed.</h3>
-        <p>
-          Print-ready QR, NFC-writable URLs (with a built-in programming guide), direct URLs for social bios, auto-generated email signatures. Each surface knows which tap it was.
-        </p>
-        <ul>
-          <li>Dynamic QR with your brand mark overlay</li>
-          <li>Ten-minute NFC programming walkthrough</li>
-          <li>Email signature generator for Gmail / Outlook / Apple Mail</li>
-        </ul>
+    <!-- Feature 2 (image left, text right) -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; margin-top: 48px;">
+      <div style="border-radius: 18px; overflow: hidden; border: 1px solid rgba(14,27,58,0.10); box-shadow: 0 1px 2px rgba(14,27,58,0.04), 0 10px 30px rgba(14,27,58,0.08); background: #F4F1E8;">
+        <img src="images/setup-form-templates.png" alt="Five template thumbnails in the card picker" style="display: block; width: 100%; height: auto;"/>
       </div>
-      <div class="v-feature-img">
-        <img src="images/setup-form-templates.png" alt="Five template thumbnails in the card picker"/>
+      <div>
+        <div style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #6B7494; font-weight: 600; margin-bottom: 10px;">Distribution &middot; QR, NFC, signature</div>
+        <h3 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 32px; line-height: 1.12; font-weight: 600; letter-spacing: -0.015em; margin: 0 0 14px; color: #0B162E;">Five surfaces. <em style="font-style: italic; color: #1E40AF; font-weight: 500;">One</em> card. Every scan attributed.</h3>
+        <p style="font-size: 16px; line-height: 1.7; color: #3A4569; margin: 0 0 16px;">Print-ready QR, NFC-writable URLs (with a built-in programming guide), direct URLs for social bios, auto-generated email signatures. Each surface knows which tap it was.</p>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          <li style="padding: 6px 0 6px 20px; font-size: 15px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>Dynamic QR with your brand mark overlay</li>
+          <li style="padding: 6px 0 6px 20px; font-size: 15px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>Ten-minute NFC programming walkthrough</li>
+          <li style="padding: 6px 0 6px 20px; font-size: 15px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>Email signature generator for Gmail / Outlook / Apple Mail</li>
+        </ul>
       </div>
     </div>
 
     <!-- Feature 3 -->
-    <div class="v-feature">
-      <div class="v-feature-copy">
-        <div class="v-f-sub">Capture &middot; CRM-native</div>
-        <h3>The lead form <em>is</em> your CRM pipeline.</h3>
-        <p>
-          A one-click capture form on every card lands directly in <code>crm.lead</code> as a tagged opportunity, auto-assigned to the card's owner. No Zapier. No webhooks. No exports.
-        </p>
-        <ul>
-          <li>IP-based geolocation + device fingerprinting on every lead</li>
-          <li>UTM &amp; referral tracking baked into the capture</li>
-          <li>Per-card routing rules, per-card mailing lists</li>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; margin-top: 48px;">
+      <div>
+        <div style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #6B7494; font-weight: 600; margin-bottom: 10px;">Capture &middot; CRM-native</div>
+        <h3 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 32px; line-height: 1.12; font-weight: 600; letter-spacing: -0.015em; margin: 0 0 14px; color: #0B162E;">The lead form <em style="font-style: italic; color: #1E40AF; font-weight: 500;">is</em> your CRM pipeline.</h3>
+        <p style="font-size: 16px; line-height: 1.7; color: #3A4569; margin: 0 0 16px;">A one-click capture form on every card lands directly in <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 13px;">crm.lead</code> as a tagged opportunity, auto-assigned to the card's owner. No Zapier. No webhooks. No exports.</p>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          <li style="padding: 6px 0 6px 20px; font-size: 15px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>IP-based geolocation + device fingerprinting on every lead</li>
+          <li style="padding: 6px 0 6px 20px; font-size: 15px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>UTM &amp; referral tracking baked into the capture</li>
+          <li style="padding: 6px 0 6px 20px; font-size: 15px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>Per-card routing rules, per-card mailing lists</li>
         </ul>
       </div>
-      <div class="v-feature-img">
-        <img src="images/crm-lead-submission-tracking.png" alt="Captured lead in CRM with submission tracking metadata"/>
+      <div style="border-radius: 18px; overflow: hidden; border: 1px solid rgba(14,27,58,0.10); box-shadow: 0 1px 2px rgba(14,27,58,0.04), 0 10px 30px rgba(14,27,58,0.08); background: #F4F1E8;">
+        <img src="images/crm-lead-submission-tracking.png" alt="Captured lead in CRM with submission tracking metadata" style="display: block; width: 100%; height: auto;"/>
       </div>
     </div>
 
-    <!-- Feature 4 -->
-    <div class="v-feature v-reversed">
-      <div class="v-feature-copy">
-        <div class="v-f-sub">Follow-up &middot; async, branded</div>
-        <h3>Intro emails, digests, leadback &mdash; <em>out of the box</em>.</h3>
-        <p>
-          Automated intro email to every new lead. Tap-to-chat links via WhatsApp, Viber, or Telegram. Weekly performance digest to each cardholder. All powered by Odoo's mail template system, all editable.
-        </p>
-        <ul>
-          <li>Five Vinc-branded email templates, pre-clustered in Settings</li>
-          <li>Leadback delay presets: immediate, 1 / 5 / 15 min, 1 hour, or custom</li>
-          <li>Optional WhatsApp / Viber / Telegram tap-to-chat links</li>
-        </ul>
+    <!-- Feature 4 (image left, text right) -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; margin-top: 48px;">
+      <div style="border-radius: 18px; overflow: hidden; border: 1px solid rgba(14,27,58,0.10); box-shadow: 0 1px 2px rgba(14,27,58,0.04), 0 10px 30px rgba(14,27,58,0.08); background: #F4F1E8;">
+        <img src="images/email-templates-vinc.png" alt="Odoo email templates filtered to Vinc, showing all five in a cluster" style="display: block; width: 100%; height: auto;"/>
       </div>
-      <div class="v-feature-img">
-        <img src="images/email-templates-vinc.png" alt="Odoo email templates filtered to Vinc, showing all five in a cluster"/>
+      <div>
+        <div style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #6B7494; font-weight: 600; margin-bottom: 10px;">Follow-up &middot; async, branded</div>
+        <h3 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 32px; line-height: 1.12; font-weight: 600; letter-spacing: -0.015em; margin: 0 0 14px; color: #0B162E;">Intro emails, digests, leadback &mdash; <em style="font-style: italic; color: #1E40AF; font-weight: 500;">out of the box</em>.</h3>
+        <p style="font-size: 16px; line-height: 1.7; color: #3A4569; margin: 0 0 16px;">Automated intro email to every new lead. Tap-to-chat links via WhatsApp, Viber, or Telegram. Weekly performance digest to each cardholder. All powered by Odoo's mail template system, all editable.</p>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          <li style="padding: 6px 0 6px 20px; font-size: 15px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>Five Vinc-branded email templates, pre-clustered in Settings</li>
+          <li style="padding: 6px 0 6px 20px; font-size: 15px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>Leadback delay presets: immediate, 1 / 5 / 15 min, 1 hour, or custom</li>
+          <li style="padding: 6px 0 6px 20px; font-size: 15px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 13px; width: 10px; height: 1px; background: #C9B37A; display: inline-block;"></span>Optional WhatsApp / Viber / Telegram tap-to-chat links</li>
+        </ul>
       </div>
     </div>
   </div>
-</section>
+</div>
 
 
-<!-- ========== MENTAL MODEL ========== -->
-<section class="v-sec" style="background: #F8F5EB;">
-  <div class="v-wrap">
-    <span class="v-kicker">The flow</span>
-    <h2>Vinc earns its place <em>end to end</em>.</h2>
-    <p class="v-lede">
+<!-- ========== FLOW (4 STEPS) ========== -->
+<div style="padding: 88px 32px; background: #F8F5EB;">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <span style="font-weight: 500; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: #6B7494; display: inline-block;">&mdash;&nbsp; The flow</span>
+    <h2 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; color: #0B162E; font-size: 44px; line-height: 1.08; font-weight: 500; letter-spacing: -0.02em; margin: 16px 0 22px; max-width: 22ch;">Vinc earns its place <em style="font-style: italic; color: #1E40AF; font-weight: 400;">end to end</em>.</h2>
+    <p style="font-size: 19px; line-height: 1.6; color: #3A4569; max-width: 60ch; margin: 0 0 48px;">
       Most card platforms stop at "share your contact." Vinc closes the loop &mdash; every scan, tap, and form submission lives inside the same database your sales team already opens every morning.
     </p>
 
-    <div class="v-steps">
-      <div class="v-step">
-        <span class="v-step-num">01 / Create</span>
-        <h4>Build the card</h4>
-        <p>Photo, branding, slug, lead form. Published as a real Odoo website page you control.</p>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-top: 40px;">
+      <div style="padding: 28px 24px; border-radius: 18px; background: #FFFFFF; border: 1px solid rgba(14,27,58,0.05);">
+        <span style="font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 11px; color: #2D5BFF; letter-spacing: 0.12em; font-weight: 500; margin-bottom: 10px; display: block;">01 / CREATE</span>
+        <h4 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 20px; line-height: 1.2; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.008em; color: #0B162E;">Build the card</h4>
+        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #3A4569;">Photo, branding, slug, lead form. Published as a real Odoo website page you control.</p>
       </div>
-      <div class="v-step">
-        <span class="v-step-num">02 / Distribute</span>
-        <h4>Get it to people</h4>
-        <p>QR, NFC, direct URL, email signature. Every surface is its own attribution channel.</p>
+      <div style="padding: 28px 24px; border-radius: 18px; background: #FFFFFF; border: 1px solid rgba(14,27,58,0.05);">
+        <span style="font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 11px; color: #2D5BFF; letter-spacing: 0.12em; font-weight: 500; margin-bottom: 10px; display: block;">02 / DISTRIBUTE</span>
+        <h4 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 20px; line-height: 1.2; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.008em; color: #0B162E;">Get it to people</h4>
+        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #3A4569;">QR, NFC, direct URL, email signature. Every surface is its own attribution channel.</p>
       </div>
-      <div class="v-step">
-        <span class="v-step-num">03 / Capture</span>
-        <h4>Turn views into leads</h4>
-        <p>Configurable capture form, optional reviews, and intro emails on first contact.</p>
+      <div style="padding: 28px 24px; border-radius: 18px; background: #FFFFFF; border: 1px solid rgba(14,27,58,0.05);">
+        <span style="font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 11px; color: #2D5BFF; letter-spacing: 0.12em; font-weight: 500; margin-bottom: 10px; display: block;">03 / CAPTURE</span>
+        <h4 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 20px; line-height: 1.2; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.008em; color: #0B162E;">Turn views into leads</h4>
+        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #3A4569;">Configurable capture form, optional reviews, and intro emails on first contact.</p>
       </div>
-      <div class="v-step">
-        <span class="v-step-num">04 / Route</span>
-        <h4>Hand off to CRM</h4>
-        <p>Leads land in crm.lead with full attribution, auto-assigned and ready for pipeline follow-up.</p>
+      <div style="padding: 28px 24px; border-radius: 18px; background: #FFFFFF; border: 1px solid rgba(14,27,58,0.05);">
+        <span style="font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 11px; color: #2D5BFF; letter-spacing: 0.12em; font-weight: 500; margin-bottom: 10px; display: block;">04 / ROUTE</span>
+        <h4 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 20px; line-height: 1.2; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.008em; color: #0B162E;">Hand off to CRM</h4>
+        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #3A4569;">Leads land in crm.lead with full attribution, auto-assigned and ready for pipeline follow-up.</p>
       </div>
     </div>
   </div>
-</section>
+</div>
 
 
 <!-- ========== COMPARISON ========== -->
-<section class="v-sec v-compare-sec">
-  <div class="v-wrap">
-    <span class="v-kicker">Which one is right for you?</span>
-    <h2>Self-hosted, or fully managed.</h2>
-    <p class="v-lede">
+<div style="padding: 88px 32px; background: #F8F5EB; border-top: 1px solid rgba(14,27,58,0.05);">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <span style="font-weight: 500; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: #6B7494; display: inline-block;">&mdash;&nbsp; Which one is right for you?</span>
+    <h2 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; color: #0B162E; font-size: 44px; line-height: 1.08; font-weight: 500; letter-spacing: -0.02em; margin: 16px 0 22px; max-width: 22ch;">Self-hosted, or fully managed.</h2>
+    <p style="font-size: 19px; line-height: 1.6; color: #3A4569; max-width: 60ch; margin: 0 0 48px;">
       Vinc for Odoo (this module) is a one-time license you install on your own Odoo instance. Vinc SaaS is a hosted subscription we run. Same feature set, different operating model.
     </p>
 
-    <div class="v-compare">
-      <div class="v-compare-card v-is-this">
-        <h3>Vinc for Odoo</h3>
-        <p class="v-cc-meta">This module &middot; one-time</p>
-        <ul>
-          <li>Runs on your Odoo instance</li>
-          <li>All data in your PostgreSQL</li>
-          <li>Source accessible for customization</li>
-          <li>No seat or usage limits</li>
-          <li>Lifetime license &mdash; no recurring fees</li>
-          <li>Email support included</li>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 40px;">
+
+      <!-- This module (highlighted) -->
+      <div style="padding: 36px 34px; border-radius: 18px; background: #FFFFFF; border: 2px solid #0B162E; position: relative; box-shadow: 0 1px 2px rgba(14,27,58,0.04), 0 10px 30px rgba(14,27,58,0.08);">
+        <div style="position: absolute; top: -11px; left: 28px; padding: 3px 10px; background: #0B162E; color: #fff; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 10px; letter-spacing: 0.16em; border-radius: 4px;">YOU'RE READING THIS</div>
+        <h3 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 26px; margin: 0 0 6px; font-weight: 600; letter-spacing: -0.012em; color: #0B162E;">Vinc for Odoo</h3>
+        <p style="color: #6B7494; font-size: 13px; margin: 0 0 22px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; letter-spacing: 0.03em;">This module &middot; one-time</p>
+        <ul style="list-style: none; padding: 0; margin: 0 0 20px;">
+          <li style="padding: 8px 0 8px 22px; font-size: 14.5px; color: #0B162E; border-bottom: 1px solid rgba(14,27,58,0.05); position: relative;"><span style="position: absolute; left: 0; top: 8px; color: #C9B37A; font-family: ui-monospace, Menlo, monospace; font-weight: 500;">&#10003;</span>Runs on your Odoo instance</li>
+          <li style="padding: 8px 0 8px 22px; font-size: 14.5px; color: #0B162E; border-bottom: 1px solid rgba(14,27,58,0.05); position: relative;"><span style="position: absolute; left: 0; top: 8px; color: #C9B37A; font-family: ui-monospace, Menlo, monospace; font-weight: 500;">&#10003;</span>All data in your PostgreSQL</li>
+          <li style="padding: 8px 0 8px 22px; font-size: 14.5px; color: #0B162E; border-bottom: 1px solid rgba(14,27,58,0.05); position: relative;"><span style="position: absolute; left: 0; top: 8px; color: #C9B37A; font-family: ui-monospace, Menlo, monospace; font-weight: 500;">&#10003;</span>Source accessible for customization</li>
+          <li style="padding: 8px 0 8px 22px; font-size: 14.5px; color: #0B162E; border-bottom: 1px solid rgba(14,27,58,0.05); position: relative;"><span style="position: absolute; left: 0; top: 8px; color: #C9B37A; font-family: ui-monospace, Menlo, monospace; font-weight: 500;">&#10003;</span>No seat or usage limits</li>
+          <li style="padding: 8px 0 8px 22px; font-size: 14.5px; color: #0B162E; border-bottom: 1px solid rgba(14,27,58,0.05); position: relative;"><span style="position: absolute; left: 0; top: 8px; color: #C9B37A; font-family: ui-monospace, Menlo, monospace; font-weight: 500;">&#10003;</span>Lifetime license &mdash; no recurring fees</li>
+          <li style="padding: 8px 0 8px 22px; font-size: 14.5px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 8px; color: #C9B37A; font-family: ui-monospace, Menlo, monospace; font-weight: 500;">&#10003;</span>Email support included</li>
         </ul>
-        <div class="v-cc-price">343 <em>&euro;</em> one-time</div>
+        <div style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 26px; font-weight: 500; letter-spacing: -0.012em; margin-top: 10px; color: #0B162E;">343 <em style="font-style: italic; color: #1E40AF; font-weight: 400;">&euro;</em> one-time</div>
       </div>
 
-      <div class="v-compare-card v-is-other">
-        <h3>Vinc SaaS</h3>
-        <p class="v-cc-meta">Hosted at getvinc.com &middot; subscription</p>
-        <ul>
-          <li>We host everything</li>
-          <li>Data on our infrastructure</li>
-          <li>Zero setup &mdash; live in minutes</li>
-          <li>Usage &amp; team tiers</li>
-          <li>Monthly subscription</li>
-          <li>24/7 support + uptime SLA</li>
+      <!-- SaaS -->
+      <div style="padding: 36px 34px; border-radius: 18px; background: #FFFFFF; border: 1px solid rgba(14,27,58,0.10); position: relative;">
+        <h3 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 26px; margin: 0 0 6px; font-weight: 600; letter-spacing: -0.012em; color: #0B162E;">Vinc SaaS</h3>
+        <p style="color: #6B7494; font-size: 13px; margin: 0 0 22px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; letter-spacing: 0.03em;">Hosted at getvinc.com &middot; subscription</p>
+        <ul style="list-style: none; padding: 0; margin: 0 0 20px;">
+          <li style="padding: 8px 0 8px 22px; font-size: 14.5px; color: #0B162E; border-bottom: 1px solid rgba(14,27,58,0.05); position: relative;"><span style="position: absolute; left: 0; top: 8px; color: #6B7494;">&mdash;</span>We host everything</li>
+          <li style="padding: 8px 0 8px 22px; font-size: 14.5px; color: #0B162E; border-bottom: 1px solid rgba(14,27,58,0.05); position: relative;"><span style="position: absolute; left: 0; top: 8px; color: #6B7494;">&mdash;</span>Data on our infrastructure</li>
+          <li style="padding: 8px 0 8px 22px; font-size: 14.5px; color: #0B162E; border-bottom: 1px solid rgba(14,27,58,0.05); position: relative;"><span style="position: absolute; left: 0; top: 8px; color: #6B7494;">&mdash;</span>Zero setup &mdash; live in minutes</li>
+          <li style="padding: 8px 0 8px 22px; font-size: 14.5px; color: #0B162E; border-bottom: 1px solid rgba(14,27,58,0.05); position: relative;"><span style="position: absolute; left: 0; top: 8px; color: #6B7494;">&mdash;</span>Usage &amp; team tiers</li>
+          <li style="padding: 8px 0 8px 22px; font-size: 14.5px; color: #0B162E; border-bottom: 1px solid rgba(14,27,58,0.05); position: relative;"><span style="position: absolute; left: 0; top: 8px; color: #6B7494;">&mdash;</span>Monthly subscription</li>
+          <li style="padding: 8px 0 8px 22px; font-size: 14.5px; color: #0B162E; position: relative;"><span style="position: absolute; left: 0; top: 8px; color: #6B7494;">&mdash;</span>24/7 support + uptime SLA</li>
         </ul>
-        <div class="v-cc-price"><em>from</em> 7.99 &euro;/mo</div>
+        <div style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 26px; font-weight: 500; letter-spacing: -0.012em; margin-top: 10px; color: #0B162E;"><em style="font-style: italic; color: #1E40AF; font-weight: 400;">from</em> 7.99 &euro;/mo</div>
       </div>
+
     </div>
   </div>
-</section>
+</div>
 
 
 <!-- ========== QUOTE ========== -->
-<section class="v-sec v-quote-sec">
-  <div class="v-wrap v-quote">
-    <blockquote>
-      Stops being a stack of business cards on the desk. Starts being the top of the pipeline.
+<div style="padding: 88px 32px; background: #FFFFFF; text-align: center;">
+  <div style="max-width: 920px; margin: 0 auto;">
+    <blockquote style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 36px; line-height: 1.22; font-weight: 400; letter-spacing: -0.015em; color: #0B162E; font-style: italic; margin: 0 0 32px;">
+      &ldquo;Stops being a stack of business cards on the desk. Starts being the top of the pipeline.&rdquo;
     </blockquote>
-    <div class="v-quote-cite">&mdash; how we think about Vinc</div>
+    <div style="font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12.5px; color: #6B7494; letter-spacing: 0.06em;">&mdash; how we think about Vinc</div>
   </div>
-</section>
+</div>
 
 
-<!-- ========== SPECS ========== -->
-<section class="v-sec v-specs-sec">
-  <div class="v-wrap">
-    <span class="v-kicker">Technical</span>
-    <h2>The <em>boring</em> bits &mdash; honest and upfront.</h2>
-    <p class="v-lede">
+<!-- ========== SPECS (dark) ========== -->
+<div style="padding: 88px 32px; background: #0B162E; color: #fff;">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <span style="font-weight: 500; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.72); display: inline-block;">&mdash;&nbsp; Technical</span>
+    <h2 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; color: #fff; font-size: 44px; line-height: 1.08; font-weight: 500; letter-spacing: -0.02em; margin: 16px 0 22px; max-width: 22ch;">The <em style="font-style: italic; color: #E8D9B7; font-weight: 400;">boring</em> bits &mdash; honest and upfront.</h2>
+    <p style="font-size: 19px; line-height: 1.6; color: rgba(255,255,255,0.75); max-width: 60ch; margin: 0 0 48px;">
       Everything you need to know before you hit install.
     </p>
 
-    <div class="v-specs-grid">
-      <div class="v-spec">
-        <h4>Requirements</h4>
-        <ul>
-          <li>Odoo <code>17.0</code> (Community or Enterprise)</li>
-          <li>Python <code>3.10+</code></li>
-          <li>PostgreSQL (your existing Odoo DB)</li>
-          <li>Python deps: <code>qrcode</code>, <code>Pillow</code></li>
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px 56px; margin-top: 40px;">
+      <div>
+        <h4 style="font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.6); font-weight: 600; margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.14);">Requirements</h4>
+        <ul style="list-style: none; padding: 0; margin: 0; color: rgba(255,255,255,0.92); font-size: 15px;">
+          <li style="padding: 4px 0;">Odoo <code style="background: rgba(255,255,255,0.08); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">17.0</code> (Community or Enterprise)</li>
+          <li style="padding: 4px 0;">Python <code style="background: rgba(255,255,255,0.08); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">3.10+</code></li>
+          <li style="padding: 4px 0;">PostgreSQL (your existing Odoo DB)</li>
+          <li style="padding: 4px 0;">Python deps: <code style="background: rgba(255,255,255,0.08); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">qrcode</code>, <code style="background: rgba(255,255,255,0.08); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">Pillow</code></li>
         </ul>
       </div>
-
-      <div class="v-spec">
-        <h4>Installation</h4>
-        <ul>
-          <li><code>pip install -r requirements.txt</code></li>
-          <li>Drop the module in your <code>addons_path</code></li>
-          <li>Apps &rarr; Update Apps List &rarr; search "Vinc" &rarr; Install</li>
-          <li>Configure an outgoing SMTP server for email delivery</li>
+      <div>
+        <h4 style="font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.6); font-weight: 600; margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.14);">Installation</h4>
+        <ul style="list-style: none; padding: 0; margin: 0; color: rgba(255,255,255,0.92); font-size: 15px;">
+          <li style="padding: 4px 0;"><code style="background: rgba(255,255,255,0.08); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">pip install -r requirements.txt</code></li>
+          <li style="padding: 4px 0;">Drop the module in your <code style="background: rgba(255,255,255,0.08); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">addons_path</code></li>
+          <li style="padding: 4px 0;">Apps &rarr; Update Apps List &rarr; search "Vinc" &rarr; Install</li>
+          <li style="padding: 4px 0;">Configure an outgoing SMTP server for email delivery</li>
         </ul>
       </div>
-
-      <div class="v-spec">
-        <h4>Dependencies</h4>
-        <p>Odoo standard modules: <code>web</code>, <code>crm</code>, <code>website</code>, <code>mass_mailing</code>, <code>utm</code>. No external SaaS services required for core functionality.</p>
+      <div>
+        <h4 style="font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.6); font-weight: 600; margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.14);">Dependencies</h4>
+        <p style="color: rgba(255,255,255,0.92); font-size: 15px; margin: 0;">Odoo standard modules: <code style="background: rgba(255,255,255,0.08); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">web</code>, <code style="background: rgba(255,255,255,0.08); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">crm</code>, <code style="background: rgba(255,255,255,0.08); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">website</code>, <code style="background: rgba(255,255,255,0.08); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">mass_mailing</code>, <code style="background: rgba(255,255,255,0.08); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">utm</code>. No external SaaS services required for core functionality.</p>
       </div>
-
-      <div class="v-spec">
-        <h4>Support &amp; updates</h4>
-        <p>Email support at <a href="mailto:support@getvinc.com">support@getvinc.com</a>. Module updates shipped via the Odoo App Store and included with your license &mdash; no recurring fees.</p>
+      <div>
+        <h4 style="font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.6); font-weight: 600; margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.14);">Support &amp; updates</h4>
+        <p style="color: rgba(255,255,255,0.92); font-size: 15px; margin: 0;">Email support at <a href="mailto:support@getvinc.com" style="color: #E8D9B7; border-bottom: 1px solid rgba(232,217,183,0.5); text-decoration: none; padding-bottom: 1px;">support@getvinc.com</a>. Module updates shipped via the Odoo App Store and included with your license &mdash; no recurring fees.</p>
       </div>
     </div>
   </div>
-</section>
+</div>
 
 
 <!-- ========== SETUP & PERMISSIONS ========== -->
-<section class="v-sec v-setup-sec">
-  <div class="v-wrap">
-    <span class="v-kicker">Setup &amp; permissions</span>
-    <h2>Install it, <em>wire it</em>, hand out roles.</h2>
-    <p class="v-lede">
+<div style="padding: 88px 32px; background: #F4F7FC;">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <span style="font-weight: 500; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: #6B7494; display: inline-block;">&mdash;&nbsp; Setup &amp; permissions</span>
+    <h2 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; color: #0B162E; font-size: 44px; line-height: 1.08; font-weight: 500; letter-spacing: -0.02em; margin: 16px 0 22px; max-width: 22ch;">Install it, <em style="font-style: italic; color: #1E40AF; font-weight: 400;">wire it</em>, hand out roles.</h2>
+    <p style="font-size: 19px; line-height: 1.6; color: #3A4569; max-width: 60ch; margin: 0 0 48px;">
       The sub-ten-minute path from a fresh Odoo to a published Vinc card. Everything below is enforced at the ORM layer, not the UI.
     </p>
 
-    <div class="v-specs-grid">
-      <div class="v-spec">
-        <h4>1 &middot; Install</h4>
-        <ul>
-          <li><code>pip install -r requirements.txt</code> (installs <code>qrcode</code>, <code>Pillow</code>, <code>openpyxl</code>)</li>
-          <li>Drop <code>qr_code_odoo/</code> in your <code>addons_path</code></li>
-          <li>Restart Odoo, then <em>Apps &rarr; Update Apps List &rarr; search "Vinc" &rarr; Install</em></li>
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px 56px; margin-top: 40px;">
+      <div>
+        <h4 style="font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: #6B7494; font-weight: 600; margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(14,27,58,0.10);">1 &middot; Install</h4>
+        <ul style="list-style: none; padding: 0; margin: 0; color: #0B162E; font-size: 15px;">
+          <li style="padding: 4px 0;"><code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">pip install -r requirements.txt</code> (installs <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">qrcode</code>, <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">Pillow</code>, <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">openpyxl</code>)</li>
+          <li style="padding: 4px 0;">Drop <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">qr_code_odoo/</code> in your <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">addons_path</code></li>
+          <li style="padding: 4px 0;">Restart Odoo, then <em>Apps &rarr; Update Apps List &rarr; search "Vinc" &rarr; Install</em></li>
         </ul>
       </div>
-
-      <div class="v-spec">
-        <h4>2 &middot; Configure the instance</h4>
-        <ul>
-          <li><em>Settings &rarr; Technical &rarr; System Parameters &rarr; <code>web.base.url</code></em> &mdash; set to your public HTTPS host. All QR links, emails, magic-link activations reference this.</li>
-          <li><em>Settings &rarr; Technical &rarr; Outgoing Mail Servers</em> &mdash; configure SMTP. Lead notifications, intro / digest / leadback emails and bulk-onboarding activation mails queue through <code>mail.mail</code>.</li>
-          <li>Multi-website? Pick which website hosts <code>/get-started</code>, <code>/vinculum/guide</code>, <code>/bulk-onboard</code>.</li>
+      <div>
+        <h4 style="font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: #6B7494; font-weight: 600; margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(14,27,58,0.10);">2 &middot; Configure the instance</h4>
+        <ul style="list-style: none; padding: 0; margin: 0; color: #0B162E; font-size: 15px;">
+          <li style="padding: 4px 0;"><em>Settings &rarr; Technical &rarr; System Parameters &rarr; <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">web.base.url</code></em> &mdash; set to your public HTTPS host. All QR links, emails, magic-link activations reference this.</li>
+          <li style="padding: 4px 0;"><em>Settings &rarr; Technical &rarr; Outgoing Mail Servers</em> &mdash; configure SMTP. Lead notifications, intro / digest / leadback emails and bulk-onboarding activation mails queue through <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">mail.mail</code>.</li>
+          <li style="padding: 4px 0;">Multi-website? Pick which website hosts <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">/get-started</code>, <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">/vinculum/guide</code>, <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">/bulk-onboard</code>.</li>
         </ul>
       </div>
-
-      <div class="v-spec">
-        <h4>3 &middot; Two roles, enforced by record rules</h4>
-        <ul>
-          <li><strong>Regular internal user</strong> (<code>base.group_user</code>) &mdash; sees only records they created. No access to <code>bulk.onboarding.*</code>.</li>
-          <li><strong>Vinc Manager</strong> (<code>qr_code_odoo.group_vinc_manager</code>) &mdash; sees every card, lead and tracking row on the instance. Required to run <code>/bulk-onboard</code>.</li>
-          <li>Odoo administrators (<code>base.group_system</code>) implicitly get Vinc Manager via <code>implied_ids</code>.</li>
+      <div>
+        <h4 style="font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: #6B7494; font-weight: 600; margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(14,27,58,0.10);">3 &middot; Two roles, enforced by record rules</h4>
+        <ul style="list-style: none; padding: 0; margin: 0; color: #0B162E; font-size: 15px;">
+          <li style="padding: 4px 0;"><strong>Regular internal user</strong> (<code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">base.group_user</code>) &mdash; sees only records they created. No access to <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">bulk.onboarding.*</code>.</li>
+          <li style="padding: 4px 0;"><strong>Vinc Manager</strong> (<code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">qr_code_odoo.group_vinc_manager</code>) &mdash; sees every card, lead and tracking row on the instance. Required to run <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">/bulk-onboard</code>.</li>
+          <li style="padding: 4px 0;">Odoo administrators (<code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">base.group_system</code>) implicitly get Vinc Manager via <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">implied_ids</code>.</li>
         </ul>
       </div>
-
-      <div class="v-spec">
-        <h4>4 &middot; Grant the manager role</h4>
-        <ul>
-          <li><em>Settings &rarr; Users &amp; Companies &rarr; Users</em> &rarr; pick the user &rarr; <em>Access Rights</em> tab &rarr; <strong>Vinc</strong> &rarr; <em>Vinc Manager</em> &rarr; Save.</li>
-          <li>Everyone else stays scoped to their own records via <code>ir.rule</code>.</li>
+      <div>
+        <h4 style="font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: #6B7494; font-weight: 600; margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(14,27,58,0.10);">4 &middot; Grant the manager role</h4>
+        <ul style="list-style: none; padding: 0; margin: 0; color: #0B162E; font-size: 15px;">
+          <li style="padding: 4px 0;"><em>Settings &rarr; Users &amp; Companies &rarr; Users</em> &rarr; pick the user &rarr; <em>Access Rights</em> tab &rarr; <strong>Vinc</strong> &rarr; <em>Vinc Manager</em> &rarr; Save.</li>
+          <li style="padding: 4px 0;">Everyone else stays scoped to their own records via <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">ir.rule</code>.</li>
         </ul>
       </div>
-
-      <div class="v-spec">
-        <h4>Public vs authenticated routes</h4>
-        <ul>
-          <li><strong>Public:</strong> <code>/&lt;slug&gt;</code>, <code>/create_lead</code>, <code>/create_review</code>, <code>/create_service_request</code>, <code>/vcard/qr_code/download/&lt;id&gt;</code>, <code>/nfc/setup/&lt;id&gt;</code>, <code>/vinculum/guide</code>, <code>/bulk-onboard/activate/&lt;token&gt;</code></li>
-          <li><strong>User:</strong> <code>/get-started</code>, <code>/vcard/submit</code>, <code>/vcard/preview</code></li>
-          <li><strong>Vinc Manager only:</strong> <code>/bulk-onboard</code>, <code>/bulk-onboard/upload</code>, <code>/bulk-onboard/submit</code></li>
+      <div>
+        <h4 style="font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: #6B7494; font-weight: 600; margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(14,27,58,0.10);">Public vs authenticated routes</h4>
+        <ul style="list-style: none; padding: 0; margin: 0; color: #0B162E; font-size: 15px;">
+          <li style="padding: 4px 0;"><strong>Public:</strong> <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">/&lt;slug&gt;</code>, <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">/create_lead</code>, <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">/create_review</code>, <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">/vinculum/guide</code>, <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">/bulk-onboard/activate/&lt;token&gt;</code></li>
+          <li style="padding: 4px 0;"><strong>User:</strong> <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">/get-started</code>, <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">/vcard/submit</code>, <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">/vcard/preview</code></li>
+          <li style="padding: 4px 0;"><strong>Vinc Manager only:</strong> <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">/bulk-onboard</code>, <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">/bulk-onboard/upload</code>, <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">/bulk-onboard/submit</code></li>
         </ul>
       </div>
-
-      <div class="v-spec">
-        <h4>Optional: self-serve signup</h4>
-        <p>Install Odoo's <code>auth_signup</code> module and new signups land as <code>base.group_user</code> &mdash; zero access to existing cards thanks to the record rules. They can create their own via <code>/get-started</code>. Promote to Vinc Manager manually if wanted.</p>
+      <div>
+        <h4 style="font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: #6B7494; font-weight: 600; margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(14,27,58,0.10);">Optional: self-serve signup</h4>
+        <p style="color: #0B162E; font-size: 15px; margin: 0;">Install Odoo's <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">auth_signup</code> module and new signups land as <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">base.group_user</code> &mdash; zero access to existing cards thanks to the record rules. They can create their own via <code style="background: rgba(14,27,58,0.06); padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;">/get-started</code>. Promote to Vinc Manager manually if wanted.</p>
       </div>
     </div>
   </div>
-</section>
+</div>
 
 
 <!-- ========== FAQ ========== -->
-<section class="v-sec v-faq-sec">
-  <div class="v-wrap">
-    <span class="v-kicker">FAQ</span>
-    <h2>The <em>questions</em> we hear most often.</h2>
-    <p class="v-lede">
-      Licensing, activation, updates, support. If your question isn't here, email <a href="mailto:support@getvinc.com" style="color: #1E40AF; border-bottom: 1px solid rgba(30,64,175,.35); padding-bottom: 1px;">support@getvinc.com</a> and a real person replies.
+<div style="padding: 88px 32px; background: #F8F5EB;">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <span style="font-weight: 500; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: #6B7494; display: inline-block;">&mdash;&nbsp; FAQ</span>
+    <h2 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; color: #0B162E; font-size: 44px; line-height: 1.08; font-weight: 500; letter-spacing: -0.02em; margin: 16px 0 22px; max-width: 22ch;">The <em style="font-style: italic; color: #1E40AF; font-weight: 400;">questions</em> we hear most often.</h2>
+    <p style="font-size: 19px; line-height: 1.6; color: #3A4569; max-width: 60ch; margin: 0 0 48px;">
+      Licensing, activation, updates, support. If your question isn't here, email <a href="mailto:support@getvinc.com" style="color: #1E40AF; border-bottom: 1px solid rgba(30,64,175,0.35); text-decoration: none; padding-bottom: 1px;">support@getvinc.com</a> and a real person replies.
     </p>
 
-    <div class="v-faq-grid">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 40px; align-items: start;">
+
       <!-- LEFT COLUMN -->
-      <div class="v-faq-col">
-
-        <details class="v-faq-item">
-          <summary>Where do I get my license key?</summary>
-          <div class="v-faq-body">
-            <p>After purchase on the Odoo App Store, you'll receive a license key by email within a few minutes. The same key is also available in your <a href="https://apps.odoo.com">apps.odoo.com</a> purchase history.</p>
-            <p>Inside Odoo, go to <strong>Vinc &rarr; Settings &rarr; License</strong> and paste the key. Activation is instant; you'll see a green "License active" badge and the dashboard will unlock.</p>
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <details style="background: #FFFFFF; border: 1px solid rgba(14,27,58,0.10); border-radius: 12px; overflow: hidden; padding: 18px 22px;">
+          <summary style="cursor: pointer; font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 17px; font-weight: 500; color: #0B162E; letter-spacing: -0.008em;">Where do I get my license key?</summary>
+          <div style="padding: 14px 0 0; font-size: 15px; line-height: 1.65; color: #3A4569;">
+            <p style="margin: 0 0 10px;">After purchase on the Odoo App Store, you'll receive a license key by email within a few minutes. The same key is also available in your <a href="https://apps.odoo.com" style="color: #1E40AF; border-bottom: 1px solid rgba(30,64,175,0.35); text-decoration: none;">apps.odoo.com</a> purchase history.</p>
+            <p style="margin: 0;">Inside Odoo, go to <strong>Vinc &rarr; Settings &rarr; License</strong> and paste the key. Activation is instant; you'll see a green "License active" badge and the dashboard will unlock.</p>
           </div>
         </details>
 
-        <details class="v-faq-item">
-          <summary>My license isn't activating &mdash; what now?</summary>
-          <div class="v-faq-body">
-            <p>The two common causes:</p>
-            <p>1. <strong>Outbound HTTPS is blocked.</strong> License validation calls <code>license.getvinc.com</code>. If your Odoo server can't reach it, activation fails. Allow outbound HTTPS on port 443 and retry.</p>
-            <p>2. <strong>Clock skew.</strong> License tokens are time-signed. If your server clock is more than 5 minutes off UTC, validation rejects. Sync via NTP and retry.</p>
-            <p>Still stuck? Send your Odoo version + the error message to <a href="mailto:support@getvinc.com">support@getvinc.com</a> &mdash; response within one business day.</p>
+        <details style="background: #FFFFFF; border: 1px solid rgba(14,27,58,0.10); border-radius: 12px; overflow: hidden; padding: 18px 22px;">
+          <summary style="cursor: pointer; font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 17px; font-weight: 500; color: #0B162E; letter-spacing: -0.008em;">My license isn't activating &mdash; what now?</summary>
+          <div style="padding: 14px 0 0; font-size: 15px; line-height: 1.65; color: #3A4569;">
+            <p style="margin: 0 0 10px;">The two common causes:</p>
+            <p style="margin: 0 0 10px;">1. <strong>Outbound HTTPS is blocked.</strong> License validation calls <code style="background: #F4F1E8; padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; color: #0B162E;">license.getvinc.com</code>. If your Odoo server can't reach it, activation fails. Allow outbound HTTPS on port 443 and retry.</p>
+            <p style="margin: 0 0 10px;">2. <strong>Clock skew.</strong> License tokens are time-signed. If your server clock is more than 5 minutes off UTC, validation rejects. Sync via NTP and retry.</p>
+            <p style="margin: 0;">Still stuck? Send your Odoo version + the error message to <a href="mailto:support@getvinc.com" style="color: #1E40AF; border-bottom: 1px solid rgba(30,64,175,0.35); text-decoration: none;">support@getvinc.com</a> &mdash; response within one business day.</p>
           </div>
         </details>
 
-        <details class="v-faq-item">
-          <summary>How many Odoo databases can I use one license on?</summary>
-          <div class="v-faq-body">
-            <p>One license = one production Odoo database. You can also activate it on one staging / test database without extra cost &mdash; we don't count non-production environments.</p>
-            <p>Running multiple separate production tenants? Contact sales for a multi-DB license bundle.</p>
+        <details style="background: #FFFFFF; border: 1px solid rgba(14,27,58,0.10); border-radius: 12px; overflow: hidden; padding: 18px 22px;">
+          <summary style="cursor: pointer; font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 17px; font-weight: 500; color: #0B162E; letter-spacing: -0.008em;">How many Odoo databases can I use one license on?</summary>
+          <div style="padding: 14px 0 0; font-size: 15px; line-height: 1.65; color: #3A4569;">
+            <p style="margin: 0 0 10px;">One license = one production Odoo database. You can also activate it on one staging / test database without extra cost &mdash; we don't count non-production environments.</p>
+            <p style="margin: 0;">Running multiple separate production tenants? Contact sales for a multi-DB license bundle.</p>
           </div>
         </details>
 
-        <details class="v-faq-item">
-          <summary>What happens if my license expires or I transfer to a new server?</summary>
-          <div class="v-faq-body">
-            <p>The license is a one-time purchase, not a subscription &mdash; it doesn't expire. Future module updates are included for the lifetime of the product.</p>
-            <p>To move the module to a new Odoo server, deactivate the license on the old instance (<strong>Vinc &rarr; Settings &rarr; License &rarr; Deactivate</strong>), then activate on the new one with the same key. Takes a minute.</p>
+        <details style="background: #FFFFFF; border: 1px solid rgba(14,27,58,0.10); border-radius: 12px; overflow: hidden; padding: 18px 22px;">
+          <summary style="cursor: pointer; font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 17px; font-weight: 500; color: #0B162E; letter-spacing: -0.008em;">What happens if my license expires or I transfer to a new server?</summary>
+          <div style="padding: 14px 0 0; font-size: 15px; line-height: 1.65; color: #3A4569;">
+            <p style="margin: 0 0 10px;">The license is a one-time purchase, not a subscription &mdash; it doesn't expire. Future module updates are included for the lifetime of the product.</p>
+            <p style="margin: 0;">To move the module to a new Odoo server, deactivate the license on the old instance (<strong>Vinc &rarr; Settings &rarr; License &rarr; Deactivate</strong>), then activate on the new one with the same key. Takes a minute.</p>
           </div>
         </details>
 
-        <details class="v-faq-item">
-          <summary>Can I migrate from Vinc SaaS to this self-hosted module?</summary>
-          <div class="v-faq-body">
-            <p>Yes. Export your cards, leads, and reviews from your Vinc SaaS account (<em>Settings &rarr; Export data</em>), install this module on your Odoo instance, and import via the bulk-onboarding wizard. Lead history imports via CSV.</p>
-            <p>For large migrations (50+ cards), we'll run it with you on a call &mdash; email support to schedule.</p>
+        <details style="background: #FFFFFF; border: 1px solid rgba(14,27,58,0.10); border-radius: 12px; overflow: hidden; padding: 18px 22px;">
+          <summary style="cursor: pointer; font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 17px; font-weight: 500; color: #0B162E; letter-spacing: -0.008em;">Can I migrate from Vinc SaaS to this self-hosted module?</summary>
+          <div style="padding: 14px 0 0; font-size: 15px; line-height: 1.65; color: #3A4569;">
+            <p style="margin: 0 0 10px;">Yes. Export your cards, leads, and reviews from your Vinc SaaS account (<em>Settings &rarr; Export data</em>), install this module on your Odoo instance, and import via the bulk-onboarding wizard. Lead history imports via CSV.</p>
+            <p style="margin: 0;">For large migrations (50+ cards), we'll run it with you on a call &mdash; email support to schedule.</p>
           </div>
         </details>
-
       </div>
 
       <!-- RIGHT COLUMN -->
-      <div class="v-faq-col">
-
-        <details class="v-faq-item">
-          <summary>Which Odoo versions are supported?</summary>
-          <div class="v-faq-body">
-            <p>Vinc for Odoo targets <code>Odoo 17.0</code> (Community and Enterprise). Earlier versions aren't supported &mdash; Odoo 16 and earlier lack the QWeb / OWL features Vinc relies on.</p>
-            <p>Odoo 18 compatibility is on the roadmap and will ship as a free update to existing license holders.</p>
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <details style="background: #FFFFFF; border: 1px solid rgba(14,27,58,0.10); border-radius: 12px; overflow: hidden; padding: 18px 22px;">
+          <summary style="cursor: pointer; font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 17px; font-weight: 500; color: #0B162E; letter-spacing: -0.008em;">Which Odoo versions are supported?</summary>
+          <div style="padding: 14px 0 0; font-size: 15px; line-height: 1.65; color: #3A4569;">
+            <p style="margin: 0 0 10px;">Vinc for Odoo targets <code style="background: #F4F1E8; padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; color: #0B162E;">Odoo 17.0</code> (Community and Enterprise). Earlier versions aren't supported &mdash; Odoo 16 and earlier lack the QWeb / OWL features Vinc relies on.</p>
+            <p style="margin: 0;">Odoo 18 compatibility is on the roadmap and will ship as a free update to existing license holders.</p>
           </div>
         </details>
 
-        <details class="v-faq-item">
-          <summary>Do I need any external services to make it work?</summary>
-          <div class="v-faq-body">
-            <p>Core Vinc runs entirely inside your Odoo. No external dependencies.</p>
-            <p>Two optional integrations unlock extra features: an <strong>outgoing SMTP server</strong> (for intro emails, lead notifications, and digest emails) and an <strong>IP geolocation service</strong> (Vinc uses the free geojs.io / ip-api.com tiers automatically &mdash; no key required). Everything else is self-contained.</p>
+        <details style="background: #FFFFFF; border: 1px solid rgba(14,27,58,0.10); border-radius: 12px; overflow: hidden; padding: 18px 22px;">
+          <summary style="cursor: pointer; font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 17px; font-weight: 500; color: #0B162E; letter-spacing: -0.008em;">Do I need any external services to make it work?</summary>
+          <div style="padding: 14px 0 0; font-size: 15px; line-height: 1.65; color: #3A4569;">
+            <p style="margin: 0 0 10px;">Core Vinc runs entirely inside your Odoo. No external dependencies.</p>
+            <p style="margin: 0;">Two optional integrations unlock extra features: an <strong>outgoing SMTP server</strong> (for intro emails, lead notifications, and digest emails) and an <strong>IP geolocation service</strong> (Vinc uses the free geojs.io / ip-api.com tiers automatically &mdash; no key required). Everything else is self-contained.</p>
           </div>
         </details>
 
-        <details class="v-faq-item">
-          <summary>Does this replace my Odoo CRM, or sit alongside it?</summary>
-          <div class="v-faq-body">
-            <p>Sits alongside. Vinc writes captured leads directly into <code>crm.lead</code> as opportunities, using your existing pipeline stages, teams, and routing rules. Nothing about your CRM setup changes.</p>
-            <p>Each captured lead gets a <code>partner_vcard_id</code> backref so you can filter the pipeline by "leads from Vinc" whenever you want.</p>
+        <details style="background: #FFFFFF; border: 1px solid rgba(14,27,58,0.10); border-radius: 12px; overflow: hidden; padding: 18px 22px;">
+          <summary style="cursor: pointer; font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 17px; font-weight: 500; color: #0B162E; letter-spacing: -0.008em;">Does this replace my Odoo CRM, or sit alongside it?</summary>
+          <div style="padding: 14px 0 0; font-size: 15px; line-height: 1.65; color: #3A4569;">
+            <p style="margin: 0 0 10px;">Sits alongside. Vinc writes captured leads directly into <code style="background: #F4F1E8; padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; color: #0B162E;">crm.lead</code> as opportunities, using your existing pipeline stages, teams, and routing rules. Nothing about your CRM setup changes.</p>
+            <p style="margin: 0;">Each captured lead gets a <code style="background: #F4F1E8; padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; color: #0B162E;">partner_vcard_id</code> backref so you can filter the pipeline by "leads from Vinc" whenever you want.</p>
           </div>
         </details>
 
-        <details class="v-faq-item">
-          <summary>How are module updates delivered?</summary>
-          <div class="v-faq-body">
-            <p>New versions ship through the Odoo App Store. You'll see an "Update available" badge next to Vinc in your Apps list. Click Upgrade &mdash; the usual Odoo update flow.</p>
-            <p>Updates never touch your data. Your cards, leads, and settings stay exactly as you left them.</p>
+        <details style="background: #FFFFFF; border: 1px solid rgba(14,27,58,0.10); border-radius: 12px; overflow: hidden; padding: 18px 22px;">
+          <summary style="cursor: pointer; font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 17px; font-weight: 500; color: #0B162E; letter-spacing: -0.008em;">How are module updates delivered?</summary>
+          <div style="padding: 14px 0 0; font-size: 15px; line-height: 1.65; color: #3A4569;">
+            <p style="margin: 0 0 10px;">New versions ship through the Odoo App Store. You'll see an "Update available" badge next to Vinc in your Apps list. Click Upgrade &mdash; the usual Odoo update flow.</p>
+            <p style="margin: 0;">Updates never touch your data. Your cards, leads, and settings stay exactly as you left them.</p>
           </div>
         </details>
 
-        <details class="v-faq-item">
-          <summary>What's the refund policy?</summary>
-          <div class="v-faq-body">
-            <p>Odoo App Store handles refunds within <strong>14 days of purchase</strong>, no questions asked. Request via your apps.odoo.com purchase history or email <a href="mailto:support@getvinc.com">support@getvinc.com</a>.</p>
-            <p>Past the 14-day window, we'll still consider fair refund requests on a case-by-case basis &mdash; just tell us what went wrong.</p>
+        <details style="background: #FFFFFF; border: 1px solid rgba(14,27,58,0.10); border-radius: 12px; overflow: hidden; padding: 18px 22px;">
+          <summary style="cursor: pointer; font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 17px; font-weight: 500; color: #0B162E; letter-spacing: -0.008em;">What's the refund policy?</summary>
+          <div style="padding: 14px 0 0; font-size: 15px; line-height: 1.65; color: #3A4569;">
+            <p style="margin: 0 0 10px;">Odoo App Store handles refunds within <strong>14 days of purchase</strong>, no questions asked. Request via your apps.odoo.com purchase history or email <a href="mailto:support@getvinc.com" style="color: #1E40AF; border-bottom: 1px solid rgba(30,64,175,0.35); text-decoration: none;">support@getvinc.com</a>.</p>
+            <p style="margin: 0;">Past the 14-day window, we'll still consider fair refund requests on a case-by-case basis &mdash; just tell us what went wrong.</p>
           </div>
         </details>
 
-        <details class="v-faq-item">
-          <summary>Can I modify the module's source code?</summary>
-          <div class="v-faq-body">
-            <p>Yes &mdash; the license permits modification and extension for your own use. What you can't do: redistribute, resell, or sublicense the modified module to third parties.</p>
-            <p>Contributing a useful patch back to the project is welcome; email a pull request or a diff to <a href="mailto:support@getvinc.com">support@getvinc.com</a>.</p>
+        <details style="background: #FFFFFF; border: 1px solid rgba(14,27,58,0.10); border-radius: 12px; overflow: hidden; padding: 18px 22px;">
+          <summary style="cursor: pointer; font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 17px; font-weight: 500; color: #0B162E; letter-spacing: -0.008em;">Can I modify the module's source code?</summary>
+          <div style="padding: 14px 0 0; font-size: 15px; line-height: 1.65; color: #3A4569;">
+            <p style="margin: 0 0 10px;">Yes &mdash; the license permits modification and extension for your own use. What you can't do: redistribute, resell, or sublicense the modified module to third parties.</p>
+            <p style="margin: 0;">Contributing a useful patch back to the project is welcome; email a pull request or a diff to <a href="mailto:support@getvinc.com" style="color: #1E40AF; border-bottom: 1px solid rgba(30,64,175,0.35); text-decoration: none;">support@getvinc.com</a>.</p>
           </div>
         </details>
-
       </div>
+
     </div>
   </div>
-</section>
+</div>
 
 
 <!-- ========== FINAL CTA ========== -->
-<section class="v-cta-sec">
-  <div class="v-wrap">
-    <span class="v-kicker">Install Vinc</span>
-    <h2 style="font-family: var(--serif); color: #0B162E; font-size: 44px; line-height: 1.08; font-weight: 500; letter-spacing: -0.02em; max-width: 22ch; margin: 16px auto 22px;">Your next handshake is <em style="font-style: italic; color: #1E40AF; font-weight: 400;">already</em> a lead.</h2>
-    <p class="v-lede" style="margin: 0 auto 40px;">
+<div style="padding: 96px 32px; background: #FFFFFF; text-align: center;">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <span style="font-weight: 500; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: #6B7494; display: inline-block;">&mdash;&nbsp; Install Vinc</span>
+    <h2 style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; color: #0B162E; font-size: 44px; line-height: 1.08; font-weight: 500; letter-spacing: -0.02em; margin: 16px auto 22px; max-width: 22ch;">Your next handshake is <em style="font-style: italic; color: #1E40AF; font-weight: 400;">already</em> a lead.</h2>
+    <p style="font-size: 19px; line-height: 1.6; color: #3A4569; max-width: 60ch; margin: 0 auto 40px;">
       One license. One install. Every card your team hands out starts working for you from the first scan.
     </p>
-    <div class="v-cta-line">
+    <div style="display: inline-block; font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 22px; color: #0B162E; font-weight: 500; border-top: 1px solid rgba(14,27,58,0.10); padding-top: 22px; margin-top: 18px;">
       <span>Vinc for Odoo 17</span>
-      <span style="color: #6B7494;">&middot;</span>
-      <span>343 <em>&euro;</em></span>
-      <span class="v-cta-price">one-time &middot; yours forever</span>
+      <span style="color: #6B7494;">&nbsp;&middot;&nbsp;</span>
+      <span>343 <em style="font-style: italic; color: #1E40AF; font-weight: 400;">&euro;</em></span>
+      <span style="font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 14px; color: #6B7494; letter-spacing: 0.06em;">&nbsp;&nbsp;one-time &middot; yours forever</span>
     </div>
   </div>
-</section>
+</div>
 
 
 <!-- ========== FOOTER ========== -->
-<footer class="v-foot">
-  <div class="v-wrap v-foot-row">
-    <div class="v-foot-mark">Vinc</div>
-    <div class="v-foot-meta">
+<div style="background: #F4F1E8; padding: 56px 32px 64px; border-top: 1px solid rgba(14,27,58,0.05);">
+  <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap;">
+    <div style="font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; color: #0B162E;">Vinc <span style="color: #C9B37A;">&middot;</span></div>
+    <div style="color: #3A4569; font-size: 13.5px;">
       Built by Faris Delija &middot;
-      <a href="mailto:support@getvinc.com">support@getvinc.com</a> &middot;
-      <a href="https://getvinc.com">getvinc.com</a>
+      <a href="mailto:support@getvinc.com" style="color: #0B162E; border-bottom: 1px solid #C9B37A; text-decoration: none; padding-bottom: 1px;">support@getvinc.com</a> &middot;
+      <a href="https://getvinc.com" style="color: #0B162E; border-bottom: 1px solid #C9B37A; text-decoration: none; padding-bottom: 1px;">getvinc.com</a>
     </div>
   </div>
-</footer>
+</div>
 
-</section>
+
+</div>
