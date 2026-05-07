@@ -17,8 +17,8 @@
                 <span class="vg-bc-current">Bulk Onboarding</span>
             </div>
             <div class="vg-page-header">
-                <h1 class="vg-display">Onboard a <em>whole team</em> in one upload.</h1>
-                <p class="vg-summary">CSV in, activation emails out, cards live. The rollout pattern that scales from 5 people to 5,000.</p>
+                <h1 class="vg-display">Seed cards for your <em>existing team</em> in one upload.</h1>
+                <p class="vg-summary">CSV in, cards live. Each row maps to an Odoo user that already exists; the upload creates the vCards and emails each person a "your card is ready" link.</p>
             </div>
             <div class="vg-content">
 
@@ -26,10 +26,14 @@
                     <strong>Who can run this:</strong> the <code>/bulk-onboard</code> flow is locked to users with the <em><t t-out="brand_name"/> Manager</em> role (or Odoo system admins, who inherit it). Grant it from <em>Settings → Users &amp; Companies → Users → Access Rights → <t t-out="brand_name"/></em>. Regular internal users have no access to the bulk-onboarding models via RPC or UI.
                 </div>
 
+                <div class="vg-callout" style="background: #FFF7ED; border-left: 3px solid #EA580C; padding: 14px 18px; border-radius: 8px; margin-bottom: 28px;">
+                    <strong>Read first:</strong> bulk onboarding now requires every email in your CSV to <em>already exist</em> as an Odoo user (under <em>Settings → Users &amp; Companies → Users</em>). The upload no longer creates user accounts, no longer sends magic-link activation emails, and no longer asks the recipient to set a password. <t t-out="brand_name"/> is an app on top of Odoo — your reps come from Odoo's standard user-management flow, and this wizard just gives them a vCard.
+                </div>
+
                 <h2><span class="vg-h2-num">01</span>The CSV format</h2>
                 <p>Bulk onboarding takes a CSV with one row per future card. Two columns are required, the rest are optional:</p>
                 <ul>
-                    <li><strong>Required:</strong> <code>name</code>, <code>email</code></li>
+                    <li><strong>Required:</strong> <code>name</code>, <code>email</code> (must match an existing Odoo user's login)</li>
                     <li><strong>Profile:</strong> <code>phone</code>, <code>mobile</code>, <code>function</code> (job title), <code>about</code></li>
                     <li><strong>Address:</strong> <code>street</code>, <code>street2</code>, <code>city</code>, <code>zip</code>, <code>country</code>, <code>state</code></li>
                     <li><strong>Social:</strong> <code>linkedin_url</code>, <code>facebook_url</code>, <code>twitter_url</code>, <code>instagram_url</code>, <code>whatsapp_url</code>, <code>youtube_url</code>, <code>calendly_url</code></li>
@@ -41,29 +45,33 @@
                 <h2><span class="vg-h2-num">02</span>The upload flow</h2>
                 <p>From the user dashboard, click <em class="vg-mark">Bulk Onboarding</em> (admin-only button). You'll land on the wizard at <code>/bulk-onboard</code>:</p>
                 <ol>
-                    <li><strong>Upload CSV</strong> — drag-and-drop or pick a file. <t t-out="brand_name"/> parses and previews the first 5 rows.</li>
-                    <li><strong>Review &amp; map</strong> — confirm column mappings; fix typos in row data inline.</li>
+                    <li><strong>Upload CSV</strong> — drag-and-drop or pick a file. <t t-out="brand_name"/> parses and previews the first 5 rows. The upload response also reports how many emails matched existing Odoo users — a yellow banner appears listing any rows that will be skipped because no matching user exists.</li>
+                    <li><strong>Review &amp; map</strong> — confirm column mappings; fix typos in row data inline. If you see unmatched-email rows in the banner, either remove them from the CSV, or first create those users in <em>Settings → Users &amp; Companies → Users</em> and re-upload.</li>
                     <li><strong>Set defaults</strong> — pick a template, primary/secondary colors, and lead-form behavior to apply to every card. Per-row overrides win.</li>
-                    <li><strong>Submit</strong> — <t t-out="brand_name"/> creates the cards in a single transaction and (if enabled) sends activation emails.</li>
+                    <li><strong>Submit</strong> — <t t-out="brand_name"/> creates the vCards (one per matched row) in a single transaction and emails each user a "your card is ready" notification.</li>
                 </ol>
-
-                <h2><span class="vg-h2-num">03</span>Activation emails</h2>
-                <p>Each cardholder receives an email with their card URL, a magic-link to set up their own credentials in Odoo, and a one-line "what to do next." The activation template is a regular Odoo <code>mail.template</code> — see <a href="/vinculum/guide/automations">Email Automations &amp; Digests</a> for editing.</p>
                 <div class="vg-note">
-                    Activation emails go through your configured outgoing mail server. If your team uses a transactional sender (Postmark, Mailgun, AWS SES), wire it up in Odoo before the bulk upload — sending 200 cards through Gmail SMTP will trip rate limits.
+                    The wizard is <strong>lenient</strong> about unmatched rows: matched rows still process, unmatched rows land in the batch's error log so you can tell exactly who got skipped and why. Nothing about the existing flow is half-committed.
                 </div>
 
+                <h2><span class="vg-h2-num">03</span>Notification emails</h2>
+                <p>Each user gets a short email when their card is created: subject "Your <t t-out="brand_name"/> card is ready at &lt;company&gt;", body with a single <em class="vg-mark">View your card →</em> button that deep-links to the new vCard form. They sign in with the Odoo password they already use; if they're already logged in the link drops them straight onto the card.</p>
+                <p>The template is a regular Odoo <code>mail.template</code> (look for <code>Vinc — Bulk Onboarding Invitation</code> in <em>Settings → Technical → Email Templates</em>). See <a href="/vinculum/guide/automations">Email Automations &amp; Digests</a> for the full template-editing workflow.</p>
+
                 <h2><span class="vg-h2-num">04</span>Troubleshooting common rows</h2>
-                <p>The submit step validates the entire CSV before writing anything. If a row fails, you get a per-row reason and the upload doesn't half-commit.</p>
+                <p>Per-row issues bubble up in the batch's error log after submit, the wizard keeps going, and unmatched rows don't half-commit. Common reasons a row fails:</p>
                 <ul>
+                    <li><strong>No Odoo user found for &lt;email&gt;</strong> — the email doesn't match any <code>res.users.login</code>. Add the user under <em>Settings → Users &amp; Companies → Users</em> first, then re-upload.</li>
                     <li><strong>Duplicate slug</strong> — two rows resolved to the same <code>website_slug</code>. Fix one or supply explicit slugs.</li>
                     <li><strong>Duplicate email within the upload</strong> — <t t-out="brand_name"/> dedupes within the file before insert.</li>
-                    <li><strong>Email already belongs to an existing user</strong> — the row is flagged so you can decide whether to reassign or skip.</li>
                     <li><strong>Slug collision with an existing card</strong> — pre-existing card has the same slug. Reassign.</li>
                     <li><strong>Invalid email</strong> — failed format validation. Fix or remove.</li>
                 </ul>
                 <div class="vg-note">
-                    There's no hard row limit enforced by the controller, but in practice keep batches under ~500 rows so the activation-email queue doesn't backlog. For larger rollouts, split into multiple uploads and stagger them.
+                    Bulk uploads can legitimately seed a <strong>second</strong> card for a user who already has one (different role, different audience, different show). If you'd rather not, leave those rows out of the CSV.
+                </div>
+                <div class="vg-note">
+                    There's no hard row limit, but in practice keep batches under ~500 rows so the notification-email queue doesn't backlog. For larger rollouts, split into multiple uploads and stagger them.
                 </div>
 
             </div>
@@ -179,6 +187,24 @@ Won deal · $87,000 · closed Mar 2026 · Sarah Chen
                     <li><strong>No multi-currency normalization.</strong> Deal-size buckets use the lead's expected_revenue value as-is. Mixed-currency tenants will see noisier matches until we add per-company normalization in a future pass.</li>
                 </ul>
 
+                <h2><span class="vg-h2-num">06</span>Event binding (trade shows, conferences, open houses)</h2>
+                <p>Cards have an <em>Active Event</em> field (in the Lead Collection Form Settings group on the card form). When a rep is staffing a booth, they pick the event there for the day. Every lead captured by that card while the field is set gets stamped with <code>crm.lead.event_id = &lt;the event&gt;</code>, which means:</p>
+                <ul>
+                    <li>A small <strong>Captured at: &lt;event&gt;</strong> badge appears under the lead's title in CRM, so anyone opening the lead immediately sees the source.</li>
+                    <li>Standard Odoo CRM filters work out of the box — saved searches like "leads from SaaStr 2026", "ROI per event", "conversion rate by show". The <code>event_crm</code> module already provides the field; <t t-out="brand_name"/> just hooks captures into it.</li>
+                </ul>
+
+                <h3>What it doesn't do</h3>
+                <ul>
+                    <li><strong>No event registration is created.</strong> An earlier version did this so the prospect appeared on the event's official attendee list, but every <code>event.registration</code> triggers Odoo's "thanks for registering" email plus any pre-scheduled day-of reminders — meaning a single scan spammed the prospect with up to 10 emails about an event they never knowingly signed up for. The lead-side <code>event_id</code> is enough for the reporting; if a rep wants the prospect on the official attendee list, it's two clicks to add them manually from CRM.</li>
+                    <li><strong>One active event per card.</strong> The rep has to manually clear the field after the show. We may add a daily cron later that nulls it the day after <code>event.date_end</code> — for now it's manual.</li>
+                    <li><strong>No booth-level tagging.</strong> Odoo's <code>event_booth</code> module supports "which booth at the show" — easy to layer on if anyone asks.</li>
+                </ul>
+
+                <div class="vg-callout" style="background: #EEF2FF; border-left: 3px solid #2D5BFF; padding: 14px 18px; border-radius: 8px; margin-top: 16px;">
+                    <strong>Dependency:</strong> the <code>event_crm</code> module (Odoo Community, free) is a hard dependency of <t t-out="brand_name"/>. On install or upgrade, Odoo pulls it in automatically — no manual setup.
+                </div>
+
             </div>
         </t>
     </template>
@@ -249,24 +275,27 @@ Won deal · $87,000 · closed Mar 2026 · Sarah Chen
             </div>
             <div class="vg-page-header">
                 <h1 class="vg-display">The <em>automation stack</em>, end to end.</h1>
-                <p class="vg-summary">Three flavors of automated email — intro, leadback, and digest. Each has a job; each is editable.</p>
+                <p class="vg-summary">Three flavors of automated follow-up — intro email, click-to-chat, and digest. Each has a job; each is editable.</p>
             </div>
             <div class="vg-content">
 
                 <h2><span class="vg-h2-num">01</span>Intro emails</h2>
                 <p>When a lead is captured on a card with intro emails enabled, <t t-out="brand_name"/> fires a one-shot intro email <strong>synchronously, immediately</strong> after the opportunity is created. No cron, no delay. The template uses Odoo's standard mail-template system, with placeholders for the lead's name, the cardholder's name, phone, email, and the card URL.</p>
-                <p>Intro emails are <em class="vg-mark">opt-in per card</em> (toggle <em>Intro email enabled</em> on the card's form view). When off, leads still land in CRM but no automated reply goes out.</p>
+                <p>Intro emails are <em class="vg-mark">opt-in per card</em> (toggle <em>Send intro email automatically</em> on the card's form view, in the Lead Collection Form Settings group). When off, leads still land in CRM but no automated reply goes out.</p>
                 <div class="vg-note">
                     Because intro emails fire inline with the lead-capture request, your outgoing mail server's responsiveness affects the lead form's response time. If your SMTP host is slow, lead submissions feel slow. Use a transactional sender (Postmark, Mailgun, AWS SES) for sub-second send times.
                 </div>
+                <p>Intro Email is the only automated email path. An earlier version of the addon also had a separate "Leadback automated email" toggle that did essentially the same job with a configurable delay; that toggle was removed because cards with both flags on double-mailed every prospect. If you need a delayed (rather than immediate) follow-up, use Odoo's standard <em>Mail → Marketing</em> automation against the captured lead.</p>
 
-                <h2><span class="vg-h2-num">02</span>Leadback — the multi-channel follow-up</h2>
-                <p>Leadback is <t t-out="brand_name"/>'s spec for "what happens after the form submission." Two independent tracks per card:</p>
+                <h2><span class="vg-h2-num">02</span>Click to Chat</h2>
+                <p>Click to Chat (formerly "Instant Lead-Back") shows the lead a panel of tap-to-message buttons immediately after they submit the form. The buttons open the lead's native messaging app pre-filled with a templated message.</p>
                 <ul>
-                    <li><strong>Email track</strong> (toggle <em>Send email</em>). One automated email back to the lead. Delay preset: <em>immediate</em>, <em>1 min</em>, <em>5 min</em>, <em>15 min</em>, <em>1 hour</em>, or <em>custom</em> (any number of minutes / hours / days). Default: immediate.</li>
-                    <li><strong>Messaging track</strong> (toggle <em>Enable messaging</em>). Generates a tap-to-message link in one or more of three channels: <strong>WhatsApp</strong>, <strong>Viber</strong>, <strong>Telegram</strong>. Same delay presets as the email track. Default template: friendly &amp; short, with placeholders for <code>{contact_name}</code>, <code>{vcard_url}</code>, <code>{booking_url}</code>, and conditional <code>{if field}…{/if}</code> blocks.</li>
+                    <li><strong>Toggle</strong>: <em>Click to Chat</em> in the Click to Chat Settings group on the card form. When on, the rest of the section unlocks.</li>
+                    <li><strong>Channels</strong>: pick any combination of <strong>WhatsApp</strong>, <strong>Viber</strong>, <strong>Telegram</strong>. WhatsApp is auto-selected when you flip the master toggle on (so you don't trip the "pick a channel" validator immediately).</li>
+                    <li><strong>Message Delay</strong>: how long to wait before the messaging links appear (immediate / 1 min / 5 min / 15 min / 1 hour / custom).</li>
+                    <li><strong>Chat Message Template</strong>: a plain-text body with the same placeholder syntax used in intro emails — <code>{contact_name}</code>, <code>{vcard_url}</code>, <code>{booking_url}</code>, conditional <code>{if field}…{/if}</code> blocks, and fallback <code>{placeholder|default}</code>.</li>
                 </ul>
-                <p>Leadback is the single highest-leverage feature for converting captured contacts into actual conversations. A common pattern: immediate email + a 5-minute WhatsApp tap-link, both opt-in for the cardholder.</p>
+                <p>A common pattern: intro email goes out immediately (the formal touch), and a 5-minute Click to Chat panel surfaces (the informal "let's talk now" touch). Both are opt-in per card.</p>
 
                 <h2><span class="vg-h2-num">03</span>Weekly digest emails</h2>
                 <p>Each cardholder can receive a weekly digest summarizing their card's performance: scans, views, leads captured, top-rated reviews. The digest is opt-in and configurable per user.</p>
@@ -291,6 +320,60 @@ Won deal · $87,000 · closed Mar 2026 · Sarah Chen
                          loading="lazy"/>
                     <figcaption><strong>Fig. 4</strong>Settings → Technical → Email Templates, filtered to <code>Vinc</code>.</figcaption>
                 </figure>
+
+            </div>
+        </t>
+    </template>
+
+
+    <!-- ============================ BRANDING ============================ -->
+    <template id="vinculum_guide_branding" name="Branding &amp; White-Label">
+        <t t-call="qr_code_odoo.vinculum_guide_layout">
+            <div class="vg-breadcrumb">
+                <a href="/vinculum/guide">Guide</a>
+                <span class="vg-bc-sep">/</span>
+                <span>For Administrators</span>
+                <span class="vg-bc-sep">/</span>
+                <span class="vg-bc-current">Branding &amp; White-Label</span>
+            </div>
+            <div class="vg-page-header">
+                <h1 class="vg-display">Make it look like <em>your</em> product.</h1>
+                <p class="vg-summary">Set a brand name and logo once; it propagates to every user-facing surface — emails, dashboards, public vCard pages, the Apps grid tile.</p>
+            </div>
+            <div class="vg-content">
+
+                <h2><span class="vg-h2-num">01</span>Where to set it</h2>
+                <p>Open <em class="vg-mark">Settings</em> from the main app menu. Scroll the left rail until you find the <strong><t t-out="brand_name"/></strong> section — there's one block, "Branding", with four fields:</p>
+                <ul>
+                    <li><strong>Brand Name</strong> — full product name, used in prose. Default: "Vinc".</li>
+                    <li><strong>Short Name</strong> — compact version for tight spaces (logo chips, wordmarks). Default: "Vinc".</li>
+                    <li><strong>Brand Icon</strong> — square logo (~512×512 PNG). Used for chips, favicons, the Apps grid tile, and the default QR-code center overlay.</li>
+                    <li><strong>Brand Wordmark</strong> — horizontal logo for page headers and email banners. Falls back to the icon if blank.</li>
+                </ul>
+                <p>Save the form. Hard-refresh the browser (Ctrl+Shift+R / Cmd+Shift+R) and the new branding shows up everywhere immediately.</p>
+
+                <h2><span class="vg-h2-num">02</span>What rebrands</h2>
+                <ul>
+                    <li><strong>The Apps grid tile</strong> — the icon and label on the main Apps menu use your uploaded values.</li>
+                    <li><strong>Top-level menu</strong> — the app's root menu name and icon (the one between the chatter and the screen).</li>
+                    <li><strong>Public vCard pages</strong> — magic-link onboarding, NFC setup wizard, vCard form headers, the Vinculum Guide top bar — all read the brand name at render time.</li>
+                    <li><strong>Email subjects and bodies</strong> — bulk-onboarding "your card is ready" email, weekly digest footer. Each email reads the brand from <code>ir.config_parameter</code> at send time, so a brand change applied today retroactively rebrands tomorrow's emails without resending.</li>
+                    <li><strong>QR code center overlay</strong> — when a card hasn't uploaded its own QR logo, the overlay defaults to your Brand Icon.</li>
+                </ul>
+
+                <h2><span class="vg-h2-num">03</span>What stays "Vinc"</h2>
+                <p>A few surfaces are deliberately not rebrandable, by design or by Odoo constraint:</p>
+                <ul>
+                    <li><strong>The technical module name</strong> (<code>qr_code_odoo</code>) — internal identifier, never user-visible.</li>
+                    <li><strong>Email template <em>names</em></strong> in <em>Settings → Technical → Email Templates</em> — they still show as <code>Vinc — Digest Email</code> etc. because admins use those names to find templates. The bodies rebrand; the labels don't.</li>
+                    <li><strong>App-store listing</strong> (the <code>static/description/index.html</code> rendered on apps.odoo.com) — that's the marketing page for the public Vinc product, not a per-tenant surface.</li>
+                </ul>
+
+                <h2><span class="vg-h2-num">04</span>Persistence across upgrades</h2>
+                <p>Odoo's standard behavior on module upgrade is to re-import data files, which would normally reset the menu's name and icon back to the bundled defaults. <t t-out="brand_name"/> hooks into Odoo's registry-load step to <em>re-apply</em> your saved brand on every server start, so a future <code>-u qr_code_odoo</code> doesn't undo your customization. The brand-name and short-name strings live in <code>ir.config_parameter</code>; the icon and wordmark binaries live in <code>ir.attachment</code>.</p>
+                <div class="vg-callout" style="background: #EEF2FF; border-left: 3px solid #2D5BFF; padding: 14px 18px; border-radius: 8px; margin-top: 16px;">
+                    <strong>Smoke test after upgrades:</strong> hard-refresh the Apps grid. If the tile reverts to the default icon, do <em>Settings → Vinc → Save</em> once and refresh again — that re-fires the sync method that talks to the menu/module records.
+                </div>
 
             </div>
         </t>

@@ -541,6 +541,7 @@ class NFCOnboardingController(http.Controller):
             ('crm',          'CRM & Lead Routing'),
             ('nfc',          'NFC Card Programming'),
             ('automations',  'Email Automations & Digests'),
+            ('branding',     'Branding & White-Label'),
         ]},
     ]
     GUIDE_TOPICS = {

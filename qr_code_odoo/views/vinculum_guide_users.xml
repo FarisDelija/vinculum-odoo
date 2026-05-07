@@ -177,7 +177,18 @@
                     <li><strong>Thank-you message:</strong> appears after submission. Set expectations: <em>"Thanks. Jane will email you within one business day with your industry benchmarks."</em> A specific promise outperforms "Thanks for reaching out!"</li>
                 </ol>
 
-                <h2><span class="vg-h2-num">05</span>Where leads end up in your CRM</h2>
+                <h2><span class="vg-h2-num">05</span>Tag leads to a trade show or event</h2>
+                <p>The <em class="vg-mark">Active Event</em> picker (in the Lead Collection Form Settings group, just below Tags) lets you stamp every lead captured by your card with a specific event. The use case is in-person work — you're at a booth, an open house, a golf outing, a conference. Set it to the event you're staffing today, and every scan that lands while it's set carries that event with it forever.</p>
+                <ul>
+                    <li>The picker only shows events that haven't ended yet, so you can't accidentally pick last year's show.</li>
+                    <li>Each captured lead's CRM form will show a small <strong>Captured at: &lt;event&gt;</strong> badge under the title — visible to you and to anyone reviewing the lead later.</li>
+                    <li>Standard CRM filters — saved searches like "leads from SaaStr 2026" — work out of the box once <code>event_id</code> is set.</li>
+                </ul>
+                <div class="vg-warn">
+                    Remember to <strong>clear the picker</strong> after the show ends. Otherwise the next walk-in scan that lands on your card next week will still be tagged with last week's event. (We may add a daily cron later that auto-clears it the day after the event ends — for now it's manual.)
+                </div>
+
+                <h2><span class="vg-h2-num">06</span>Where leads end up in your CRM</h2>
                 <p>Each form submission creates a <code>crm.lead</code> opportunity in the default pipeline stage. The lead has:</p>
                 <ul>
                     <li>Contact name, email, phone — captured directly from the form</li>
