@@ -20,6 +20,34 @@
                     </div>
                 </xpath>
 
+                <!-- Look-alike smart-buttons. Companies and open leads scored
+                     separately so each gets its own pitch / coordination angle. -->
+                <xpath expr="//div[@name='button_box']" position="inside">
+                    <field name="lookalike_partner_count" invisible="1"/>
+                    <field name="lookalike_lead_count" invisible="1"/>
+                    <field name="lookalike_hint" invisible="1"/>
+                    <button name="action_view_lookalike_partners" type="object"
+                            class="oe_stat_button" icon="fa-building"
+                            invisible="lookalike_partner_count == 0">
+                        <field name="lookalike_partner_count" widget="statinfo" string="Similar Companies"/>
+                    </button>
+                    <button name="action_view_lookalike_leads" type="object"
+                            class="oe_stat_button" icon="fa-bullseye"
+                            invisible="lookalike_lead_count == 0">
+                        <field name="lookalike_lead_count" widget="statinfo" string="Similar Leads"/>
+                    </button>
+                </xpath>
+
+                <!-- Look-alikes notebook tab. Tab hides itself when there are no matches
+                     so reps don't see an empty page. The smart-buttons stay at the top
+                     for quick navigation; this tab is the conversation-starter detail view. -->
+                <xpath expr="//notebook" position="inside">
+                    <page string="Look-alikes" name="lookalikes"
+                          invisible="lookalike_partner_count == 0 and lookalike_lead_count == 0">
+                        <field name="lookalike_summary" nolabel="1" readonly="1" widget="html"/>
+                    </page>
+                </xpath>
+
                 <!-- Add Submission Tracking Information Tab -->
                 <xpath expr="//notebook" position="inside">
                     <page string="Submission Tracking" name="submission_tracking" invisible="not submission_ip">

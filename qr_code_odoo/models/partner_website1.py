@@ -756,33 +756,52 @@ class PartnerWebsite(models.Model):
 
     <!-- Form fields for lead information -->
     <div class="form-group">
-        <label for="fullName">Full name<span class="text-danger">*</span></label>
-        <input type="text" class="form-control" id="fullName" name="full_name" required="required"/>
+        <label for="fullName">Full name <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" id="fullName" name="full_name" required="required" placeholder="Your name"/>
     </div>
     <div class="form-group">
-        <label for="email">Email<span class="text-danger">*</span></label>
-        <input type="email" class="form-control" id="email" name="email" required="required"/>
+        <label for="email">Email <span class="text-danger">*</span></label>
+        <input type="email" class="form-control" id="email" name="email" required="required" placeholder="you@example.com"/>
     </div>
     <div class="form-group">
         <label for="phone">Phone</label>
-        <input type="tel" class="form-control" id="phone" name="phone" placeholder="Your Phone"/>
+        <input type="tel" class="form-control" id="phone" name="phone" placeholder="Your phone number"/>
         <input type="hidden" id="phone_full" name="phone_full"/>
     </div>
     <style>
-        /* Fix intl-tel-input styling for modal */
+        /* Lead modal form layout — keep all fields visually consistent. */
         #leadModal .form-group {{
             position: relative;
+            margin-bottom: 14px;
         }}
-        #leadModal .iti {{
-            width: 100%;
+        #leadModal .form-group label {{
             display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+            color: #374151;
+        }}
+        #leadModal .form-group .form-control,
+        #leadModal .form-group input.form-control {{
+            display: block;
+            width: 100%;
+            height: 40px;
+            box-sizing: border-box;
+        }}
+        #leadModal textarea.form-control {{
+            height: auto;
+            min-height: 80px;
+        }}
+        /* intl-tel-input wrapper — full width, block, stacks under the label. */
+        #leadModal .iti {{
+            display: block !important;
+            width: 100%;
         }}
         #leadModal .iti__flag-container {{
             position: absolute;
             top: 0;
             bottom: 0;
-            right: auto;
             left: 0;
+            right: auto;
             z-index: 2;
         }}
         #leadModal .iti__selected-flag {{
@@ -791,38 +810,35 @@ class PartnerWebsite(models.Model):
             display: flex;
             align-items: center;
             height: 100%;
-            padding: 0 10px 0 8px;
+            padding: 0 10px 0 12px;
             background-color: #f8f9fa;
             border-right: 1px solid #dee2e6;
+            border-radius: 4px 0 0 4px;
             cursor: pointer;
-            min-width: 70px;
+            min-width: 76px;
         }}
-        #leadModal .iti__flag-box {{
-            margin-right: 4px;
-        }}
+        #leadModal .iti__flag-box {{ margin-right: 6px; }}
         #leadModal .iti__arrow {{
-            margin-left: 4px;
+            margin-left: 6px;
             width: 0;
             height: 0;
             border-left: 3px solid transparent;
             border-right: 3px solid transparent;
             border-top: 4px solid #555;
         }}
-        #leadModal #phone {{
-            padding-left: 80px !important;
-        }}
         #leadModal .iti__selected-dial-code {{
             margin-left: 2px;
-            margin-right: 2px;
             font-size: 14px;
+            color: #374151;
         }}
-        #leadModal .iti__country-list {{
-            z-index: 9999;
+        #leadModal #phone {{
+            padding-left: 88px !important;
         }}
+        #leadModal .iti__country-list {{ z-index: 9999; }}
     </style>
     <div class="form-group">
         <label for="notes">Notes</label>
-        <textarea class="form-control" id="notes" name="notes"></textarea>
+        <textarea class="form-control" id="notes" name="notes" placeholder="Anything else you'd like to share (optional)"></textarea>
     </div>
 
 </form>
@@ -3016,21 +3032,36 @@ class PartnerWebsite(models.Model):
                     <input type="hidden" id="formThankYouMessage" t-att-value="partner.form_thank_you_message or 'Thank you! I look forward to talking with you soon.'"/>
                 </div>
                 <div class="form-group">
-                    <label for="fullName">Full name<span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="fullName" name="full_name" required="required"/>
+                    <label for="fullName">Full name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="fullName" name="full_name" required="required" placeholder="Your name"/>
                 </div>
                 <div class="form-group">
-                    <label for="email">Email<span class="text-danger">*</span></label>
-                    <input type="email" class="form-control" id="email" name="email" required="required"/>
+                    <label for="email">Email <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control" id="email" name="email" required="required" placeholder="you@example.com"/>
                 </div>
                 <div class="form-group">
                     <label for="phone">Phone</label>
-                    <input type="tel" class="form-control" id="phone" name="phone" placeholder="Your Phone"/>
+                    <input type="tel" class="form-control" id="phone" name="phone" placeholder="Your phone number"/>
                     <input type="hidden" id="phone_full" name="phone_full"/>
                 </div>
+                <style>
+                    #leadModal .form-group {{ position: relative; margin-bottom: 14px; }}
+                    #leadModal .form-group label {{ display: block !important; margin-bottom: 4px; font-weight: 500; color: #374151; }}
+                    #leadModal .form-group .form-control,
+                    #leadModal .form-group input.form-control {{ display: block; width: 100%; height: 40px; box-sizing: border-box; }}
+                    #leadModal textarea.form-control {{ height: auto; min-height: 80px; }}
+                    #leadModal .iti {{ display: block !important; width: 100%; }}
+                    #leadModal .iti__flag-container {{ position: absolute; top: 0; bottom: 0; right: auto; left: 0; z-index: 2; }}
+                    #leadModal .iti__selected-flag {{ z-index: 4; position: relative; display: flex; align-items: center; height: 100%; padding: 0 10px 0 12px; background-color: #f8f9fa; border-right: 1px solid #dee2e6; border-radius: 4px 0 0 4px; cursor: pointer; min-width: 76px; }}
+                    #leadModal .iti__flag-box {{ margin-right: 6px; }}
+                    #leadModal .iti__arrow {{ margin-left: 6px; width: 0; height: 0; border-left: 3px solid transparent; border-right: 3px solid transparent; border-top: 4px solid #555; }}
+                    #leadModal .iti__selected-dial-code {{ margin-left: 2px; font-size: 14px; color: #374151; }}
+                    #leadModal #phone {{ padding-left: 88px !important; }}
+                    #leadModal .iti__country-list {{ z-index: 9999 !important; }}
+                </style>
                 <div class="form-group">
                     <label for="notes">Notes</label>
-                    <textarea class="form-control" id="notes" name="notes"></textarea>
+                    <textarea class="form-control" id="notes" name="notes" placeholder="Anything else you'd like to share (optional)"></textarea>
                 </div>
             </form>
                   </div>
@@ -4279,31 +4310,37 @@ class PartnerWebsite(models.Model):
                                 <input type="hidden" id="formThankYouMessage" t-att-value="partner.form_thank_you_message or 'Thank you! I look forward to talking with you soon.'"/>
                             </div>
                             <div class="form-group">
-                                <label for="fullName">Full name<span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="fullName" name="full_name" required="required"/>
+                                <label for="fullName">Full name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="fullName" name="full_name" required="required" placeholder="Your name"/>
                             </div>
                             <div class="form-group">
-                                <label for="email">Email<span class="text-danger">*</span></label>
-                                <input type="email" class="form-control" id="email" name="email" required="required"/>
+                                <label for="email">Email <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="email" name="email" required="required" placeholder="you@example.com"/>
                             </div>
                             <div class="form-group">
                                 <label for="phone">Phone</label>
-                                <input type="tel" class="form-control" id="phone" name="phone" placeholder="Your Phone"/>
+                                <input type="tel" class="form-control" id="phone" name="phone" placeholder="Your phone number"/>
                                 <input type="hidden" id="phone_full" name="phone_full"/>
                             </div>
                             <style>
-                                #leadModal .form-group {{ position: relative; }}
-                                #leadModal .iti {{ width: 100%; display: block; }}
+                                #leadModal .form-group {{ position: relative; margin-bottom: 14px; }}
+                                #leadModal .form-group label {{ display: block !important; margin-bottom: 4px; font-weight: 500; color: #374151; }}
+                                #leadModal .form-group .form-control,
+                                #leadModal .form-group input.form-control {{ display: block; width: 100%; height: 40px; box-sizing: border-box; }}
+                                #leadModal textarea.form-control {{ height: auto; min-height: 80px; }}
+                                #leadModal .iti {{ display: block !important; width: 100%; }}
                                 #leadModal .iti__flag-container {{ position: absolute; top: 0; bottom: 0; right: auto; left: 0; z-index: 2; }}
-                                #leadModal .iti__selected-flag {{ z-index: 4; position: relative; display: flex; align-items: center; height: 100%; padding: 0 10px 0 8px; background-color: #f8f9fa; border-right: 1px solid #dee2e6; cursor: pointer; min-width: 70px; }}
-                                #leadModal #phone {{ padding-left: 80px !important; }}
-                                /* Fix z-index for country dropdown to appear above modal */
+                                #leadModal .iti__selected-flag {{ z-index: 4; position: relative; display: flex; align-items: center; height: 100%; padding: 0 10px 0 12px; background-color: #f8f9fa; border-right: 1px solid #dee2e6; border-radius: 4px 0 0 4px; cursor: pointer; min-width: 76px; }}
+                                #leadModal .iti__flag-box {{ margin-right: 6px; }}
+                                #leadModal .iti__arrow {{ margin-left: 6px; width: 0; height: 0; border-left: 3px solid transparent; border-right: 3px solid transparent; border-top: 4px solid #555; }}
+                                #leadModal .iti__selected-dial-code {{ margin-left: 2px; font-size: 14px; color: #374151; }}
+                                #leadModal #phone {{ padding-left: 88px !important; }}
                                 #leadModal .iti__country-list {{ z-index: 9999 !important; }}
                                 #leadModal .intl-tel-input .iti__country-list {{ z-index: 9999 !important; }}
                             </style>
                             <div class="form-group">
                                 <label for="notes">Notes</label>
-                                <textarea class="form-control" id="notes" name="notes"></textarea>
+                                <textarea class="form-control" id="notes" name="notes" placeholder="Anything else you'd like to share (optional)"></textarea>
                             </div>
                         </form>
                               </div>
@@ -5209,73 +5246,36 @@ class PartnerWebsite(models.Model):
                     <input type="hidden" id="formThankYouMessage" t-att-value="partner.form_thank_you_message or 'Thank you! I look forward to talking with you soon.'"/>
                 </div>
                 <div class="form-group">
-                    <label for="fullName">Full name<span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="fullName" name="full_name" required="required"/>
+                    <label for="fullName">Full name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="fullName" name="full_name" required="required" placeholder="Your name"/>
                 </div>
                 <div class="form-group">
-                    <label for="email">Email<span class="text-danger">*</span></label>
-                    <input type="email" class="form-control" id="email" name="email" required="required"/>
+                    <label for="email">Email <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control" id="email" name="email" required="required" placeholder="you@example.com"/>
                 </div>
                 <div class="form-group">
                     <label for="phone">Phone</label>
-                    <input type="tel" class="form-control" id="phone" name="phone" placeholder="Your Phone"/>
+                    <input type="tel" class="form-control" id="phone" name="phone" placeholder="Your phone number"/>
                     <input type="hidden" id="phone_full" name="phone_full"/>
                 </div>
                 <style>
-                    /* Fix intl-tel-input styling for modal */
-                    #leadModal .form-group {{
-                        position: relative;
-                    }}
-                    #leadModal .iti {{
-                        width: 100%;
-                        display: block;
-                    }}
-                    #leadModal .iti__flag-container {{
-                        position: absolute;
-                        top: 0;
-                        bottom: 0;
-                        right: auto;
-                        left: 0;
-                        z-index: 2;
-                    }}
-                    #leadModal .iti__selected-flag {{
-                        z-index: 4;
-                        position: relative;
-                        display: flex;
-                        align-items: center;
-                        height: 100%;
-                        padding: 0 10px 0 8px;
-                        background-color: #f8f9fa;
-                        border-right: 1px solid #dee2e6;
-                        cursor: pointer;
-                        min-width: 70px;
-                    }}
-                    #leadModal .iti__flag-box {{
-                        margin-right: 4px;
-                    }}
-                    #leadModal .iti__arrow {{
-                        margin-left: 4px;
-                        width: 0;
-                        height: 0;
-                        border-left: 3px solid transparent;
-                        border-right: 3px solid transparent;
-                        border-top: 4px solid #555;
-                    }}
-                    #leadModal #phone {{
-                        padding-left: 80px !important;
-                    }}
-                    #leadModal .iti__selected-dial-code {{
-                        margin-left: 2px;
-                        margin-right: 2px;
-                        font-size: 14px;
-                    }}
-                    #leadModal .iti__country-list {{
-                        z-index: 9999;
-                    }}
+                    #leadModal .form-group {{ position: relative; margin-bottom: 14px; }}
+                    #leadModal .form-group label {{ display: block !important; margin-bottom: 4px; font-weight: 500; color: #374151; }}
+                    #leadModal .form-group .form-control,
+                    #leadModal .form-group input.form-control {{ display: block; width: 100%; height: 40px; box-sizing: border-box; }}
+                    #leadModal textarea.form-control {{ height: auto; min-height: 80px; }}
+                    #leadModal .iti {{ display: block !important; width: 100%; }}
+                    #leadModal .iti__flag-container {{ position: absolute; top: 0; bottom: 0; right: auto; left: 0; z-index: 2; }}
+                    #leadModal .iti__selected-flag {{ z-index: 4; position: relative; display: flex; align-items: center; height: 100%; padding: 0 10px 0 12px; background-color: #f8f9fa; border-right: 1px solid #dee2e6; border-radius: 4px 0 0 4px; cursor: pointer; min-width: 76px; }}
+                    #leadModal .iti__flag-box {{ margin-right: 6px; }}
+                    #leadModal .iti__arrow {{ margin-left: 6px; width: 0; height: 0; border-left: 3px solid transparent; border-right: 3px solid transparent; border-top: 4px solid #555; }}
+                    #leadModal .iti__selected-dial-code {{ margin-left: 2px; font-size: 14px; color: #374151; }}
+                    #leadModal #phone {{ padding-left: 88px !important; }}
+                    #leadModal .iti__country-list {{ z-index: 9999 !important; }}
                 </style>
                 <div class="form-group">
                     <label for="notes">Notes</label>
-                    <textarea class="form-control" id="notes" name="notes"></textarea>
+                    <textarea class="form-control" id="notes" name="notes" placeholder="Anything else you'd like to share (optional)"></textarea>
                 </div>
             </form>
                   </div>

@@ -128,6 +128,57 @@
                 </ul>
                 <p>Educate cardholders on tags during onboarding. Tags applied 30 days later, when context is gone, are noise.</p>
 
+                <h2><span class="vg-h2-num">05</span>Look-alike matches</h2>
+                <p>Every lead captured through a card automatically gets scored against records you already have. The point isn't to find duplicates; it's to give the rep a memory aid. When a fresh prospect arrives, the lead form shows up to three companies and three open opportunities that <em>resemble</em> them, each annotated with the specific signals that matched <em>and</em> the conversation context (won/lost/active, deal size, last note, owner).</p>
+
+                <h3>The signals (similarity, not equality)</h3>
+                <p>Five signals, weighted to sum to 100:</p>
+                <ul>
+                    <li><strong>Industry hierarchy</strong> (weight: 35) — exact match on <code>industry_id</code> gets the full 35; sibling-industry match (same parent in the <code>res.partner.industry</code> tree) gets 17. So "SaaS" and "IT Services" still match because both sit under "Software".</li>
+                    <li><strong>Geographic gradient</strong> (weight: 25) — same city = full 25; same state = 15; same country = 8. Closer geography weighs more, no all-or-nothing penalty.</li>
+                    <li><strong>Deal-size bucket</strong> (weight: 20) — <code>expected_revenue</code> bucketed into <em>micro</em> (&lt;$10k), <em>small</em> ($10–50k), <em>mid</em> ($50–200k), <em>large</em> ($200k+). Same bucket = full 20; adjacent bucket = 10. For company candidates, the bucket is derived from their highest historical <code>expected_revenue</code> in CRM.</li>
+                    <li><strong>Tag word-overlap</strong> (weight: 15) — fuzzy on tag NAMES split into words. "FinTech B2B" matches "Financial Services" because both contain a domain word. Cross-model (lead vs partner) so a <code>crm.tag</code> can match a <code>res.partner.category</code>.</li>
+                    <li><strong>Description Jaccard</strong> (weight: 5, capped) — token overlap between the lead's <code>description</code> and the candidate's notes. Small weight; mostly a tiebreaker / serendipity signal.</li>
+                </ul>
+                <p>A candidate needs <strong>≥ 25 points</strong> to surface. Top 3 per bucket are shown.</p>
+
+                <h3>The conversation-starter card</h3>
+                <p>Each surfaced match gets a small card on the lead form with the actual context the rep needs to talk:</p>
+                <ul>
+                    <li><strong>Subtitle</strong> — industry, city or country (whatever's populated)</li>
+                    <li><strong>Outcome</strong> — for companies: their best-deal label (Won / Lost / Active), amount, close date, owner. Lost reason if present. For open leads: stage, amount, owner.</li>
+                    <li><strong>Snippet</strong> — first 120 chars of the partner's <code>comment</code> or the lead's <code>description</code>. The fastest "what was this about" cue.</li>
+                </ul>
+                <p>Example card:</p>
+                <pre style="background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 0.9em;"><code>Acme Corp — SaaS, San Francisco
+same industry (SaaS), same city (San Francisco), same deal-size band (mid)
+Won deal · $87,000 · closed Mar 2026 · Sarah Chen
+"Migrated from Salesforce, valued our API rate limits"</code></pre>
+
+                <h3>Pool definitions</h3>
+                <ul>
+                    <li><strong>Companies pool</strong>: active companies in <code>res.partner</code>, excluding pure suppliers (<code>supplier_rank &gt; 0</code> with <code>customer_rank == 0</code>). The lead's own partner is excluded. Capped at 2,000.</li>
+                    <li><strong>Open-leads pool</strong>: opportunities (<code>type='opportunity'</code>) not yet won (<code>probability &lt; 100</code>) and not lost (<code>probability &gt; 0</code>). The current lead is excluded once saved. Capped at 2,000.</li>
+                </ul>
+
+                <h3>Quality scales with your CRM hygiene</h3>
+                <p>The feature is only as good as the data on your existing records. Highest-leverage things to populate:</p>
+                <ul>
+                    <li><strong>Industry</strong> on customer companies — the heaviest signal. Set <code>industry_id</code> on the partner record.</li>
+                    <li><strong>City</strong> on customer addresses — much sharper than country alone.</li>
+                    <li><strong>Tags</strong> with meaningful words (not "important" or "to-follow"). The fuzzy matcher splits on words, so "B2B SaaS" and "FinTech B2B" share the "b2b" signal.</li>
+                    <li><strong>Notes</strong> in <code>comment</code> (partner) or <code>description</code> (lead). Even one sentence per record makes the snippet card useful.</li>
+                </ul>
+                <p>A new tenant on day one with sparse customer records sees a hint on every lead explaining what's missing.</p>
+
+                <h3>What it doesn't do</h3>
+                <ul>
+                    <li><strong>No enrichment.</strong> Works on the data already in your database. Doesn't call Apollo, Clearbit, ZoomInfo or anyone else. Privacy posture is unchanged.</li>
+                    <li><strong>No historical reprocessing.</strong> Matches are computed live each time a lead is opened. Adding industry to a customer today benefits every lead opened tomorrow.</li>
+                    <li><strong>No write-back.</strong> Read-only suggestion surface.</li>
+                    <li><strong>No multi-currency normalization.</strong> Deal-size buckets use the lead's expected_revenue value as-is. Mixed-currency tenants will see noisier matches until we add per-company normalization in a future pass.</li>
+                </ul>
+
             </div>
         </t>
     </template>

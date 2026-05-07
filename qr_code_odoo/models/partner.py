@@ -558,6 +558,432 @@ class CrmLead(models.Model):
         string='Service Request Answers',
         help='Structured summary of custom answers provided in the service request form.',
     )
+
+    # ====================================================================
+    # Look-alike matches (rebuilt 2026-05-07)
+    # --------------------------------------------------------------------
+    # The job is NOT "find records with the same values". It is "give the
+    # rep a memory aid so they can talk to a fresh prospect with context".
+    # So we score on *useful overlap* (industry hierarchy, geo gradient,
+    # deal-size bucket, tag word-overlap, free-text Jaccard) and surface
+    # each match with its CONTEXT (outcome, deal amount, lost reason,
+    # description snippet, last activity date, owner) — not just a name.
+    #
+    # Two buckets:
+    #   * lookalike_partner_ids: companies in res.partner ("we work with")
+    #   * lookalike_lead_ids:    open opportunities ("similar in pipeline")
+    #
+    # No external API. All signals come from the tenant's existing data.
+    # ====================================================================
+    lookalike_partner_ids = fields.Many2many(
+        'res.partner', 'crm_lead_lookalike_partner_rel',
+        'lead_id', 'partner_id',
+        string='Look-alike Companies',
+        compute='_compute_lookalike', store=False,
+    )
+    lookalike_partner_count = fields.Integer(
+        string='# Look-alike Companies', compute='_compute_lookalike', store=False,
+    )
+    lookalike_lead_ids = fields.Many2many(
+        'crm.lead', 'crm_lead_lookalike_lead_rel',
+        'lead_id', 'related_lead_id',
+        string='Look-alike Open Leads',
+        compute='_compute_lookalike', store=False,
+    )
+    lookalike_lead_count = fields.Integer(
+        string='# Look-alike Open Leads', compute='_compute_lookalike', store=False,
+    )
+    lookalike_summary = fields.Html(
+        string='Look-alike Summary',
+        compute='_compute_lookalike', store=False, sanitize=False,
+        help="Per-match conversation-starter card with the context (outcome, "
+             "amount, last note) attached to each look-alike.",
+    )
+    lookalike_hint = fields.Char(
+        string='Look-alike Data Hint', compute='_compute_lookalike', store=False,
+    )
+
+    # Weights sum to 100; threshold below.
+    _LOOKALIKE_WEIGHTS = {
+        'industry':    35,   # exact = full, parent/sibling = half
+        'geo':         25,   # city > state > country gradient
+        'deal_size':   20,   # same bucket = full, adjacent = half
+        'tag_fuzzy':   15,   # word-level overlap on tag names
+        'description':  5,   # Jaccard on description tokens
+    }
+    _LOOKALIKE_MIN_SCORE = 25
+    _LOOKALIKE_TOP_N = 3
+
+    # Deal-size buckets in your default currency (whatever the lead uses).
+    # Tweak in a follow-up if multi-currency tenants need bucketing per company.
+    _DEAL_SIZE_BUCKETS = [
+        (0,       10_000,  'micro'),
+        (10_000,  50_000,  'small'),
+        (50_000,  200_000, 'mid'),
+        (200_000, 10**12,  'large'),
+    ]
+
+    @api.depends('email_from', 'phone', 'function', 'country_id', 'state_id',
+                 'city', 'tag_ids', 'description', 'expected_revenue',
+                 'partner_id')
+    def _compute_lookalike(self):
+        for lead in self:
+            partner_matches, lead_matches, hint = lead._find_lookalike()
+            partner_recs = lead.env['res.partner'].browse(
+                [r.id for r, _, _ in partner_matches]
+            )
+            opp_recs = lead.env['crm.lead'].browse(
+                [r.id for r, _, _ in lead_matches]
+            )
+            lead.lookalike_partner_ids = partner_recs
+            lead.lookalike_partner_count = len(partner_recs)
+            lead.lookalike_lead_ids = opp_recs
+            lead.lookalike_lead_count = len(opp_recs)
+            lead.lookalike_hint = hint
+            lead.lookalike_summary = lead._render_lookalike_summary(
+                partner_matches, lead_matches, hint,
+            )
+
+    def _find_lookalike(self):
+        """Return (partner_matches, lead_matches, hint).
+
+        Each match list element is (record, signals_matched, context_payload).
+        """
+        self.ensure_one()
+        Partner = self.env['res.partner'].sudo()
+        Lead = self.env['crm.lead'].sudo()
+
+        real_self_id = (
+            self._origin.id
+            if self._origin and isinstance(self._origin.id, int)
+            else None
+        )
+
+        partner_domain = [
+            ('is_company', '=', True),
+            ('active', '=', True),
+        ]
+        if 'customer_rank' in Partner._fields and 'supplier_rank' in Partner._fields:
+            partner_domain += ['|', ('customer_rank', '>', 0), ('supplier_rank', '=', 0)]
+        if self.partner_id and isinstance(self.partner_id.id, int):
+            partner_domain.append(('id', '!=', self.partner_id.id))
+        partner_pool = Partner.search(partner_domain, limit=2000)
+
+        lead_domain = [
+            ('type', '=', 'opportunity'),
+            ('active', '=', True),
+            ('probability', '<', 100),
+            ('probability', '>', 0),
+        ]
+        if real_self_id:
+            lead_domain.insert(0, ('id', '!=', real_self_id))
+        lead_pool = Lead.search(lead_domain, limit=2000)
+
+        lead_industry = self.partner_id.industry_id if self.partner_id else False
+        lead_country = self.country_id
+        lead_state = self.state_id
+        lead_city = (self.city or '').strip().lower() or None
+        lead_size_bucket = self._lookalike_deal_bucket(self.expected_revenue or 0)
+        lead_tag_words = self._lookalike_tokenize(
+            ' '.join((t.name or '') for t in self.tag_ids)
+        )
+        lead_desc_tokens = self._lookalike_tokenize(self.description or '')
+
+        signals_used = set()
+
+        def score_record(record, tag_field, *, is_lead):
+            score = 0
+            signals = []
+
+            rec_industry = (
+                record.industry_id if hasattr(record, 'industry_id')
+                else (record.partner_id.industry_id if record.partner_id else False)
+            )
+            if lead_industry and rec_industry:
+                if lead_industry == rec_industry:
+                    score += self._LOOKALIKE_WEIGHTS['industry']
+                    signals.append("same industry (" + lead_industry.name + ")")
+                    signals_used.add('industry')
+                else:
+                    # Sibling-industry path: only fires if the industry model has
+                    # parent_id (Odoo Community has a flat list; some setups extend).
+                    lead_parent = getattr(lead_industry, 'parent_id', False)
+                    rec_parent = getattr(rec_industry, 'parent_id', False)
+                    if lead_parent and rec_parent and lead_parent == rec_parent:
+                        score += self._LOOKALIKE_WEIGHTS['industry'] // 2
+                        signals.append("sibling industry (" + rec_industry.name + ")")
+                        signals_used.add('industry')
+
+            rec_country = getattr(record, 'country_id', False)
+            rec_state = getattr(record, 'state_id', False)
+            rec_city = (getattr(record, 'city', '') or '').strip().lower() or None
+            if lead_city and rec_city and lead_city == rec_city:
+                score += self._LOOKALIKE_WEIGHTS['geo']
+                signals.append("same city (" + (record.city or '').title() + ")")
+                signals_used.add('geo')
+            elif lead_state and rec_state and lead_state == rec_state:
+                score += int(self._LOOKALIKE_WEIGHTS['geo'] * 0.6)
+                signals.append("same state (" + rec_state.name + ")")
+                signals_used.add('geo')
+            elif lead_country and rec_country == lead_country:
+                score += int(self._LOOKALIKE_WEIGHTS['geo'] * 0.32)
+                signals.append("same country (" + lead_country.name + ")")
+                signals_used.add('geo')
+
+            rec_revenue = (
+                record.expected_revenue if is_lead
+                else self._lookalike_partner_top_revenue(record)
+            )
+            rec_bucket = self._lookalike_deal_bucket(rec_revenue or 0)
+            if lead_size_bucket and rec_bucket:
+                if lead_size_bucket == rec_bucket:
+                    score += self._LOOKALIKE_WEIGHTS['deal_size']
+                    signals.append("same deal-size band (" + rec_bucket + ")")
+                    signals_used.add('deal_size')
+                elif self._lookalike_buckets_adjacent(lead_size_bucket, rec_bucket):
+                    score += self._LOOKALIKE_WEIGHTS['deal_size'] // 2
+                    signals.append("adjacent deal-size band (" + rec_bucket + ")")
+                    signals_used.add('deal_size')
+
+            tags = getattr(record, tag_field, False)
+            if lead_tag_words and tags:
+                rec_tag_words = self._lookalike_tokenize(
+                    ' '.join((t.name or '') for t in tags)
+                )
+                shared_words = lead_tag_words & rec_tag_words
+                if shared_words:
+                    score += self._LOOKALIKE_WEIGHTS['tag_fuzzy']
+                    signals.append("tag overlap (" + ", ".join(sorted(shared_words)[:3]) + ")")
+                    signals_used.add('tag_fuzzy')
+
+            rec_text = (
+                record.description if is_lead
+                else getattr(record, 'comment', '') or ''
+            )
+            if lead_desc_tokens and rec_text:
+                rec_tokens = self._lookalike_tokenize(rec_text)
+                if rec_tokens:
+                    inter = len(lead_desc_tokens & rec_tokens)
+                    union = len(lead_desc_tokens | rec_tokens)
+                    if union:
+                        jaccard = inter / union
+                        if jaccard >= 0.05:
+                            score += int(round(self._LOOKALIKE_WEIGHTS['description'] * min(jaccard * 4, 1)))
+                            signals.append("similar notes")
+                            signals_used.add('description')
+
+            return score, signals
+
+        scored_partners = []
+        for p in partner_pool:
+            score, signals = score_record(p, 'category_id', is_lead=False)
+            if score >= self._LOOKALIKE_MIN_SCORE:
+                payload = self._lookalike_partner_payload(p)
+                scored_partners.append((score, p, signals, payload))
+        scored_partners.sort(key=lambda x: -x[0])
+        partner_matches = [
+            (p, signals, payload)
+            for _, p, signals, payload in scored_partners[:self._LOOKALIKE_TOP_N]
+        ]
+
+        scored_leads = []
+        for l in lead_pool:
+            score, signals = score_record(l, 'tag_ids', is_lead=True)
+            if score >= self._LOOKALIKE_MIN_SCORE:
+                payload = self._lookalike_lead_payload(l)
+                scored_leads.append((score, l, signals, payload))
+        scored_leads.sort(key=lambda x: -x[0])
+        lead_matches = [
+            (l, signals, payload)
+            for _, l, signals, payload in scored_leads[:self._LOOKALIKE_TOP_N]
+        ]
+
+        if partner_matches or lead_matches:
+            hint = "Matched on: " + ", ".join(sorted(signals_used)) + "."
+        elif not lead_industry and not lead_country and not lead_tag_words:
+            hint = ("No look-alikes — this lead has no industry, country, or "
+                    "tags to match on. Fill in those fields to enable matching.")
+        else:
+            hint = ("Nothing crossed the similarity threshold. Add industry / "
+                    "tags / better-populated descriptions to existing customers "
+                    "to sharpen future matches.")
+        return partner_matches, lead_matches, hint
+
+    def _lookalike_partner_payload(self, partner):
+        """Pull the conversation-starter context for a matched company."""
+        Lead = self.env['crm.lead'].sudo()
+        history = Lead.search(
+            [('partner_id', '=', partner.id)],
+            order='date_closed desc, write_date desc',
+            limit=5,
+        )
+        won = history.filtered(lambda l: l.probability == 100)
+        lost = history.filtered(lambda l: l.probability == 0 and l.active is False)
+        active = history.filtered(lambda l: 0 < (l.probability or 0) < 100 and l.active)
+        outcome_lead = (won[:1] or lost[:1] or active[:1] or history[:1])
+
+        payload = {
+            'subtitle_bits': [],
+            'outcome': None,
+            'snippet': (partner.comment or '').strip()[:120] or None,
+            'owner': partner.user_id.name if partner.user_id else None,
+            'last_seen': partner.write_date,
+        }
+        if partner.industry_id:
+            payload['subtitle_bits'].append(partner.industry_id.name)
+        if partner.city:
+            payload['subtitle_bits'].append(partner.city.title())
+        elif partner.country_id:
+            payload['subtitle_bits'].append(partner.country_id.name)
+
+        if outcome_lead:
+            ol = outcome_lead
+            label = ('Won' if ol.probability == 100 else 'Lost' if ol.probability == 0 and not ol.active else 'Active')
+            amount = ol.expected_revenue or 0
+            bits = [label + ' deal']
+            if amount:
+                bits.append("$" + format(amount, ',.0f'))
+            if ol.date_closed:
+                bits.append("closed " + ol.date_closed.strftime('%b %Y'))
+            if ol.user_id:
+                bits.append(ol.user_id.name)
+            payload['outcome'] = " · ".join(bits)
+            if not payload['snippet'] and ol.description:
+                payload['snippet'] = ol.description.strip()[:120]
+            if ol.lost_reason_id:
+                payload['outcome'] += " — lost reason: " + ol.lost_reason_id.name
+        return payload
+
+    def _lookalike_lead_payload(self, lead):
+        """Pull the conversation-starter context for a matched open lead."""
+        amount = lead.expected_revenue or 0
+        bits = [(lead.stage_id.name if lead.stage_id else "Active")]
+        if amount:
+            bits.append("$" + format(amount, ',.0f'))
+        if lead.user_id:
+            bits.append(lead.user_id.name)
+        return {
+            'subtitle_bits': [
+                b for b in [
+                    lead.partner_id.industry_id.name if lead.partner_id and lead.partner_id.industry_id else None,
+                    lead.city.title() if lead.city else (lead.country_id.name if lead.country_id else None),
+                ] if b
+            ],
+            'outcome': " · ".join(bits),
+            'snippet': (lead.description or '').strip()[:120] or None,
+            'owner': lead.user_id.name if lead.user_id else None,
+            'last_seen': lead.write_date,
+        }
+
+    @api.model
+    def _lookalike_partner_top_revenue(self, partner):
+        Lead = self.env['crm.lead'].sudo()
+        rec = Lead.search_read(
+            [('partner_id', '=', partner.id)],
+            ['expected_revenue'],
+            order='expected_revenue desc',
+            limit=1,
+        )
+        return rec[0]['expected_revenue'] if rec else 0
+
+    @classmethod
+    def _lookalike_deal_bucket(cls, amount):
+        for low, high, label in cls._DEAL_SIZE_BUCKETS:
+            if low <= (amount or 0) < high:
+                return label
+        return None
+
+    @classmethod
+    def _lookalike_buckets_adjacent(cls, a, b):
+        labels = [lbl for _, _, lbl in cls._DEAL_SIZE_BUCKETS]
+        try:
+            return abs(labels.index(a) - labels.index(b)) == 1
+        except ValueError:
+            return False
+
+    _LOOKALIKE_STOPWORDS = frozenset({
+        'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from',
+        'has', 'he', 'in', 'is', 'it', 'its', 'of', 'on', 'or', 'that',
+        'the', 'to', 'was', 'were', 'will', 'with', 'this', 'they', 'we',
+        'our', 'us', 'their', 'them', 'his', 'her',
+    })
+
+    @classmethod
+    def _lookalike_tokenize(cls, text):
+        import re
+        if not text:
+            return set()
+        text = re.sub(r'<[^>]+>', ' ', text)
+        words = re.findall(r"[a-zA-Z][a-zA-Z\-']{2,}", text.lower())
+        return {w for w in words if w not in cls._LOOKALIKE_STOPWORDS}
+
+    def _render_lookalike_summary(self, partner_matches, lead_matches, hint):
+        from markupsafe import escape
+        if not partner_matches and not lead_matches:
+            return '<p style="color:#6c757d;font-style:italic;margin:0;">' + str(escape(hint)) + '</p>'
+
+        def card(record, signals, payload, model_name):
+            name = escape(record.name or '(unnamed)')
+            href = "/web#id=" + str(record.id) + "&amp;model=" + model_name + "&amp;view_type=form"
+            sig_str = escape(", ".join(signals)) if signals else ""
+            subtitle = " · ".join(
+                str(escape(b)) for b in (payload.get('subtitle_bits') or []) if b
+            )
+            outcome = escape(payload.get('outcome') or '')
+            snippet = escape(payload.get('snippet') or '')
+            parts = [
+                '<div style="margin-bottom:12px;padding:8px 10px;background:#fff;border-radius:6px;border:1px solid #e5e7eb;">',
+                '<div><a href="' + href + '" style="font-weight:600;color:#1e40af;text-decoration:none;font-size:1.02em;">' + str(name) + '</a>',
+            ]
+            if subtitle:
+                parts.append(' <span style="color:#6c757d;">— ' + subtitle + '</span>')
+            parts.append('</div>')
+            if sig_str:
+                parts.append('<div style="color:#6c757d;font-size:0.85em;margin-top:2px;">' + str(sig_str) + '</div>')
+            if outcome:
+                parts.append('<div style="font-size:0.9em;color:#374151;margin-top:4px;">' + str(outcome) + '</div>')
+            if snippet:
+                parts.append('<div style="font-size:0.88em;color:#4b5563;margin-top:4px;font-style:italic;">&ldquo;' + str(snippet) + '&rdquo;</div>')
+            parts.append('</div>')
+            return ''.join(parts)
+
+        out = []
+        if partner_matches:
+            out.append('<div style="font-weight:600;color:#374151;margin-bottom:6px;">'
+                       'We work with companies like this:</div>')
+            for p, signals, payload in partner_matches:
+                out.append(card(p, signals, payload, 'res.partner'))
+        if lead_matches:
+            out.append('<div style="font-weight:600;color:#374151;margin:10px 0 6px;">'
+                       'Open opportunities that look similar:</div>')
+            for l, signals, payload in lead_matches:
+                out.append(card(l, signals, payload, 'crm.lead'))
+        return ''.join(out)
+
+    def action_view_lookalike_partners(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Look-alike Companies',
+            'res_model': 'res.partner',
+            'view_mode': 'tree,form',
+            'domain': [('id', 'in', self.lookalike_partner_ids.ids)],
+            'context': {'create': False},
+            'help': '<p class="o_view_nocontent_smiling_face">No look-alike companies for this lead.</p>',
+        }
+
+    def action_view_lookalike_leads(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Look-alike Open Leads',
+            'res_model': 'crm.lead',
+            'view_mode': 'tree,form',
+            'domain': [('id', 'in', self.lookalike_lead_ids.ids)],
+            'context': {'create': False},
+            'help': '<p class="o_view_nocontent_smiling_face">No similar open leads in your pipeline.</p>',
+        }
+
     
     # Lead submission tracking (similar to referral tracking)
     submission_ip = fields.Char(
