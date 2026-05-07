@@ -1035,8 +1035,31 @@ class PartnerVCard(models.Model):
         'channel_id',
         string="Messaging Channels",
         help="Select one or more messaging channels to send instant lead-back messages",
-        invisible="enable_instant_leadback != True or leadback_enable_messaging != True"
+        invisible="enable_instant_leadback != True or leadback_enable_messaging != True",
+        default=lambda self: self._default_leadback_channels(),
     )
+
+    @api.model
+    def _default_leadback_channels(self):
+        """Pre-select WhatsApp on new cards so the user can flip Click to Chat
+        on without immediately tripping the 'pick a channel' validator."""
+        whatsapp = self.env.ref(
+            'qr_code_odoo.leadback_channel_whatsapp', raise_if_not_found=False
+        )
+        return [(6, 0, [whatsapp.id])] if whatsapp else False
+
+    @api.onchange('enable_instant_leadback')
+    def _onchange_enable_instant_leadback_default_channel(self):
+        """When an admin toggles Click to Chat on for an existing card that
+        has no channels selected yet, auto-select WhatsApp. Doesn't override
+        an explicit selection."""
+        for record in self:
+            if record.enable_instant_leadback and not record.leadback_channels:
+                whatsapp = self.env.ref(
+                    'qr_code_odoo.leadback_channel_whatsapp', raise_if_not_found=False
+                )
+                if whatsapp:
+                    record.leadback_channels = [(4, whatsapp.id)]
     
     # Digest Email Settings
     digest_enabled = fields.Boolean(
@@ -1300,23 +1323,20 @@ class PartnerVCard(models.Model):
                         f'Website slug "{record.website_slug}" is already taken. Please choose a different slug.'
                     )
     
-    @api.constrains('enable_instant_leadback', 'leadback_channels', 'leadback_send_email', 'leadback_enable_messaging')
+    @api.constrains('enable_instant_leadback', 'leadback_channels')
     def _check_leadback_config_required(self):
-        """Ensure at least email or messaging is configured when instant lead-back is enabled"""
+        """Click-to-Chat requires at least one messaging channel selected."""
         for record in self:
             if record.enable_instant_leadback:
-                has_email = record.leadback_send_email
-                has_messaging = record.leadback_enable_messaging and record.leadback_channels
-                
-                if not has_email and not has_messaging:
+                if not record.leadback_channels:
                     raise ValidationError(
-                        'Please configure either:\n'
-                        '• Enable "Enable Automated Email" (recommended), OR\n'
-                        '• Enable "Enable Click to Chat" AND select at least one Message Channel\n\n'
-                        'At least one method must be configured when Instant Lead-Back is enabled.'
+                        'Please select at least one Message Channel '
+                        '(WhatsApp, Viber, or Telegram) when Click to Chat is enabled.'
                     )
-                
-                # If messaging is enabled, validate messaging requirements
+
+                # Vestigial branch retained for the legacy code below it; the
+                # block always evaluates True so unreachable validators below
+                # don't fire.
                 if record.leadback_enable_messaging:
                     if not record.leadback_channels:
                         raise ValidationError(
@@ -2208,9 +2228,14 @@ class PartnerVCard(models.Model):
             if not self.enable_instant_leadback:
                 return {'status': 'disabled', 'message': 'Instant lead-back is disabled'}
             
-            # Check if at least email or messaging is configured
-            has_email = self.leadback_send_email and contact_email
-            has_messaging = self.leadback_enable_messaging and contact_phone and self.leadback_channels
+            # Email side is now handled exclusively by the Intro Email path —
+            # leadback_send_email is deprecated UI-side and force-disabled here
+            # so existing records with the old flag still set don't double-send.
+            has_email = False
+            # Click-to-Chat is the entire purpose of this feature now; the
+            # leadback_enable_messaging sub-toggle was dropped from the UI in
+            # favor of treating enable_instant_leadback itself as the chat toggle.
+            has_messaging = bool(contact_phone and self.leadback_channels)
 
             # If messaging is enabled on the card but a precondition is missing,
             # leave a trail so it's not mysteriously silent. Common case: the

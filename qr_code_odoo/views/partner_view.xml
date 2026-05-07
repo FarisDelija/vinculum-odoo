@@ -55,27 +55,42 @@
                 <sheet>
                     <field name="is_launch_plan" invisible="1"/>
                     <field name="subscription_plan" invisible="1"/>
-                    <!-- Main Group with Image on the Left and Fields on the Right -->
-                    <group col="2">
-                        <!-- Left Column: Name and Company Name -->
-                        <group>
-                           <field name="name" string="Full Name" required="1"/>
-                            <field name="company_name" string="Company Name"/>
-                        </group>
-                        <!-- Right Column: Image -->
-                        <group>
-                             <field name="image_url" widget="image" class="oe_avatar" options="{'size': (125, 125)}"/>
-                             <field name="banner_image" widget="image" class="oe_avatar" string="Banner Image" options="{'size': (125, 125)}" help="Upload a banner image that appears behind your profile picture (similar to LinkedIn). Recommended size: 1200x300px or similar aspect ratio."/>
-                            
-                        </group>
-                    </group>
 
-                    <!-- Address Group -->
+                    <!-- Card visuals: profile photo + banner stacked top-right with labels.
+                         Absolute positioning so the rest of the form (notebook tabs, groups)
+                         flows full-width underneath without wrapping around the floats. -->
+                    <div style="position: absolute; top: 12px; right: 16px; width: 200px; text-align: center; z-index: 1;">
+                        <div style="margin-bottom: 20px;">
+                            <label for="image_url" style="display: block; font-weight: 600; font-size: 13px; color: #555; margin-bottom: 6px;">Profile Photo</label>
+                            <field name="image_url" widget="image" nolabel="1" options="{'size': (125, 125)}"/>
+                        </div>
+                        <div>
+                            <label for="banner_image" style="display: block; font-weight: 600; font-size: 13px; color: #555; margin-bottom: 6px;">Banner Image</label>
+                            <field name="banner_image" widget="image" nolabel="1"
+                                   options="{'size': (200, 67), 'preview_image': 'banner_image'}"
+                                   help="Banner that appears behind the profile photo on the public card. Recommended source resolution 1200×300."/>
+                        </div>
+                    </div>
+                    <!-- Reserve right margin on the title block so name doesn't run under the visuals. -->
+                    <div style="position: relative; padding-right: 240px;">
+
+                    <!-- Title block: name as the form title, company underneath -->
+                    <div class="oe_title">
+                        <label for="name" string="Full Name" class="oe_edit_only"/>
+                        <h1><field name="name" placeholder="e.g. Jane Smith" required="1"/></h1>
+                        <h3><field name="company_name" placeholder="Company name"/></h3>
+                    </div>
+
+                    <!-- Contact info — two-column standard Odoo grid -->
                     <group>
-                        <group>
-                            <span class="o_form_label o_td_label" name="address_name">
-                                <b>Address</b>
-                            </span>
+                        <group string="Contact">
+                            <field name="function" placeholder="e.g. Sales Director"/>
+                            <field name="phone" widget="phone"/>
+                            <field name="mobile" widget="phone"/>
+                            <field name="email" widget="email" context="{'gravatar_image': True}"/>
+                        </group>
+                        <group string="Address">
+                            <label for="street" string="Address"/>
                             <div class="o_address_format">
                                 <field name="street" placeholder="Street..." class="o_address_street"/>
                                 <field name="street2" placeholder="Street 2..." class="o_address_street"/>
@@ -87,27 +102,16 @@
                                 </div>
                             </div>
                         </group>
-
-                        <!-- Contact Group -->
-                        <group>
-                            <field name="function" placeholder="e.g. Sales Director"/>
-                            <field name="phone" widget="phone"/>
-                            <field name="mobile" widget="phone"/>
-                            <field name="email" widget="email" context="{'gravatar_image': True}"/>
-                        </group>
                     </group>
+                    </div>
 
-                    <!-- Primary and Secondary Color Fields -->
-                    
-
-                    <!-- vCard URL and Slug Fields -->
-                   
+                    <!-- About: full-width content under the contact grid.
+                         Banner image is in the top-right card-visuals stack. -->
                     <group>
-    <field name="about" widget="html" string="About"/>
-</group>
+                        <field name="about" widget="html" string="About"/>
+                    </group>
                     <notebook>
-                        <!-- Website URLs Tab -->
-                        <page string="Website Settings">
+                        <page string="Card">
                               <!-- Slug, URL, Template Selector, and Generate Website Button -->
                               <group string="Website Configuration" col="2">
                                   <field name="website_slug" string="Set your Slug"/>
@@ -204,59 +208,38 @@
 </group>
 
 
-                        <group string="Instant Lead-Back Settings" col="2" invisible="show_form != True">
-    <!-- Section A: Automation Settings -->
+                        <group string="Click to Chat Settings" col="2" invisible="show_form != True">
+    <!-- Email side merged into the Intro Email section above; this group is
+         now click-to-chat only. The leadback_send_email and
+         leadback_enable_messaging fields stay on the model (and as hidden
+         fields here so view inheritance still works) for backward compat. -->
+    <field name="leadback_send_email" invisible="1"/>
+    <field name="leadback_enable_messaging" invisible="1"/>
+
     <newline invisible="show_form != True" colspan="2"/>
-    <group string="A) Automation Settings" col="2" invisible="show_form != True">
-        <field name="enable_instant_leadback" string="Instant Lead-Back" 
+    <group col="2" invisible="show_form != True">
+        <field name="enable_instant_leadback" string="Click to Chat"
                widget="boolean_toggle"
                readonly="is_launch_plan"
-               help="Automatically send email and messaging links to new contacts (Grow+ feature)"/>
+               help="Show click-to-chat buttons (WhatsApp, Viber, Telegram) to new leads after form submission. (Grow+ feature)"/>
         <div invisible="show_form != True or not is_launch_plan" style="margin-top: 8px; padding: 8px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;">
-            <i class="fa fa-lock"/> <strong>Upgrade Required:</strong> Instant Lead-Back is available on Grow and Scale plans.
+            <i class="fa fa-lock"/> <strong>Upgrade Required:</strong> Click to Chat is available on Grow and Scale plans.
         </div>
-        
+
         <newline invisible="enable_instant_leadback != True" colspan="2"/>
-        
-        <field name="leadback_send_email" string="Enable Automated Email" 
-               invisible="enable_instant_leadback != True"
-               widget="boolean_toggle"
-               readonly="is_launch_plan"
-               help="Automatically send a welcome email to new leads"/>
-        
-        <field name="leadback_email_delay_preset" string="Email Delay"
-               invisible="enable_instant_leadback != True or leadback_send_email != True"
-               readonly="is_launch_plan"
-               help="When to send the email"/>
-        
-        <div invisible="enable_instant_leadback != True or leadback_send_email != True or leadback_email_delay_preset != 'custom'" style="display: flex; gap: 8px; align-items: center; margin-left: 20px;">
-            <label for="leadback_email_delay" class="o_form_label" style="margin-right: 8px; min-width: 60px;">
-                <span>Amount:</span>
-            </label>
-            <field name="leadback_email_delay" nolabel="1" style="width: 80px;" readonly="is_launch_plan"/>
-            <field name="leadback_email_delay_type" nolabel="1" style="width: 100px;" readonly="is_launch_plan"/>
-        </div>
-        
-        <newline invisible="enable_instant_leadback != True" colspan="2"/>
-        
-        <field name="leadback_enable_messaging" string="Enable Click to Chat"
-               invisible="enable_instant_leadback != True"
-               widget="boolean_toggle"
-               readonly="is_launch_plan"
-               help="Generate click-to-chat links for messaging platforms"/>
-        
+
         <field name="leadback_message_delay_preset" string="Message Delay"
-               invisible="enable_instant_leadback != True or leadback_enable_messaging != True"
+               invisible="enable_instant_leadback != True"
                readonly="is_launch_plan"
                help="When to generate messaging links"/>
-        
-        <field name="leadback_channels" string="Messaging Channels" 
+
+        <field name="leadback_channels" string="Messaging Channels"
                widget="many2many_tags"
-               invisible="enable_instant_leadback != True or leadback_enable_messaging != True"
+               invisible="enable_instant_leadback != True"
                readonly="is_launch_plan"
                help="Select messaging channels (WhatsApp, Viber, Telegram)"/>
-        
-        <div invisible="enable_instant_leadback != True or leadback_enable_messaging != True or leadback_message_delay_preset != 'custom'" style="display: flex; gap: 8px; align-items: center; margin-left: 20px;">
+
+        <div invisible="enable_instant_leadback != True or leadback_message_delay_preset != 'custom'" style="display: flex; gap: 8px; align-items: center; margin-left: 20px;">
             <label for="leadback_message_delay" class="o_form_label" style="margin-right: 8px; min-width: 60px;">
                 <span>Amount:</span>
             </label>
@@ -265,108 +248,78 @@
         </div>
     </group>
     
-    <!-- Section B: Message Templates -->
+    <!-- Message Template (the email half lives in the Intro Email section above) -->
     <div invisible="enable_instant_leadback != True" style="width: 100%; margin-bottom: 20px; padding: 16px; background: #fff; border: 1px solid #dee2e6; border-radius: 4px; clear: both; grid-column: 1 / -1;">
-        <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: bold; color: #333;">B) Message Templates</h3>
-        
-        <notebook>
-            <page string="Email" invisible="leadback_send_email != True">
-                <group>
-                    <field name="leadback_email_template_preset" string="Template"
-                           readonly="is_launch_plan"
-                           invisible="leadback_send_email != True"
-                           help="Choose a pre-built template or create your own"/>
-                    
-                    <field name="leadback_email_subject" string="Subject" 
-                           invisible="leadback_send_email != True"
-                           readonly="is_launch_plan"
-                           help="Email subject line"/>
-                    
-                    <field name="leadback_email_template" string="Email Body"
-                           readonly="is_launch_plan"
-                           widget="html"
-                           invisible="leadback_send_email != True"
-                           help="HTML email template with placeholders"/>
-                    
-                    <div style="margin-top: 12px;">
-                        <button name="action_test_email" type="object" 
-                                string="👁️ Preview Email" 
-                                class="btn-primary"
-                                invisible="leadback_send_email != True"
-                                style="width: 100%;"
-                                help="Preview how your email will look with sample data"/>
-                    </div>
-                </group>
-            </page>
-            
-            <page string="Messaging" invisible="leadback_enable_messaging != True">
-                <group>
-                    <field name="leadback_message_template_preset" string="Template"
-                           readonly="is_launch_plan"
-                           invisible="leadback_enable_messaging != True"
-                           help="Choose a pre-built template or create your own"/>
-                    
-                    <field name="leadback_message_template" string="Message Body"
-                           readonly="is_launch_plan"
-                           widget="text" 
-                           invisible="leadback_enable_messaging != True"
-                           help="Plain text template for messaging links"/>
-                    
-                    <div style="margin-top: 12px;">
-                        <button name="action_test_message" type="object" 
-                                string="👁️ Preview Message" 
-                                class="btn-primary"
-                                invisible="leadback_enable_messaging != True"
-                                style="width: 100%;"
-                                help="Preview how your message will look and see the generated links"/>
-                    </div>
-                </group>
-            </page>
-        </notebook>
+        <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: bold; color: #333;">Chat Message Template</h3>
+        <group>
+            <field name="leadback_message_template_preset" string="Template"
+                   readonly="is_launch_plan"
+                   help="Choose a pre-built template or create your own"/>
+
+            <field name="leadback_message_template" string="Message Body"
+                   readonly="is_launch_plan"
+                   widget="text"
+                   help="Plain text template for messaging links"/>
+
+            <div style="margin-top: 12px;">
+                <button name="action_test_message" type="object"
+                        string="👁️ Preview Message"
+                        class="btn-primary"
+                        style="width: 100%;"
+                        help="Preview how your message will look and see the generated links"/>
+            </div>
+        </group>
+        <!-- Hidden field references kept so view validation doesn't reject saves
+             that touch these columns programmatically. -->
+        <field name="leadback_email_template_preset" invisible="1"/>
+        <field name="leadback_email_subject" invisible="1"/>
+        <field name="leadback_email_template" invisible="1"/>
     </div>
     
-    <!-- Section C: Available Placeholders.
-         Using a single full-width cell with our own CSS grid instead of the
-         Odoo form <group col="3"> layout — Odoo's form gutters leave huge gaps
-         between columns, squeezing each list into an unreadable sliver. -->
-    <newline invisible="enable_instant_leadback != True" colspan="2"/>
-    <group string="C) Available Placeholders" colspan="2" invisible="enable_instant_leadback != True">
-        <div colspan="2" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
-            <div style="min-width: 0;">
-                <strong>Contact Information:</strong>
-                <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.9em;">
-                    <li><code>{contact_name}</code> - Full name</li>
-                    <li><code>{first_name}</code> - First name only</li>
-                </ul>
-            </div>
-            <div style="min-width: 0;">
-                <strong>Your Information:</strong>
-                <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.9em;">
-                    <li><code>{owner_name}</code> - Your name</li>
-                    <li><code>{owner_phone}</code> - Your phone</li>
-                    <li><code>{owner_email}</code> - Your email</li>
-                    <li><code>{owner_title}</code> - Your job title</li>
-                    <li><code>{company_name}</code> - Your company</li>
-                </ul>
-            </div>
-            <div style="min-width: 0;">
-                <strong>Links:</strong>
-                <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.9em;">
-                    <li><code>{vcard_url}</code> - Your vCard link</li>
-                    <li><code>{booking_url}</code> - Booking/Calendly link</li>
-                </ul>
-            </div>
-        </div>
-        <div colspan="2" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #ddd;">
-            <strong>Advanced Features:</strong>
-            <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.9em;">
-                <li><strong>Fallbacks:</strong> Use <code>{contact_name|there}</code> to show "there" if contact_name is empty</li>
-                <li><strong>Conditionals:</strong> Use <code>{if booking_url}Book here: {booking_url}{/if}</code> to show content only if booking_url exists</li>
-            </ul>
-            <small style="display: block; margin-top: 12px; color: #666;"><em>Example: "Hi {first_name|there}! 👋 Great meeting you — here's my card: {vcard_url}"</em></small>
-        </div>
-    </group>
 </group>
+
+    <!-- Available Placeholders — collapsed by default. Sits OUTSIDE the
+         Click to Chat group so Odoo's 2-column group cell sizing doesn't
+         squeeze the placeholder columns into a tiny strip. -->
+    <div invisible="enable_instant_leadback != True" style="width: 100%; margin: 12px 0;">
+        <details style="width: 100%; padding: 12px 16px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px;">
+            <summary style="cursor: pointer; font-weight: 600; font-size: 0.95em; user-select: none; outline: none;">Available placeholders &amp; advanced features</summary>
+            <div style="display: flex; flex-wrap: wrap; gap: 16px 24px; margin-top: 14px;">
+                <div style="flex: 1 1 200px; min-width: 180px;">
+                    <strong>Contact Information:</strong>
+                    <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.9em;">
+                        <li><code>{contact_name}</code> - Full name</li>
+                        <li><code>{first_name}</code> - First name only</li>
+                    </ul>
+                </div>
+                <div style="flex: 1 1 200px; min-width: 180px;">
+                    <strong>Your Information:</strong>
+                    <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.9em;">
+                        <li><code>{owner_name}</code> - Your name</li>
+                        <li><code>{owner_phone}</code> - Your phone</li>
+                        <li><code>{owner_email}</code> - Your email</li>
+                        <li><code>{owner_title}</code> - Your job title</li>
+                        <li><code>{company_name}</code> - Your company</li>
+                    </ul>
+                </div>
+                <div style="flex: 1 1 200px; min-width: 180px;">
+                    <strong>Links:</strong>
+                    <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.9em;">
+                        <li><code>{vcard_url}</code> - Your vCard link</li>
+                        <li><code>{booking_url}</code> - Booking/Calendly link</li>
+                    </ul>
+                </div>
+            </div>
+            <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid #ddd;">
+                <strong>Advanced Features:</strong>
+                <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.9em;">
+                    <li><strong>Fallbacks:</strong> Use <code>{contact_name|there}</code> to show "there" if contact_name is empty</li>
+                    <li><strong>Conditionals:</strong> Use <code>{if booking_url}Book here: {booking_url}{/if}</code> to show content only if booking_url exists</li>
+                </ul>
+                <small style="display: block; margin-top: 12px; color: #666;"><em>Example: "Hi {first_name|there}! 👋 Great meeting you — here's my card: {vcard_url}"</em></small>
+            </div>
+        </details>
+    </div>
 
                         <!-- Website Links -->
                             <group string="External Website Links" >
@@ -409,10 +362,72 @@
                             </group>
                             
                         </group>
+                            <group string="Social Media Links" col="2">
+                                <!-- Left Column -->
+                                <group>
+                                    <field name="whatsapp_url" help="Enter your phone number in international format, e.g., 1XXXXXXXXXX"/>
+                                    <field name="linkedin_url" help="Enter your LinkedIn username, e.g., username."/>
+                                    <field name="linkedin_url_company" help="Enter your LinkedIn username, e.g., username."/>
+                                    <field name="youtube_url" help="Enter your YouTube channel ID."/>
+                                    <field name="facebook_url" help="Enter your Facebook username, e.g., username."/>
+                                    <field name="facebook_url_company" help="Enter your Facebook username, e.g., username."/>
+
+                                    <field name="telegram_url" help="Enter your Telegram username."/>
+                                    <field name="instagram_url" help="Enter your Instagram username."/>
+                                    <field name="instagram_url_company" help="Enter your Instagram username."/>
+                                    <field name="viber_url" help="Enter your Viber number."/>
+                                    <field name="github_url" help="Enter your GitHub username."/>
+                                    <field name="vimeo_url" help="Enter your Vimeo username."/>
+                                    <field name="messenger_url" help="Enter your Messenger username."/>
+                                    <field name="dribbble_url" help="Enter your Dribbble username."/>
+                                    <field name="skype_url" help="Enter your Skype username."/>
+                                    <field name="pinterest_url" help="Enter your Pinterest username."/>
+                                    <field name="tiktok_url" help="Enter your TikTok username."/>
+                                </group>
+
+                                <!-- Right Column -->
+                                <group>
+                                    <field name="tumblr_url" help="Enter your Tumblr username."/>
+                                    <field name="xing_url" help="Enter your Xing username."/>
+                                    <field name="doordash_url" help="Enter your DoorDash store URL."/>
+                                    <field name="tripadvisor_url" help="Enter your TripAdvisor username."/>
+                                    <field name="yelp_url" help="Enter your Yelp business username."/>
+                                    <field name="twitter_url" help="Enter your Twitter username."/>
+                                    <field name="twitter_url_company" help="Enter your Twitter username."/>
+                                    <field name="google_reviews_url" help="Enter your Google Reviews URL."/>
+                                    <field name="ubereats_url" help="Enter your Uber Eats store URL."/>
+                                    <field name="line_url" help="Enter your Line username."/>
+                                    <field name="vkontakte_url" help="Enter your Vkontakte username."/>
+                                    <field name="reddit_url" help="Enter your Reddit username."/>
+                                    <field name="snapchat_url" help="Enter your Snapchat username."/>
+                                    <field name="signal_url" help="Enter your Signal number."/>
+                                </group>
+                            </group>
+                            <group string="QR Code Settings" col="4">
+                                <!-- QR Code Pattern and Style -->
+                                <group col="2">
+                                    <field name="qr_pattern" string="QR Code Pattern"/>
+                                </group>
+                            </group>
+
+                            <!-- Logo and QR Code Display -->
+                            <group col="2">
+                                <group string="QR Logo">
+                                    <div invisible="not is_launch_plan" style="margin-bottom: 8px; padding: 8px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;">
+                                        <i class="fa fa-info-circle"/> <strong>Grow+ Feature:</strong> Custom QR logo is available on Grow and Scale plans.
+                                    </div>
+                                    <field name="qr_logo" widget="image" class="oe_avatar" options="{'size': (125, 125)}" readonly="is_launch_plan"/>
+                                </group>
+                                <group string="Generated QR Code">
+                                    <field name="qr_code" widget="image" class="oe_avatar" options="{'size': (256, 256)}"/>
+                                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                                        <button name="action_regenerate_qr_code" string="Regenerate QR Code" type="object" class="btn-primary" style="flex: 1;"/>
+                                        <button name="action_download_qr_code" string="Download QR Code" type="object" class="btn-secondary" style="flex: 1;"/>
+                                    </div>
+                                </group>
+                            </group>
                         </page>
-                        
-                        <!-- Lead Reminders Tab -->
-                        <page string="Lead Reminders">
+                        <page string="Lead Capture">
                             <group string="Follow-up Reminders Settings" col="2">
                                 <field name="followup_reminders_enabled" string="Enable Automated Follow-up Reminders" 
                                        widget="boolean_toggle"
@@ -469,83 +484,33 @@
                                     </sheet>
                                 </form>
                             </field>
-                        </page>
-
-                        <!-- Social Media Links Tab -->
-                        <page string="Social Media Links">
-                            <group string="Social Media Links" col="2">
-                                <!-- Left Column -->
-                                <group>
-                                    <field name="whatsapp_url" help="Enter your phone number in international format, e.g., 1XXXXXXXXXX"/>
-                                    <field name="linkedin_url" help="Enter your LinkedIn username, e.g., username."/>
-                                    <field name="linkedin_url_company" help="Enter your LinkedIn username, e.g., username."/>
-                                    <field name="youtube_url" help="Enter your YouTube channel ID."/>
-                                    <field name="facebook_url" help="Enter your Facebook username, e.g., username."/>
-                                    <field name="facebook_url_company" help="Enter your Facebook username, e.g., username."/>
-
-                                    <field name="telegram_url" help="Enter your Telegram username."/>
-                                    <field name="instagram_url" help="Enter your Instagram username."/>
-                                    <field name="instagram_url_company" help="Enter your Instagram username."/>
-                                    <field name="viber_url" help="Enter your Viber number."/>
-                                    <field name="github_url" help="Enter your GitHub username."/>
-                                    <field name="vimeo_url" help="Enter your Vimeo username."/>
-                                    <field name="messenger_url" help="Enter your Messenger username."/>
-                                    <field name="dribbble_url" help="Enter your Dribbble username."/>
-                                    <field name="skype_url" help="Enter your Skype username."/>
-                                    <field name="pinterest_url" help="Enter your Pinterest username."/>
-                                    <field name="tiktok_url" help="Enter your TikTok username."/>
-                                </group>
-
-                                <!-- Right Column -->
-                                <group>
-                                    <field name="tumblr_url" help="Enter your Tumblr username."/>
-                                    <field name="xing_url" help="Enter your Xing username."/>
-                                    <field name="doordash_url" help="Enter your DoorDash store URL."/>
-                                    <field name="tripadvisor_url" help="Enter your TripAdvisor username."/>
-                                    <field name="yelp_url" help="Enter your Yelp business username."/>
-                                    <field name="twitter_url" help="Enter your Twitter username."/>
-                                    <field name="twitter_url_company" help="Enter your Twitter username."/>
-                                    <field name="google_reviews_url" help="Enter your Google Reviews URL."/>
-                                    <field name="ubereats_url" help="Enter your Uber Eats store URL."/>
-                                    <field name="line_url" help="Enter your Line username."/>
-                                    <field name="vkontakte_url" help="Enter your Vkontakte username."/>
-                                    <field name="reddit_url" help="Enter your Reddit username."/>
-                                    <field name="snapchat_url" help="Enter your Snapchat username."/>
-                                    <field name="signal_url" help="Enter your Signal number."/>
-                                </group>
+                            <group string="Email Digest Settings">
+                                <field name="digest_enabled" string="Enable Digest Emails"
+                                       widget="boolean_toggle"
+                                       help="Receive periodic digest emails with your vCard statistics"/>
+                                
+                                <field name="digest_frequency" string="Digest Frequency"
+                                       invisible="digest_enabled != True"
+                                       help="How often to receive digest emails. Daily emails are only sent if there's new activity."/>
+                                
+                                <field name="last_digest_sent" string="Last Digest Sent"
+                                       readonly="1"
+                                       invisible="digest_enabled != True"
+                                       help="When the last digest email was sent"/>
+                                
+                            </group>
+                            
+                            <group string="What's Included in Your Digest" invisible="digest_enabled != True" col="1">
+                                <div>
+                                    <p><strong>Your digest includes:</strong></p>
+                                    <p><strong>Leads Captured:</strong> New leads, total leads, and leads without follow-up</p>
+                                    <p><strong>Follow-up Reminders:</strong> Leads with due or overdue follow-up activities</p>
+                                    <p><strong>Usage Stats:</strong> Profile views and QR scans</p>
+                                    <p><em>Daily digests are only sent when there's new activity (new leads or due follow-ups).</em></p>
+                                </div>
                             </group>
                         </page>
-
-
-                        <!-- QR Code Settings Tab -->
-                        <page string="QR Code Settings">
-                            <group string="QR Code Settings" col="4">
-                                <!-- QR Code Pattern and Style -->
-                                <group col="2">
-                                    <field name="qr_pattern" string="QR Code Pattern"/>
-                                </group>
-                            </group>
-
-                            <!-- Logo and QR Code Display -->
-                            <group col="2">
-                                <group string="QR Logo">
-                                    <div invisible="not is_launch_plan" style="margin-bottom: 8px; padding: 8px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;">
-                                        <i class="fa fa-info-circle"/> <strong>Grow+ Feature:</strong> Custom QR logo is available on Grow and Scale plans.
-                                    </div>
-                                    <field name="qr_logo" widget="image" class="oe_avatar" options="{'size': (125, 125)}" readonly="is_launch_plan"/>
-                                </group>
-                                <group string="Generated QR Code">
-                                    <field name="qr_code" widget="image" class="oe_avatar" options="{'size': (256, 256)}"/>
-                                    <div style="display: flex; gap: 10px; margin-top: 10px;">
-                                        <button name="action_regenerate_qr_code" string="Regenerate QR Code" type="object" class="btn-primary" style="flex: 1;"/>
-                                        <button name="action_download_qr_code" string="Download QR Code" type="object" class="btn-secondary" style="flex: 1;"/>
-                                    </div>
-                                </group>
-                            </group>
-                        </page>
-
-                        <!-- Specialities Tab -->
-                        <page string="Specialities">
+                        <page string="Content">
                             <group string="Specialities" col="1">
                                 <field name="speciality_ids" nolabel="1">
                                     <tree editable="bottom">
@@ -553,10 +518,6 @@
                                     </tree>
                                 </field>
                             </group>
-                        </page>
-
-                        <!-- Services Tab -->
-                        <page string="Services">
                             <group string="Services Settings" col="2">
                                 <field name="show_services" widget="boolean_toggle" string="Show Services Section?"
                                        readonly="is_launch_plan"/>
@@ -610,10 +571,6 @@
                                     </form>
                                 </field>
                             </group>
-                        </page>
-
-                        <!-- Reviews Tab -->
-                        <page string="Reviews">
                             <group col="2">
                                 <group string="Reviews Settings">
                                     <field name="show_reviews" widget="boolean_toggle" string="Show Reviews Section?"
@@ -657,9 +614,7 @@
                                 </group>
                             </group>
                         </page>
-
-                        <!-- Download Tracking Tab -->
-                        <page string="Download Tracking">
+                        <page string="Tracking">
                             <group string="Download History" invisible="subscription_plan == 'launch'" col="1">
                                 <field name="download_tracking_ids" nolabel="1">
                                     <tree limit="50" decoration-muted="download_country == False" decoration-info="download_utm_source != False">
@@ -674,38 +629,7 @@
                                 </field>
                             </group>
                         </page>
-
-                        <!-- Digest Email Settings Tab -->
-                        <page string="Digest Settings">
-                            <group string="Email Digest Settings">
-                                <field name="digest_enabled" string="Enable Digest Emails"
-                                       widget="boolean_toggle"
-                                       help="Receive periodic digest emails with your vCard statistics"/>
-                                
-                                <field name="digest_frequency" string="Digest Frequency"
-                                       invisible="digest_enabled != True"
-                                       help="How often to receive digest emails. Daily emails are only sent if there's new activity."/>
-                                
-                                <field name="last_digest_sent" string="Last Digest Sent"
-                                       readonly="1"
-                                       invisible="digest_enabled != True"
-                                       help="When the last digest email was sent"/>
-                                
-                            </group>
-                            
-                            <group string="What's Included in Your Digest" invisible="digest_enabled != True" col="1">
-                                <div>
-                                    <p><strong>Your digest includes:</strong></p>
-                                    <p><strong>Leads Captured:</strong> New leads, total leads, and leads without follow-up</p>
-                                    <p><strong>Follow-up Reminders:</strong> Leads with due or overdue follow-up activities</p>
-                                    <p><strong>Usage Stats:</strong> Profile views and QR scans</p>
-                                    <p><em>Daily digests are only sent when there's new activity (new leads or due follow-ups).</em></p>
-                                </div>
-                            </group>
-                        </page>
-
-                        <!-- Email Signatures Tab -->
-                        <page string="Email Signatures">
+                        <page string="Advanced">
                             <div class="signature-gallery" style="padding: 20px;">
                                 <!-- Header with Template Selector -->
                                 <div style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #e5e7eb;">
@@ -757,10 +681,6 @@
                                     Copy and paste into your email client's signature settings (Gmail, Outlook, Apple Mail, etc.)
                                 </div>
                             </div>
-                        </page>
-
-                        <!-- Virtual Backgrounds Tab -->
-                        <page string="Virtual Backgrounds">
                             <div class="virtual-bg-gallery" style="padding: 20px;">
                                 <!-- Header -->
                                 <div style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #e5e7eb;">

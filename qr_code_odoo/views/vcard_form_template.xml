@@ -482,48 +482,33 @@
                     <input type="checkbox" name="intro_email_enabled" value="yes" id="intro_email_enabled_yes" class="gs-sr-only" data-linked-toggle="true"/>
                   </div>
 
-                  <!-- Instant leadback -->
+                  <!-- Click to Chat (was "Instant lead back" — email side now lives under the Intro Email section above) -->
                   <div class="gs-toggle-row">
                     <div class="gs-toggle-info">
-                      <span class="gs-toggle-label">Instant lead back</span>
-                      <span class="gs-toggle-desc">Instantly send new leads an email and click-to-chat links.</span>
+                      <span class="gs-toggle-label">Click to Chat</span>
+                      <span class="gs-toggle-desc">Show new leads direct messaging links (WhatsApp, Viber, Telegram) right after they submit the form.</span>
                     </div>
                     <button type="button" class="gs-toggle" role="switch" aria-checked="false" data-toggle-target="enable_instant_leadback"/>
                     <input type="checkbox" name="enable_instant_leadback" value="yes" id="enable_instant_leadback_yes" class="gs-sr-only" data-linked-toggle="true"/>
                   </div>
+                  <!-- Hidden compatibility inputs: backend still reads these flags, treat them as
+                       implicitly-on when Click to Chat is on, off otherwise. -->
+                  <input type="hidden" name="leadback_enable_messaging" value="yes"/>
                   <div class="gs-reveal" data-reveal-for="enable_instant_leadback">
-                    <div class="gs-toggle-row">
-                      <div class="gs-toggle-info">
-                        <span class="gs-toggle-label">Automated email</span>
-                        <span class="gs-toggle-desc">Deliver the leadback email via your email marketing system.</span>
-                      </div>
-                      <button type="button" class="gs-toggle" role="switch" aria-checked="false" data-toggle-target="leadback_send_email"/>
-                      <input type="checkbox" name="leadback_send_email" value="yes" id="leadback_send_email_yes" class="gs-sr-only" data-linked-toggle="true"/>
-                    </div>
-                    <div class="gs-toggle-row">
-                      <div class="gs-toggle-info">
-                        <span class="gs-toggle-label">Click-to-chat</span>
-                        <span class="gs-toggle-desc">Generate direct messaging links (WhatsApp, Viber, Telegram).</span>
-                      </div>
-                      <button type="button" class="gs-toggle" role="switch" aria-checked="false" data-toggle-target="leadback_enable_messaging"/>
-                      <input type="checkbox" name="leadback_enable_messaging" value="yes" id="leadback_enable_messaging_yes" class="gs-sr-only" data-linked-toggle="true"/>
-                    </div>
-                    <div class="gs-reveal" data-reveal-for="leadback_enable_messaging">
-                      <label class="gs-label">Messaging channels <span class="gs-req">Required</span></label>
-                      <div class="gs-check-row" data-check-group="leadback_channels">
-                        <label class="gs-check" data-checked="true">
-                          <input type="checkbox" name="leadback_channels[]" value="whatsapp" checked="checked"/>
-                          WhatsApp
-                        </label>
-                        <label class="gs-check">
-                          <input type="checkbox" name="leadback_channels[]" value="viber"/>
-                          Viber
-                        </label>
-                        <label class="gs-check">
-                          <input type="checkbox" name="leadback_channels[]" value="telegram"/>
-                          Telegram
-                        </label>
-                      </div>
+                    <label class="gs-label">Messaging channels <span class="gs-req">Required</span></label>
+                    <div class="gs-check-row" data-check-group="leadback_channels">
+                      <label class="gs-check" data-checked="true">
+                        <input type="checkbox" name="leadback_channels[]" value="whatsapp" checked="checked"/>
+                        WhatsApp
+                      </label>
+                      <label class="gs-check">
+                        <input type="checkbox" name="leadback_channels[]" value="viber"/>
+                        Viber
+                      </label>
+                      <label class="gs-check">
+                        <input type="checkbox" name="leadback_channels[]" value="telegram"/>
+                        Telegram
+                      </label>
                     </div>
                   </div>
 
