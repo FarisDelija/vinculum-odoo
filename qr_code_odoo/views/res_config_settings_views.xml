@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_vinc" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.qr_code_odoo</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Vinc" string="Vinc" name="qr_code_odoo" groups="base.group_system">
+                    <block title="Branding" id="vinc_branding_block"
+                           help="Customize the brand name and logo shown to your end users.">
+                        <setting id="vinc_brand_name_setting"
+                                 string="Brand Name"
+                                 help="Full product name shown to end users (emails, page headers, prose).">
+                            <field name="vinc_brand_name" placeholder="Vinc"/>
+                        </setting>
+                        <setting id="vinc_brand_short_name_setting"
+                                 string="Short Name"
+                                 help="Compact name for tight spaces (logo chips, wordmarks).">
+                            <field name="vinc_brand_short_name" placeholder="Vinc"/>
+                        </setting>
+                        <setting id="vinc_brand_icon_setting"
+                                 string="Brand Icon"
+                                 help="Square logo (~512x512). Used for chips, favicons, and the default QR code overlay.">
+                            <field name="vinc_brand_icon" widget="image" class="oe_avatar"/>
+                        </setting>
+                        <setting id="vinc_brand_wordmark_setting"
+                                 string="Brand Wordmark"
+                                 help="Horizontal logo for page headers and email banners. Falls back to the icon if blank.">
+                            <field name="vinc_brand_wordmark" widget="image" options="{'size': [240, 60]}"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_qr_code_odoo_settings" model="ir.actions.act_window">
+        <field name="name">Settings</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context">{'module': 'qr_code_odoo', 'bin_size': False}</field>
+    </record>
+</odoo>

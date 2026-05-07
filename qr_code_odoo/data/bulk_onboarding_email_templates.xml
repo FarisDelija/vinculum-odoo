@@ -4,7 +4,7 @@
     <record id="bulk_onboarding_invitation_email" model="mail.template">
         <field name="name">Vinc — Bulk Onboarding Invitation</field>
         <field name="model_id" ref="base.model_res_users"/>
-        <field name="subject">Welcome to ${ctx.get('company_name', 'Your Company')} - Complete Your Vinc Card</field>
+        <field name="subject">Welcome to ${ctx.get('company_name', 'Your Company')} - Complete Your ${object.env['ir.config_parameter'].sudo().get_param('qr_code_odoo.brand_name', 'Vinc')} Card</field>
         <field name="email_from">${user.email or 'noreply@localhost'}</field>
         <field name="email_to">${object.login}</field>
         <field name="body_html" type="html">
@@ -12,9 +12,10 @@
             <t t-set="current_year" t-value="ctx.get('current_year', '2025')"/>
             <t t-set="user_name" t-value="object.name or 'User'"/>
             <t t-set="company_name" t-value="ctx.get('company_name', 'your company')"/>
+            <t t-set="brand_name" t-value="object.env['ir.config_parameter'].sudo().get_param('qr_code_odoo.brand_name', 'Vinc')"/>
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background: #4C75A3; padding: 30px; text-align: center; color: white;">
-                    <h1 style="margin: 0; font-size: 28px; color: white;">Welcome to Vinc!</h1>
+                    <h1 style="margin: 0; font-size: 28px; color: white;">Welcome to <t t-out="brand_name"/>!</h1>
                 </div>
                 
                 <div style="padding: 30px; background: #f9f9f9;">
@@ -23,11 +24,11 @@
                     </p>
                     
                     <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
-                        You've been invited to join <strong><t t-out="company_name"/></strong> on Vinc!
+                        You've been invited to join <strong><t t-out="company_name"/></strong> on <t t-out="brand_name"/>!
                     </p>
                     
                     <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
-                        Vinc helps you create a professional digital business card that you can share with a simple QR code scan. Perfect for networking at events, meetings, and more.
+                        <t t-out="brand_name"/> helps you create a professional digital business card that you can share with a simple QR code scan. Perfect for networking at events, meetings, and more.
                     </p>
                     
                     <p style="font-size: 14px; color: #666; margin-bottom: 20px; padding: 15px; background: #f0f7ff; border-left: 4px solid #4C75A3; border-radius: 4px;">
@@ -52,7 +53,7 @@
                     <ul style="font-size: 14px; color: #666;">
                         <li>Create your digital business card</li>
                         <li>Generate a QR code to share your contact info</li>
-                        <li>Collect leads automatically when people visit your Vinc Card</li>
+                        <li>Collect leads automatically when people visit your <t t-out="brand_name"/> Card</li>
                         <li>Track who views your card and when</li>
                     </ul>
                     
@@ -62,8 +63,8 @@
                 </div>
                 
                 <div style="background: #333; padding: 20px; text-align: center; color: #999; font-size: 12px;">
-                    <p style="margin: 0;">This email was sent from Vinc</p>
-                    <p style="margin: 5px 0 0 0;">© <t t-out="current_year"/> Vinc. All rights reserved.</p>
+                    <p style="margin: 0;">This email was sent from <t t-out="brand_name"/></p>
+                    <p style="margin: 5px 0 0 0;">© <t t-out="current_year"/> <t t-out="brand_name"/>. All rights reserved.</p>
                 </div>
             </div>
         </field>
@@ -81,6 +82,7 @@
             <t t-set="current_year" t-value="ctx.get('current_year', '2025')"/>
             <t t-set="created_by_name" t-value="object.created_by.name if object.created_by else 'Admin'"/>
             <t t-set="batch_name" t-value="object.name or 'Batch'"/>
+            <t t-set="brand_name" t-value="object.env['ir.config_parameter'].sudo().get_param('qr_code_odoo.brand_name', 'Vinc')"/>
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background: #4C75A3; padding: 30px; text-align: center; color: white;">
                     <h1 style="margin: 0; font-size: 28px; color: white;">Batch Processing Complete</h1>
@@ -134,8 +136,8 @@
                 </div>
                 
                 <div style="background: #333; padding: 20px; text-align: center; color: #999; font-size: 12px;">
-                    <p style="margin: 0;">This email was sent from Vinc</p>
-                    <p style="margin: 5px 0 0 0;">© <t t-out="current_year"/> Vinc. All rights reserved.</p>
+                    <p style="margin: 0;">This email was sent from <t t-out="brand_name"/></p>
+                    <p style="margin: 5px 0 0 0;">© <t t-out="current_year"/> <t t-out="brand_name"/>. All rights reserved.</p>
                 </div>
             </div>
         </field>

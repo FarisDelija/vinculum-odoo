@@ -538,11 +538,11 @@
 
                 <!-- ===== top bar ===== -->
                 <header class="vg-topbar">
-                    <a href="/vinculum/guide" class="vg-wordmark">Vinc Guide</a>
+                    <a href="/vinculum/guide" class="vg-wordmark"><t t-out="brand_name"/> Guide</a>
                     <div class="vg-topbar-meta">
                         <button class="vg-mobile-nav-btn" type="button" onclick="document.querySelector('.vg-shell').classList.toggle('vg-nav-open')">☰ Topics</button>
                         <t t-if="request.session.uid">
-                            <a href="/web">← Back to Vinc</a>
+                            <a href="/web">← Back to <t t-out="brand_name"/></a>
                         </t>
                         <t t-else="">
                             <a href="/web/login">Sign in</a>
@@ -554,7 +554,7 @@
                 <div class="vg-grid">
                     <!-- sidebar -->
                     <aside class="vg-sidebar">
-                        <p class="vg-side-eyebrow">Vinc Guide</p>
+                        <p class="vg-side-eyebrow"><t t-out="brand_name"/> Guide</p>
                         <a t-attf-href="/vinculum/guide" t-attf-class="vg-side-hub#{'' if current_topic else ' is-active'}">Overview &amp; tracks</a>
 
                         <t t-foreach="guide_nav" t-as="group">
@@ -613,7 +613,7 @@
                     <div>
                         Need more? <a href="https://getvinc.com/contact" target="_blank" rel="noopener">getvinc.com/contact</a>
                         <span style="color: var(--vg-sand); margin: 0 10px;">·</span>
-                        <a href="/web">Open Vinc</a>
+                        <a href="/web">Open <t t-out="brand_name"/></a>
                     </div>
                 </footer>
             </div>
@@ -628,13 +628,13 @@
 
             <!-- HERO -->
             <section class="vg-hero">
-                <div class="vg-hero-eyebrow">Welcome to Vinc</div>
+                <div class="vg-hero-eyebrow">Welcome to <t t-out="brand_name"/></div>
                 <h1 class="vg-display">
                     Every team member,<br/>
                     a <em>lead-generating</em> channel.
                 </h1>
                 <p class="vg-hero-sub">
-                    Vinc turns digital business cards into a measurable acquisition surface — captured leads, attributed touchpoints, automated follow-up, all inside the Odoo you already run. This guide is how you get there in an afternoon.
+                    <t t-out="brand_name"/> turns digital business cards into a measurable acquisition surface — captured leads, attributed touchpoints, automated follow-up, all inside the Odoo you already run. This guide is how you get there in an afternoon.
                 </p>
                 <div>
                     <t t-if="guide_user_signed_in and guide_user_has_vcard">
@@ -643,7 +643,7 @@
                     </t>
                     <t t-elif="guide_user_signed_in">
                         <a class="vg-cta" href="/get-started">Create your card <span style="opacity:.6">→</span></a>
-                        <a class="vg-cta-secondary" href="/web">Open Vinc backend</a>
+                        <a class="vg-cta-secondary" href="/web">Open <t t-out="brand_name"/> backend</a>
                     </t>
                     <t t-else="">
                         <a class="vg-cta" href="/get-started">Create your card <span style="opacity:.6">→</span></a>
@@ -662,7 +662,7 @@
                 </a>
                 <a href="/vinculum/guide/bulk-onboard" class="vg-track-card">
                     <div class="vg-tc-eyebrow">For administrators</div>
-                    <h3>I'm rolling Vinc out to a <em>team</em></h3>
+                    <h3>I'm rolling <t t-out="brand_name"/> out to a <em>team</em></h3>
                     <p>Bulk-onboard a roster from CSV, route leads into the right CRM pipeline, and wire up automated follow-up — at the org level.</p>
                     <span class="vg-tc-cta">Start with Bulk Onboarding →</span>
                 </a>
@@ -698,9 +698,9 @@
 
             <!-- MENTAL MODEL -->
             <section class="vg-mental">
-                <h2 class="vg-display">How Vinc earns its place in your stack.</h2>
+                <h2 class="vg-display">How <t t-out="brand_name"/> earns its place in your stack.</h2>
                 <p style="color: var(--vg-ink-soft); font-size: 16px; line-height: 1.65; max-width: 640px; margin: 0;">
-                    Most card platforms stop at "share your contact." Vinc closes the loop — every scan, tap, and form submission lives inside the same database your sales team already opens every morning. Four moves, end-to-end:
+                    Most card platforms stop at "share your contact." <t t-out="brand_name"/> closes the loop — every scan, tap, and form submission lives inside the same database your sales team already opens every morning. Four moves, end-to-end:
                 </p>
                 <div class="vg-mental-flow">
                     <div class="vg-mental-step">

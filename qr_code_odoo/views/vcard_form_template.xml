@@ -11,6 +11,8 @@
   -->
   <template id="vcard_form_page" name="Get Started Form Page">
     <t t-call="website.layout">
+        <t t-set="brand_name" t-value="request.env['ir.config_parameter'].sudo().get_param('qr_code_odoo.brand_name', 'Vinc')"/>
+        <t t-set="brand_short_name" t-value="request.env['ir.config_parameter'].sudo().get_param('qr_code_odoo.brand_short_name', 'Vinc')"/>
       <div class="vg-getstarted" id="gs-root">
 
         <!-- ============ Hero ============ -->
@@ -22,7 +24,7 @@
               <em>A lifetime of introductions.</em>
             </h1>
             <p class="gs-hero-sub">
-              Fill in the essentials. Your Vinc card publishes instantly, ready to share via
+              Fill in the essentials. Your <t t-out="brand_name"/> card publishes instantly, ready to share via
               <strong>tap, QR, or link</strong>.
             </p>
           </div>
@@ -66,7 +68,7 @@
                 <div class="gs-invite-icon" aria-hidden="true">✉</div>
                 <div class="gs-invite-body">
                   <strong>You're completing an invited card.</strong>
-                  <span>Your administrator pre-filled some details — change anything you'd like, then click <em>Create my Vinc card</em> to publish.</span>
+                  <span>Your administrator pre-filled some details — change anything you'd like, then click <em>Create my <t t-out="brand_name"/> card</em> to publish.</span>
                 </div>
               </div>
             </t>
@@ -205,7 +207,7 @@
                       <p class="gs-hint">Calendly, Google Calendar, Cal.com — whichever you use.</p>
                     </div>
                     <div class="gs-field gs-col-full">
-                      <label class="gs-label" for="gs-slug">Your Vinc URL <span class="gs-req">Required</span></label>
+                      <label class="gs-label" for="gs-slug">Your <t t-out="brand_name"/> URL <span class="gs-req">Required</span></label>
                       <div class="gs-input-addon" data-slug-shell="true">
                         <span class="gs-addon-prefix"><t t-esc="base_url_display or 'your-domain.com'"/>/</span>
                         <input class="gs-input" type="text" id="gs-slug" name="website_slug"
@@ -638,7 +640,7 @@
                     <span class="gs-btn-label">Back</span>
                   </button>
                   <button type="submit" class="gs-btn gs-btn-primary" data-action="submit" id="gs-submit">
-                    <span class="gs-btn-label">Create my Vinc card</span>
+                    <span class="gs-btn-label">Create my <t t-out="brand_name"/> card</span>
                     <span aria-hidden="true">→</span>
                   </button>
                 </div>

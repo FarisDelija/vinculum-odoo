@@ -10,6 +10,8 @@
     -->
     <template id="nfc_onboarding_page" name="NFC Card Programming Guide">
         <t t-call="website.layout">
+        <t t-set="brand_name" t-value="request.env['ir.config_parameter'].sudo().get_param('qr_code_odoo.brand_name', 'Vinc')"/>
+        <t t-set="brand_short_name" t-value="request.env['ir.config_parameter'].sudo().get_param('qr_code_odoo.brand_short_name', 'Vinc')"/>
             <div id="wrap" class="oe_structure vg-shell nfc-shell">
                 <style>
 /* ---------- font system (shared with guide) ---------- */
@@ -349,10 +351,10 @@
 
                 <!-- ===== top bar ===== -->
                 <header class="nfc-topbar">
-                    <a href="/vinculum/guide" class="nfc-wordmark">Vinc Setup</a>
+                    <a href="/vinculum/guide" class="nfc-wordmark"><t t-out="brand_name"/> Setup</a>
                     <div class="nfc-topbar-meta">
                         <t t-if="request.session.uid">
-                            <a href="/web">← Back to Vinc</a>
+                            <a href="/web">← Back to <t t-out="brand_name"/></a>
                         </t>
                         <t t-else="">
                             <a t-attf-href="/#{partner.website_slug or ''}">View my card</a>
@@ -365,8 +367,8 @@
                     <!-- HERO -->
                     <section class="nfc-hero">
                         <div class="nfc-eyebrow">NFC Programming</div>
-                        <h1>Program <em>your</em> Vinc card.</h1>
-                        <p class="nfc-sub">Four steps, about ten minutes end-to-end. You'll copy a URL, install a free app, tap-write your card, then test. The card is yours forever — the URL it points at updates whenever you update your Vinc.</p>
+                        <h1>Program <em>your</em> <t t-out="brand_name"/> card.</h1>
+                        <p class="nfc-sub">Four steps, about ten minutes end-to-end. You'll copy a URL, install a free app, tap-write your card, then test. The card is yours forever — the URL it points at updates whenever you update your <t t-out="brand_name"/>.</p>
                     </section>
 
                     <!-- PROGRESS -->
@@ -394,7 +396,7 @@
                         <div class="nfc-step-header">
                             <div class="nfc-step-kicker">STEP 01 / COPY</div>
                             <h2>This is the URL your card will carry.</h2>
-                            <p>When someone taps their phone to your Vinc card, this is where it takes them. Keep it in your clipboard — you'll paste it into the NFC app in step 3.</p>
+                            <p>When someone taps their phone to your <t t-out="brand_name"/> card, this is where it takes them. Keep it in your clipboard — you'll paste it into the NFC app in step 3.</p>
                         </div>
                         <div class="nfc-url">
                             <input type="text" id="vcardUrl" t-att-value="vcard_url" readonly="readonly"/>
@@ -457,7 +459,7 @@
                             <li><strong>Tap "Write"</strong><p>The Write tab is in the bottom nav.</p></li>
                             <li><strong>Tap "Add a record"</strong><p>You're about to attach a single record to the card.</p></li>
                             <li><strong>Select "URL / URI"</strong><p>Of all the record types, this is the one that opens a web page on tap.</p></li>
-                            <li class="nfc-highlight"><strong>Paste your Vinc URL</strong>
+                            <li class="nfc-highlight"><strong>Paste your <t t-out="brand_name"/> URL</strong>
                                 <div class="nfc-url" style="margin: 10px 0 0;">
                                     <input type="text" t-att-value="vcard_url" readonly="readonly"/>
                                     <button type="button" onclick="nfcCopyUrl()">Copy</button>
@@ -482,7 +484,7 @@
                         <div class="nfc-success">
                             <div class="nfc-success-mark">✓</div>
                             <h3>Your card is live.</h3>
-                            <p>The URL is now written to the card's chip. Every tap — this card, forever — opens your Vinc. Update your card content in the Vinc backend and the very next tap reflects it.</p>
+                            <p>The URL is now written to the card's chip. Every tap — this card, forever — opens your <t t-out="brand_name"/>. Update your card content in the <t t-out="brand_name"/> backend and the very next tap reflects it.</p>
                             <a t-attf-href="#{vcard_url or '/'}" target="_blank" class="nfc-btn nfc-btn-primary">Preview my card →</a>
                         </div>
                         <div class="nfc-tips">
@@ -495,22 +497,14 @@
                         </div>
                         <div class="nfc-nav">
                             <button type="button" class="nfc-btn nfc-btn-secondary" onclick="nfcGo(3)">← Back</button>
-                            <a href="/web" class="nfc-btn nfc-btn-primary">Done — back to Vinc</a>
+                            <a href="/web" class="nfc-btn nfc-btn-primary">Done — back to <t t-out="brand_name"/></a>
                         </div>
                     </section>
 
-                    <!-- HELP -->
-                    <div class="nfc-help">
-                        <div>
-                            <h4>Stuck somewhere?</h4>
-                            <p>We've programmed thousands of these. Odds are we've seen it.</p>
-                        </div>
-                        <a href="mailto:support@getvinc.com" class="nfc-btn nfc-btn-secondary">Email support →</a>
-                    </div>
                 </main>
 
                 <footer class="nfc-footer">
-                    Programmed by <a href="/vinculum/guide/nfc">the NFC chapter of the Vinc guide</a>
+                    Programmed by <a href="/vinculum/guide/nfc">the NFC chapter of the <t t-out="brand_name"/> guide</a>
                     <span style="color: var(--vg-sand); margin: 0 10px;">·</span>
                     <a href="mailto:support@getvinc.com">support@getvinc.com</a>
                 </footer>

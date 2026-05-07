@@ -56,7 +56,7 @@
                 <p>Resist the temptation to add every social network you've ever joined. A card with two clear actions converts better than a card with twelve.</p>
 
                 <h2><span class="vg-h2-num">04</span>Choose a template</h2>
-                <p>Vinc ships with five layout templates. They differ in how prominent the photo, banner, and lead form are — not in what data they show. Switch templates anytime; your data is preserved.</p>
+                <p><t t-out="brand_name"/> ships with five layout templates. They differ in how prominent the photo, banner, and lead form are — not in what data they show. Switch templates anytime; your data is preserved.</p>
                 <ul>
                     <li><strong>Modern</strong> (default) — balanced layout with banner, profile photo, and prominent lead CTA. The safe pick if you're unsure.</li>
                     <li><strong>Classic</strong> — photo-forward, traditional vCard feel. Best for people-first cards (consultants, agents, founders).</li>
@@ -68,11 +68,11 @@
                     <img src="/qr_code_odoo/static/src/img/guide/setup-form-templates.png"
                          alt="The five template thumbnails from the /get-started template picker"
                          loading="lazy"/>
-                    <figcaption><strong>Fig. 2</strong>The five templates shipped with Vinc, shown in the picker.</figcaption>
+                    <figcaption><strong>Fig. 2</strong>The five templates shipped with <t t-out="brand_name"/>, shown in the picker.</figcaption>
                 </figure>
 
                 <h2><span class="vg-h2-num">05</span>Publish, preview, share</h2>
-                <p>The right side of the form shows a live preview as you type. When you're happy, hit <strong>Submit</strong>. Vinc creates a real Odoo <code>website.page</code> at your slug — visit it directly, share the URL, or download your QR.</p>
+                <p>The right side of the form shows a live preview as you type. When you're happy, hit <strong>Submit</strong>. <t t-out="brand_name"/> creates a real Odoo <code>website.page</code> at your slug — visit it directly, share the URL, or download your QR.</p>
                 <p>From your card's form view in the backend, the <em class="vg-mark">Publish / Unpublish</em> smart button toggles whether the page is live. Backend edits to any visible field auto-regenerate the published page — you don't need to click "Generate" again.</p>
                 <p>Next: <a href="/vinculum/guide/share-card">how to actually distribute your card</a> so the work pays off.</p>
 
@@ -108,7 +108,7 @@
                 </ul>
                 <p>Print it big enough that someone two meters away can scan it. As a rule of thumb, the QR should be at least 1/10th the distance between the QR and the eye of the person scanning it.</p>
                 <div class="vg-note">
-                    The QR includes a small Vinc-blue logo overlay by default. You can swap it for your own brand mark in the card's settings — see <a href="/vinculum/guide/setup-card">Setting Up Your Card</a>.
+                    The QR includes a small brand logo overlay by default. You can swap it for your own brand mark in the card's settings — see <a href="/vinculum/guide/setup-card">Setting Up Your Card</a>.
                 </div>
 
                 <h2><span class="vg-h2-num">02</span>NFC for the in-person moment</h2>
@@ -126,7 +126,7 @@
                 </ul>
 
                 <h2><span class="vg-h2-num">04</span>Drop it into your email signature</h2>
-                <p>Vinc includes an email signature generator. From the backend, open your user record and use the signature builder to produce HTML you can paste into your email client's signature settings — the same flow whether you use Gmail, Outlook, Apple Mail, or anything else.</p>
+                <p><t t-out="brand_name"/> includes an email signature generator. From the backend, open your user record and use the signature builder to produce HTML you can paste into your email client's signature settings — the same flow whether you use Gmail, Outlook, Apple Mail, or anything else.</p>
                 <p>Email signatures are the most-used and most-undervalued distribution channel. Every email you send is a card share. Set this up once and forget it.</p>
 
             </div>
@@ -165,7 +165,7 @@
 
                 <h2><span class="vg-h2-num">03</span>Pick the right mailing list</h2>
                 <p>Every lead captured gets added to a mailing list automatically. Pick a focused list rather than your master "Newsletter" — the more specific the list, the more permission you have to send specific follow-up.</p>
-                <p>If the list doesn't exist yet, type its name into the field; Vinc creates it on the fly when the first lead lands.</p>
+                <p>If the list doesn't exist yet, type its name into the field; <t t-out="brand_name"/> creates it on the fly when the first lead lands.</p>
                 <div class="vg-warn">
                     Visitors don't see the mailing list name, but they do see (per Odoo's mass mailing rules) a footer when they receive emails. Pick a name you'd be comfortable showing.
                 </div>
@@ -185,7 +185,7 @@
                     <li>Any tags you configured at capture time</li>
                     <li>Free-text notes if the form's notes field is enabled</li>
                 </ul>
-                <p>Leads land in your CRM's default pipeline stage (the first stage in your pipeline — typically "New") and get auto-assigned to the card's owner: Vinc looks up the user whose login matches the card's email, and falls back to the user who created the card record. For team-level routing rules beyond that, see the admin guide: <a href="/vinculum/guide/crm">CRM &amp; Lead Routing</a>.</p>
+                <p>Leads land in your CRM's default pipeline stage (the first stage in your pipeline — typically "New") and get auto-assigned to the card's owner: <t t-out="brand_name"/> looks up the user whose login matches the card's email, and falls back to the user who created the card record. For team-level routing rules beyond that, see the admin guide: <a href="/vinculum/guide/crm">CRM &amp; Lead Routing</a>.</p>
                 <figure class="vg-figure">
                     <img src="/qr_code_odoo/static/src/img/guide/crm-lead-submission-tracking.png"
                          alt="The Submission Tracking tab on a captured lead's form view"

@@ -1,10 +1,11 @@
 <odoo>
     <template id="vcard_success_page" name="vCard Success Page">
         <t t-call="qr_code_odoo.vcard_layout">
+            <t t-set="brand_name" t-value="request.env['ir.config_parameter'].sudo().get_param('qr_code_odoo.brand_name', 'Vinc')"/>
             <div class="container mt-5 mb-5">
                 <h1 class="text-center">Success!</h1>
                 <h3 class="text-center">Congratulations, <t t-esc="partner_name"/>!</h3>
-                <p class="text-center">We hope you will enjoy your new Vinc Digital Business Card.</p>
+                <p class="text-center">We hope you will enjoy your new <t t-out="brand_name"/> Digital Business Card.</p>
 
                 <!-- Buttons -->
                 <div class="text-center mt-4">

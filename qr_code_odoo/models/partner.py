@@ -1600,14 +1600,16 @@ class PartnerVCard(models.Model):
     
     def _send_digest_email(self, force_send=False):
         """Send digest email to vCard owner
-        
+
         Args:
             force_send: If True, bypass daily activity check (for testing)
         """
         self.ensure_one()
-        
+
         if not self.digest_enabled or not self.email:
             return False
+
+        brand_name = self.env['qr_code_odoo.brand'].sudo().get_brand_name()
         
         # For daily frequency, check if there's activity (unless force_send is True)
         if self.digest_frequency == 'daily' and not force_send:
@@ -1697,7 +1699,7 @@ class PartnerVCard(models.Model):
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
                 <!-- Header -->
                 <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #e0e0e0;">
-                    <h1 style="margin: 0; color: #333; font-size: 24px;">📊 Your Vinc Card Digest</h1>
+                    <h1 style="margin: 0; color: #333; font-size: 24px;">📊 Your {brand_name} Card Digest</h1>
                     <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">{period_display}</p>
                 </div>
 
@@ -1717,7 +1719,7 @@ class PartnerVCard(models.Model):
                             <span style="color: #666;">Total Leads:</span>
                             <strong style="color: #333; font-size: 18px;">{stats['total_leads_count']}</strong>
                         </div>
-                        <p style="margin: 0 0 10px 0; color: #999; font-size: 11px; font-style: italic;">All-time total leads captured from this Vinc Card</p>
+                        <p style="margin: 0 0 10px 0; color: #999; font-size: 11px; font-style: italic;">All-time total leads captured from this {brand_name} Card</p>
                         <div style="display: flex; justify-content: space-between;">
                             <span style="color: #666;">Without Follow-up:</span>
                             <strong style="color: #dc3545; font-size: 18px;">{stats['leads_without_followup_count']}</strong>
@@ -1770,7 +1772,7 @@ class PartnerVCard(models.Model):
                             <span style="color: #666;">Page Views:</span>
                             <strong style="color: #333; font-size: 18px;">{stats['page_views']}</strong>
                         </div>
-                        <p style="margin: 0 0 10px 0; color: #999; font-size: 11px; font-style: italic;">Total number of times your Vinc Card page has been viewed (via your unique URL)</p>
+                        <p style="margin: 0 0 10px 0; color: #999; font-size: 11px; font-style: italic;">Total number of times your {brand_name} Card page has been viewed (via your unique URL)</p>
                         <div style="display: flex; justify-content: space-between;">
                             <span style="color: #666;">QR Code Scans:</span>
                             <strong style="color: #333; font-size: 18px;">{stats['scans_count']}</strong>
@@ -1786,7 +1788,7 @@ class PartnerVCard(models.Model):
                 <div style="text-align: center; padding: 30px 0; border-top: 2px solid #e0e0e0;">
                     <a href="{vcard_url}" 
                        style="display: inline-block; background-color: #457eb8; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
-                        View Your Vinc Card →
+                        View Your {brand_name} Card →
                     </a>
                     <p style="margin: 20px 0 0 0; color: #666; font-size: 12px;">
                         <a href="{base_url}/web#id={self.id}&model=partner.vcard&view_type=form&active_id={self.id}" 
@@ -1796,15 +1798,15 @@ class PartnerVCard(models.Model):
 
                 <!-- Footer -->
                 <div style="text-align: center; padding: 20px 0; border-top: 1px solid #e0e0e0; color: #999; font-size: 12px;">
-                    <p style="margin: 0;">This is an automated digest email from Vinc.</p>
-                    <p style="margin: 5px 0 0 0;">You can change your digest preferences in your Vinc Card settings.</p>
+                    <p style="margin: 0;">This is an automated digest email from {brand_name}.</p>
+                    <p style="margin: 5px 0 0 0;">You can change your digest preferences in your {brand_name} Card settings.</p>
                 </div>
             </div>
             """
             
             # Create mail values
             mail_values = {
-                'subject': f"{period_display}'s Digest - {self.name or 'Your Vinc Card'}",
+                'subject': f"{period_display}'s Digest - {self.name or f'Your {brand_name} Card'}",
                 'body_html': Markup(body_html),
                 'email_from': self._get_notification_email(user=self.env.user),
                 'email_to': self.email,
@@ -1964,7 +1966,8 @@ class PartnerVCard(models.Model):
         self.ensure_one()
         
         if not self.email:
-            raise UserError('Please set an email address on your Vinc Card to receive digest emails.')
+            brand_name = self.env['qr_code_odoo.brand'].sudo().get_brand_name()
+            raise UserError(f'Please set an email address on your {brand_name} Card to receive digest emails.')
         
         if not self.digest_enabled:
             raise UserError('Please enable digest emails first.')
@@ -3139,9 +3142,15 @@ If you'd like to save my info again later, here's my card: {vcard_url}
             back_color='white',
         )
     
-        # Overlay the logo if it exists
+        # Overlay the logo: per-user upload wins, otherwise fall back to the
+        # globally configured brand icon (if one is set in Settings → Vinc).
+        logo_bytes = None
         if self.qr_logo:
-            img = self._add_logo_to_qr_code(img)
+            logo_bytes = base64.b64decode(self.qr_logo)
+        else:
+            logo_bytes = self.env['qr_code_odoo.brand'].sudo().get_brand_icon_binary()
+        if logo_bytes:
+            img = self._add_logo_to_qr_code(img, logo_bytes)
     
         # Save QR code image
         buffer = io.BytesIO()
@@ -3149,11 +3158,12 @@ If you'd like to save my info again later, here's my card: {vcard_url}
         image_data = base64.b64encode(buffer.getvalue())
         self.qr_code = image_data
 
-    def _add_logo_to_qr_code(self, img):
+    def _add_logo_to_qr_code(self, img, logo_bytes=None):
         """Overlay the provided logo on the QR code."""
         try:
-            logo_data = base64.b64decode(self.qr_logo)
-            logo = Image.open(io.BytesIO(logo_data))
+            if logo_bytes is None:
+                logo_bytes = base64.b64decode(self.qr_logo)
+            logo = Image.open(io.BytesIO(logo_bytes))
             
             # Convert logo to RGBA if it's not already
             if logo.mode != 'RGBA':

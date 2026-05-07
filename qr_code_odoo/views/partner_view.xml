@@ -50,7 +50,7 @@
                     <!-- NFC Setup Guide button -->
                     <button name="action_open_nfc_guide" type="object" class="oe_stat_button" icon="fa-mobile" string="NFC Setup Guide"/>
                     <!-- Vinculum User Guide button -->
-                    <button name="action_open_vinculum_guide" type="object" class="oe_stat_button" icon="fa-question-circle" string="How to Use Vinc"/>
+                    <button name="action_open_vinculum_guide" type="object" class="oe_stat_button" icon="fa-question-circle" string="User Guide"/>
                 </header>
                 <sheet>
                     <field name="is_launch_plan" invisible="1"/>

@@ -580,6 +580,11 @@ class NFCOnboardingController(http.Controller):
             has_vcard = bool(VC.search_count(domain))
         ctx['guide_user_has_vcard'] = has_vcard
         ctx['guide_user_signed_in'] = bool(request.session.uid)
+        Brand = request.env['qr_code_odoo.brand'].sudo()
+        ctx['brand_name'] = Brand.get_brand_name()
+        ctx['brand_short_name'] = Brand.get_brand_short_name()
+        ctx['brand_icon_url'] = Brand.get_brand_icon_url()
+        ctx['brand_wordmark_url'] = Brand.get_brand_wordmark_url()
         return ctx
 
     @http.route('/vinculum/guide', type='http', auth='public', website=True)

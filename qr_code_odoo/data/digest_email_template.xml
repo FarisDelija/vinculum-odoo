@@ -3,6 +3,9 @@
     <!-- Digest Email Template -->
     <record id="email_template_digest" model="mail.template">
         <field name="name">Vinc — Digest Email</field>
+        <!-- Note: template name above is internal/admin-facing only. -->
+        <!-- Body uses ir.config_parameter 'qr_code_odoo.brand_name' so end-user copy rebrands at runtime. -->
+
         <field name="model_id" ref="model_partner_vcard"/>
         <field name="subject">${'Today' if object.digest_frequency == 'daily' else ('This Week' if object.digest_frequency == 'weekly' else 'This Month')}'s Digest - ${object.name or 'Your vCard'}</field>
         <field name="email_from">${(object.email_formatted or user.email_formatted)}</field>
@@ -93,7 +96,7 @@
 
                 <!-- Footer -->
                 <div style="text-align: center; padding: 20px 0; border-top: 1px solid #e0e0e0; color: #999; font-size: 12px;">
-                    <p style="margin: 0;">This is an automated digest email from Vinc.</p>
+                    <p style="margin: 0;">This is an automated digest email from ${object.env['ir.config_parameter'].sudo().get_param('qr_code_odoo.brand_name', 'Vinc')}.</p>
                     <p style="margin: 5px 0 0 0;">You can change your digest preferences in your vCard settings.</p>
                 </div>
             </div>

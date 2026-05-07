@@ -7,3 +7,4 @@ from . import res_users
 from . import leadback_preview
 from . import user_dashboard
 from . import bulk_onboarding
+from . import brand_config
