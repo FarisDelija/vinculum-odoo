@@ -282,10 +282,28 @@ class BulkOnboardingController(http.Controller):
                 if missing_columns:
                     return json.dumps({'error': f'Missing required columns: {", ".join(missing_columns)}'})
 
+            # Per-row check: which emails belong to existing Odoo users?
+            # Bulk onboarding now requires the rep to already be a user, so
+            # admins need to see this BEFORE submit, not in the error log.
+            row_emails = [
+                str(r.get('email', '')).strip().lower()
+                for r in rows
+                if r.get('email')
+            ]
+            matched_logins = set()
+            if row_emails:
+                Users = request.env['res.users'].sudo()
+                matched = Users.search([('login', 'in', row_emails)])
+                matched_logins = {u.login.lower() for u in matched}
+            unmatched = sorted({e for e in row_emails if e and e not in matched_logins})
+
             return json.dumps({
                 'success': True,
                 'rows': rows[:10],  # Return first 10 rows for preview
-                'total_rows': len(rows)
+                'total_rows': len(rows),
+                'matched_count': len(row_emails) - len(unmatched),
+                'unmatched_count': len(unmatched),
+                'unmatched_emails': unmatched[:20],  # cap to avoid bloating response
             })
             
         except Exception as e:

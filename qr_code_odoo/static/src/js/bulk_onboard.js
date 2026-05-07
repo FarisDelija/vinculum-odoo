@@ -203,6 +203,21 @@
                 // The upload endpoint only returns the first 10 rows as preview.
                 // We re-parse the file client-side to capture everything.
                 parseFileClientSide(file, data.total_rows);
+                // Show a banner if any rows reference emails that don't exist
+                // as Odoo users — those rows will be skipped at submit time.
+                if (data.unmatched_count > 0) {
+                    const list = (data.unmatched_emails || []).join(", ");
+                    const more = data.unmatched_count > (data.unmatched_emails || []).length
+                        ? " (+" + (data.unmatched_count - data.unmatched_emails.length) + " more)"
+                        : "";
+                    showUploadStatus(
+                        data.matched_count + " of " + (data.matched_count + data.unmatched_count) +
+                        " emails match existing Odoo users. " +
+                        data.unmatched_count + " will be skipped: " + list + more +
+                        ". Add these users under Settings → Users & Companies → Users to include them.",
+                        "warning"
+                    );
+                }
             }).catch(function (err) {
                 showUploadStatus("Upload failed: " + err.message, "error");
                 setDropzoneState("empty");

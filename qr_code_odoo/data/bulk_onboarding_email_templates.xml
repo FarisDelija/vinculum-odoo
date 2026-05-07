@@ -4,61 +4,48 @@
     <record id="bulk_onboarding_invitation_email" model="mail.template">
         <field name="name">Vinc — Bulk Onboarding Invitation</field>
         <field name="model_id" ref="base.model_res_users"/>
-        <field name="subject">Welcome to ${ctx.get('company_name', 'Your Company')} - Complete Your ${object.env['ir.config_parameter'].sudo().get_param('qr_code_odoo.brand_name', 'Vinc')} Card</field>
+        <field name="subject">Your ${object.env['ir.config_parameter'].sudo().get_param('qr_code_odoo.brand_name', 'Vinc')} card is ready at ${ctx.get('company_name', 'Your Company')}</field>
         <field name="email_from">${user.email or 'noreply@localhost'}</field>
         <field name="email_to">${object.login}</field>
         <field name="body_html" type="html">
-            <t t-set="magic_link" t-value="ctx.get('magic_link', '/bulk-onboard/activate')"/>
+            <t t-set="card_link" t-value="ctx.get('card_link', '/web')"/>
             <t t-set="current_year" t-value="ctx.get('current_year', '2025')"/>
             <t t-set="user_name" t-value="object.name or 'User'"/>
             <t t-set="company_name" t-value="ctx.get('company_name', 'your company')"/>
             <t t-set="brand_name" t-value="object.env['ir.config_parameter'].sudo().get_param('qr_code_odoo.brand_name', 'Vinc')"/>
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background: #4C75A3; padding: 30px; text-align: center; color: white;">
-                    <h1 style="margin: 0; font-size: 28px; color: white;">Welcome to <t t-out="brand_name"/>!</h1>
+                    <h1 style="margin: 0; font-size: 28px; color: white;">Your <t t-out="brand_name"/> card is ready</h1>
                 </div>
-                
+
                 <div style="padding: 30px; background: #f9f9f9;">
                     <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
                         Hi <t t-out="user_name"/>,
                     </p>
-                    
+
                     <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
-                        You've been invited to join <strong><t t-out="company_name"/></strong> on <t t-out="brand_name"/>!
+                        Your <t t-out="brand_name"/> digital business card has been set up under <strong><t t-out="company_name"/></strong>. Sign in with your usual Odoo credentials and finish customizing it whenever you're ready.
                     </p>
-                    
-                    <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
-                        <t t-out="brand_name"/> helps you create a professional digital business card that you can share with a simple QR code scan. Perfect for networking at events, meetings, and more.
-                    </p>
-                    
-                    <p style="font-size: 14px; color: #666; margin-bottom: 20px; padding: 15px; background: #f0f7ff; border-left: 4px solid #4C75A3; border-radius: 4px;">
-                        <strong>📧 Your Login:</strong> <t t-out="object.login"/><br/>
-                        <strong>🔐 Password:</strong> You'll set your password when you click the activation link below (no password needed to activate).
-                    </p>
-                    
+
                     <div style="text-align: center; margin: 30px 0;">
-                        <a t-att-href="magic_link" 
+                        <a t-att-href="card_link"
                            style="background: #4C75A3; color: white; padding: 15px 30px; text-decoration: none; border-radius: 12px; display: inline-block; font-size: 16px; font-weight: 700; box-shadow: 0 4px 12px rgba(76, 117, 163, 0.3);">
-                            Activate Your Account &amp; Set Password
+                            View your card →
                         </a>
                     </div>
-                    
-                    <p style="font-size: 14px; color: #666; margin-top: 30px;">
-                        <strong>This link expires in 7 days.</strong> When you click it, you'll be asked to create a password for your account.
-                    </p>
-                    
+
                     <p style="font-size: 14px; color: #666;">
-                        Once activated, you'll be able to:
+                        Once you're in, you can:
                     </p>
                     <ul style="font-size: 14px; color: #666;">
-                        <li>Create your digital business card</li>
-                        <li>Generate a QR code to share your contact info</li>
+                        <li>Edit your photo, contact info, and social links</li>
+                        <li>Generate the QR code to share your card</li>
                         <li>Collect leads automatically when people visit your <t t-out="brand_name"/> Card</li>
                         <li>Track who views your card and when</li>
                     </ul>
-                    
+
                     <p style="font-size: 14px; color: #666; margin-top: 30px;">
-                        If you have any questions, please contact your administrator or reach out to support.
+                        If the link asks you to log in and you've forgotten your password, use the standard Odoo password-reset flow on the login page.
                     </p>
                 </div>
                 

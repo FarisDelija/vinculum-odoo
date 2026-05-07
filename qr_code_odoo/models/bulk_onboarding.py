@@ -361,69 +361,49 @@ class BulkOnboardingBatch(models.Model):
                 existing_user = processed_reps[0].user_id
                 _logger.warning(f"User {email} is being created again in the same batch. Found in rep {processed_reps[0].id}")
         
-        if existing_user:
-            # User already exists - check if they're already linked to a rep
-            existing_rep = self.env['bulk.onboarding.rep'].sudo().search([
-                ('user_id', '=', existing_user.id),
-                ('batch_id', '=', self.id)
-            ], limit=1)
-            
-            if existing_rep:
-                # User is already linked to another rep in this batch - skip
-                _logger.warning(f"User {email} is already linked to rep {existing_rep.id} in this batch. Skipping.")
-                raise ValidationError(f"User {email} is already being processed in this batch.")
-            
-            # User exists but isn't linked to this rep - use existing user
-            _logger.info(f"User {email} already exists. Linking to rep record instead of creating new user.")
-            user = existing_user
-        else:
-            # Create new user account (inactive until magic link is used)
-            common_data = self.get_common_data()
-            user_vals = {
-                'name': rep_data.get('name', '').strip() or email.split('@')[0],
-                'login': email,
-                'active': False,  # Inactive until activated via magic link
-                'groups_id': [(6, 0, self._get_default_groups())],
-            }
-            
-            user = self.env['res.users'].sudo().create(user_vals)
-        
-        # Link user to rep record
-        rep_record.user_id = user.id
-        
-        # Check if user already has a vCard (search by email)
-        existing_vcard = self.env['partner.vcard'].sudo().search([
-            ('email', '=ilike', email)
+        # Bulk onboarding now *requires* the email to belong to an existing
+        # Odoo user. Vinc is an app on top of Odoo — users come from the
+        # standard Settings → Users flow. If the email isn't found, we fail
+        # this row so the admin can either add the user to Odoo first or
+        # remove the row from the CSV. Other rows in the batch keep going
+        # via the existing per-row error handling.
+        if not existing_user:
+            raise ValidationError(
+                f"No Odoo user found for {email}. Add this person under "
+                f"Settings → Users & Companies → Users first, then re-run "
+                f"the bulk upload."
+            )
+
+        # Defend against duplicate rep records for the same user in one batch.
+        existing_rep = self.env['bulk.onboarding.rep'].sudo().search([
+            ('user_id', '=', existing_user.id),
+            ('batch_id', '=', self.id),
+            ('id', '!=', rep_record.id),
         ], limit=1)
-        
-        if existing_vcard:
-            # User already has a vCard - link it to this rep
-            _logger.info(f"User {email} already has vCard {existing_vcard.id}. Linking to rep record.")
-            rep_record.vcard_id = existing_vcard.id
-        else:
-            # Create new vCard with pre-populated data
-            vcard_vals = self._prepare_vcard_vals(common_data, rep_data, user)
-            vcard = self.env['partner.vcard'].sudo().with_context(skip_vcard_limit_check=True).create(vcard_vals)
-            
-            # Ensure banner attachment is created if banner_image was set (including default)
-            if vcard_vals.get('banner_image'):
-                vcard.sudo()._update_banner_attachment_if_image_changed()
-                self.env.cr.flush()
-            
-            rep_record.vcard_id = vcard.id
-        
-        # Generate magic link token and link it to the user (only if user is inactive or needs activation)
-        if not user.active or not rep_record.magic_link_token:
-            token = self._generate_magic_link_token(email, user.id)
-            rep_record.magic_link_token = token
-            rep_record.token_expires_at = datetime.now() + timedelta(days=7)
-            
-            # Send invitation email with magic link (only if user is inactive)
-            if not user.active:
-                self._send_invitation_email(user, rep_data, token, common_data)
-        else:
-            # User is already active - no need to send invitation
-            _logger.info(f"User {email} is already active. Skipping invitation email.")
+        if existing_rep:
+            raise ValidationError(
+                f"User {email} appears more than once in this batch."
+            )
+
+        user = existing_user
+        rep_record.user_id = user.id
+
+        # Always create a new vCard, even if the user already has one. Per
+        # product decision: bulk uploads can legitimately seed a second card
+        # (different role, different show, different audience).
+        common_data = self.get_common_data()
+        vcard_vals = self._prepare_vcard_vals(common_data, rep_data, user)
+        vcard = self.env['partner.vcard'].sudo().with_context(skip_vcard_limit_check=True).create(vcard_vals)
+
+        if vcard_vals.get('banner_image'):
+            vcard.sudo()._update_banner_attachment_if_image_changed()
+            self.env.cr.flush()
+
+        rep_record.vcard_id = vcard.id
+
+        # No magic-link token needed: the user already has a working Odoo
+        # login. The invitation email links straight to the new vCard form.
+        self._send_invitation_email(user, rep_data, None, common_data, vcard=vcard)
         
         return user
     
@@ -632,56 +612,38 @@ class BulkOnboardingBatch(models.Model):
         
         return vals
     
-    def _send_invitation_email(self, user, rep_data, token, common_data):
-        """Send invitation email with magic link"""
+    def _send_invitation_email(self, user, rep_data, token, common_data, vcard=None):
+        """Notify the rep that their card is ready.
+
+        Existing-user-only flow: the rep already has an Odoo login, so the
+        email is just a "your card is ready, click to view" notification.
+        The deep link routes through Odoo's standard auth — if they're not
+        logged in, /web/login takes them there and back.
+
+        `token` is kept in the signature for backward compatibility with
+        action_resend_invitation but is unused in the new flow.
+        """
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url', 'http://localhost:8069')
-        magic_link = f"{base_url}/bulk-onboard/activate?token={token}"
-        
-        company_name = common_data.get('company_name', '') or 'Your Company'
-        rep_name = rep_data.get('name', '').strip() or user.name
-        
-        # Use mail template if available, otherwise send basic email
-        template = self.env.ref('qr_code_odoo.bulk_onboarding_invitation_email', raise_if_not_found=False)
-        
-        if template:
-            # Preload related fields to ensure they're available in the template
-            user_record = self.env['res.users'].sudo().browse(user.id)
-            # Access fields to trigger lazy loading
-            _ = user_record.name if user_record else None
-            _ = user_record.login if user_record else None
-            
-            # Use send_mail with email_values to override subject
-            template.sudo().with_context(
-                magic_link=magic_link, 
-                current_year=datetime.now().year,
-                company_name=company_name
-            ).send_mail(user.id, force_send=True, email_values={
-                'subject': f"Welcome to {company_name} - Complete Your Vinc Card",
-            })
+        if vcard is None:
+            # Resend path — look up the card linked to this rep.
+            rep = self.env['bulk.onboarding.rep'].sudo().search(
+                [('user_id', '=', user.id), ('batch_id', '=', self.id)], limit=1
+            )
+            vcard = rep.vcard_id if rep else self.env['partner.vcard']
+        if vcard:
+            card_link = f"{base_url}/web#id={vcard.id}&model=partner.vcard&view_type=form"
         else:
-            # Fallback: send basic email
-            mail_values = {
-                'subject': f'Welcome to {company_name} - Complete Your Card',
-                'body_html': f"""
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; color: white;">
-                        <h1 style="margin: 0; font-size: 28px;">Welcome to Vinc!</h1>
-                    </div>
-                    <div style="padding: 30px; background: #f9f9f9;">
-                        <p style="font-size: 16px; color: #333;">Hi {rep_name},</p>
-                        <p style="font-size: 16px; color: #333;">You've been invited to join <strong>{company_name}</strong> on Vinc!</p>
-                        <p style="font-size: 16px; color: #333;">Click the link below to activate your account and complete your digital business card:</p>
-                        <div style="text-align: center; margin: 30px 0;">
-                            <a href="{magic_link}" style="background-color: #4C75A3; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-size: 16px; font-weight: bold;">Activate Account</a>
-                        </div>
-                        <p style="font-size: 14px; color: #666;"><strong>This link expires in 7 days.</strong></p>
-                    </div>
-                </div>
-                """,
-                'email_to': user.login,
-                'email_from': self.env['partner.vcard']._get_notification_email(user=self.env.user),
-            }
-            self.env['mail.mail'].sudo().create(mail_values).send()
+            card_link = f"{base_url}/web"
+
+        company_name = common_data.get('company_name', '') or 'Your Company'
+
+        template = self.env.ref('qr_code_odoo.bulk_onboarding_invitation_email', raise_if_not_found=False)
+        if template:
+            template.sudo().with_context(
+                card_link=card_link,
+                current_year=datetime.now().year,
+                company_name=company_name,
+            ).send_mail(user.id, force_send=True)
     
     def _send_completion_email(self):
         """Send completion summary email to admin"""
