@@ -851,6 +851,14 @@ class PartnerVCard(models.Model):
     crm_opportunity_ids = fields.One2many('crm.lead', 'partner_vcard_id', string='Opportunities', domain=[('type', '=', 'opportunity')])
     show_form = fields.Boolean(string="Show the lead collection form")
     lead_tag_ids = fields.Many2many('crm.tag', string='Lead Tags')
+    active_event_id = fields.Many2one(
+        'event.event',
+        string='Active Event',
+        domain="[('date_end', '>=', context_today())]",
+        help="Stamp every lead captured by this card with this event. "
+             "Use it for trade shows, conferences, or open houses. "
+             "Clear it when the show ends.",
+    )
     lead_button_label = fields.Char(string="Lead Button Label", default="Leave Your Info", help="Label for the lead form button")
     form_thank_you_message = fields.Char(
         string="Form Thank You Message",
@@ -1034,7 +1042,7 @@ class PartnerVCard(models.Model):
     digest_enabled = fields.Boolean(
         string="Enable Digest Emails",
         default=True,
-        help="Receive weekly digest emails with your Vinc Card statistics"
+        help="Receive weekly digest emails with your card statistics"
     )
     digest_frequency = fields.Selection(
         [
@@ -3198,6 +3206,37 @@ If you'd like to save my info again later, here's my card: {vcard_url}
         if not self.lead_tag_ids:
             return ''
         return ','.join(str(tag_id) for tag_id in self.lead_tag_ids.ids)
+
+    def _stamp_event_on_lead(self, lead_vals, contact_name, email, phone):
+        """If this card has an active_event_id, mutate lead_vals to attribute
+        the lead to that event and create a matching event.registration so the
+        prospect appears in the event's attendee list.
+
+        Returns the registration recordset (empty if no active event), so the
+        caller can link it via lead.registration_ids after lead.create().
+        """
+        self.ensure_one()
+        if not self.active_event_id:
+            return self.env['event.registration']
+        lead_vals['event_id'] = self.active_event_id.id
+        Registration = self.env['event.registration'].sudo()
+        # Dedupe: if this email is already registered for this event (e.g. they
+        # scanned a different rep's card earlier today), reuse the existing
+        # attendee record instead of creating a duplicate.
+        if email:
+            existing = Registration.search(
+                [('event_id', '=', self.active_event_id.id),
+                 ('email', '=', email)],
+                limit=1,
+            )
+            if existing:
+                return existing
+        return Registration.with_context(event_lead_rule_skip=True).create({
+            'event_id': self.active_event_id.id,
+            'name': contact_name or email or 'Anonymous',
+            'email': email or False,
+            'phone': phone or False,
+        })
     
     def _get_google_maps_url(self):
         """Build Google Maps URL for the address"""

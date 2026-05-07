@@ -143,9 +143,16 @@
                                 
 
     <!-- Lead Tags Field (conditionally displayed) -->
-    <field name="lead_tag_ids" widget="many2many_tags" string="Tags" 
+    <field name="lead_tag_ids" widget="many2many_tags" string="Tags"
            invisible="show_form != True"
            readonly="is_launch_plan"/>
+
+    <!-- Active Event: stamps every captured lead with this event (trade shows etc.) -->
+    <field name="active_event_id" string="Active Event"
+           options="{'no_create': True, 'no_open': True}"
+           invisible="show_form != True"
+           readonly="is_launch_plan"
+           help="Pick an event to attribute every lead captured today to it. Leads land in CRM tagged with the event, and the prospect appears on the event's attendee list. Clear when the event ends."/>
     
     <!-- Mailing List Field (conditionally displayed) -->
     <field name="mailing_list_id" string="Email Marketing List" 

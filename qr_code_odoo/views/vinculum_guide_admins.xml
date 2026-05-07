@@ -23,7 +23,7 @@
             <div class="vg-content">
 
                 <div class="vg-callout" style="background: #EEF2FF; border-left: 3px solid #2D5BFF; padding: 14px 18px; border-radius: 8px; margin-bottom: 28px;">
-                    <strong>Who can run this:</strong> the <code>/bulk-onboard</code> flow is locked to users with the <em>Vinc Manager</em> role (or Odoo system admins, who inherit it). Grant it from <em>Settings → Users &amp; Companies → Users → Access Rights → Vinc</em>. Regular internal users have no access to the bulk-onboarding models via RPC or UI.
+                    <strong>Who can run this:</strong> the <code>/bulk-onboard</code> flow is locked to users with the <em><t t-out="brand_name"/> Manager</em> role (or Odoo system admins, who inherit it). Grant it from <em>Settings → Users &amp; Companies → Users → Access Rights → <t t-out="brand_name"/></em>. Regular internal users have no access to the bulk-onboarding models via RPC or UI.
                 </div>
 
                 <h2><span class="vg-h2-num">01</span>The CSV format</h2>
@@ -35,16 +35,16 @@
                     <li><strong>Social:</strong> <code>linkedin_url</code>, <code>facebook_url</code>, <code>twitter_url</code>, <code>instagram_url</code>, <code>whatsapp_url</code>, <code>youtube_url</code>, <code>calendly_url</code></li>
                     <li><strong>URL:</strong> <code>website_slug</code> (auto-generated from name if omitted)</li>
                 </ul>
-                <p>Unknown columns are ignored, so it's safe to upload a richer HR export and let Vinc pick what it needs.</p>
+                <p>Unknown columns are ignored, so it's safe to upload a richer HR export and let <t t-out="brand_name"/> pick what it needs.</p>
                 <p><a href="/bulk-onboard/template">📥 Download the starter CSV</a> — pre-populated with five example rows, headers, and per-column hints in the first row.</p>
 
                 <h2><span class="vg-h2-num">02</span>The upload flow</h2>
                 <p>From the user dashboard, click <em class="vg-mark">Bulk Onboarding</em> (admin-only button). You'll land on the wizard at <code>/bulk-onboard</code>:</p>
                 <ol>
-                    <li><strong>Upload CSV</strong> — drag-and-drop or pick a file. Vinc parses and previews the first 5 rows.</li>
+                    <li><strong>Upload CSV</strong> — drag-and-drop or pick a file. <t t-out="brand_name"/> parses and previews the first 5 rows.</li>
                     <li><strong>Review &amp; map</strong> — confirm column mappings; fix typos in row data inline.</li>
                     <li><strong>Set defaults</strong> — pick a template, primary/secondary colors, and lead-form behavior to apply to every card. Per-row overrides win.</li>
-                    <li><strong>Submit</strong> — Vinc creates the cards in a single transaction and (if enabled) sends activation emails.</li>
+                    <li><strong>Submit</strong> — <t t-out="brand_name"/> creates the cards in a single transaction and (if enabled) sends activation emails.</li>
                 </ol>
 
                 <h2><span class="vg-h2-num">03</span>Activation emails</h2>
@@ -57,7 +57,7 @@
                 <p>The submit step validates the entire CSV before writing anything. If a row fails, you get a per-row reason and the upload doesn't half-commit.</p>
                 <ul>
                     <li><strong>Duplicate slug</strong> — two rows resolved to the same <code>website_slug</code>. Fix one or supply explicit slugs.</li>
-                    <li><strong>Duplicate email within the upload</strong> — Vinc dedupes within the file before insert.</li>
+                    <li><strong>Duplicate email within the upload</strong> — <t t-out="brand_name"/> dedupes within the file before insert.</li>
                     <li><strong>Email already belongs to an existing user</strong> — the row is flagged so you can decide whether to reassign or skip.</li>
                     <li><strong>Slug collision with an existing card</strong> — pre-existing card has the same slug. Reassign.</li>
                     <li><strong>Invalid email</strong> — failed format validation. Fix or remove.</li>
@@ -83,41 +83,41 @@
             </div>
             <div class="vg-page-header">
                 <h1 class="vg-display">From card scan to <em>pipeline-ready</em> opportunity.</h1>
-                <p class="vg-summary">How Vinc-captured leads land in Odoo CRM, who picks them up, and where you tune the rules.</p>
+                <p class="vg-summary">How <t t-out="brand_name"/>-captured leads land in Odoo CRM, who picks them up, and where you tune the rules.</p>
             </div>
             <div class="vg-content">
 
                 <h2><span class="vg-h2-num">01</span>How vCard leads map to <code>crm.lead</code></h2>
-                <p>When a visitor submits the lead form on a card, Vinc creates one <code>crm.lead</code> record (Odoo CRM's opportunity model). The mapping:</p>
+                <p>When a visitor submits the lead form on a card, <t t-out="brand_name"/> creates one <code>crm.lead</code> record (Odoo CRM's opportunity model). The mapping:</p>
                 <ul>
                     <li><strong><code>name</code></strong> — derived from the cardholder + visitor (e.g., "Lead from Jane's card — John Smith")</li>
                     <li><strong><code>contact_name</code>, <code>email_from</code>, <code>phone</code></strong> — straight from the form</li>
-                    <li><strong><code>partner_vcard_id</code></strong> — Vinc-specific: links back to the card that captured the lead</li>
+                    <li><strong><code>partner_vcard_id</code></strong> — <t t-out="brand_name"/>-specific: links back to the card that captured the lead</li>
                     <li><strong><code>tag_ids</code></strong> — the lead tags configured on the card at capture time</li>
                     <li><strong><code>type</code></strong> = <code>opportunity</code></li>
                     <li><strong><code>description</code></strong> — the visitor's notes, if your form's notes field is enabled</li>
                 </ul>
 
                 <h2><span class="vg-h2-num">02</span>Lead routing rules</h2>
-                <p>Vinc auto-assigns each new opportunity to the card's owner. The resolution order is:</p>
+                <p><t t-out="brand_name"/> auto-assigns each new opportunity to the card's owner. The resolution order is:</p>
                 <ol>
                     <li>Look up a <code>res.users</code> whose login matches the card's <code>email</code>. If found, that user becomes <code>user_id</code>.</li>
                     <li>Otherwise fall back to the user who created the card record (<code>partner.create_uid</code>), unless that's a system / public user (id ≤ 4).</li>
                     <li>If neither resolves, the opportunity is left unassigned and Odoo's standard team rules take over.</li>
                 </ol>
-                <p>For more sophisticated patterns — round-robin across a sales team, geo-based routing, account-based routing — layer Odoo's standard CRM lead-assignment rules on top. They run after Vinc's <code>user_id</code> assignment, so configure them to either trust Vinc's pick or override it explicitly.</p>
+                <p>For more sophisticated patterns — round-robin across a sales team, geo-based routing, account-based routing — layer Odoo's standard CRM lead-assignment rules on top. They run after <t t-out="brand_name"/>'s <code>user_id</code> assignment, so configure them to either trust <t t-out="brand_name"/>'s pick or override it explicitly.</p>
                 <div class="vg-note">
-                    To opt out of Vinc's auto-assign and rely entirely on Odoo's team-based rules, leave the cardholder's email distinct from any Odoo user login. The fallback to <code>create_uid</code> is skipped for system users, so cards created via the public <code>/get-started</code> route by anonymous visitors don't accidentally get assigned to OdooBot.
+                    To opt out of <t t-out="brand_name"/>'s auto-assign and rely entirely on Odoo's team-based rules, leave the cardholder's email distinct from any Odoo user login. The fallback to <code>create_uid</code> is skipped for system users, so cards created via the public <code>/get-started</code> route by anonymous visitors don't accidentally get assigned to OdooBot.
                 </div>
 
                 <h2><span class="vg-h2-num">03</span>Pipeline integration</h2>
-                <p>Vinc-captured leads behave like any other CRM opportunity. They show up in:</p>
+                <p><t t-out="brand_name"/>-captured leads behave like any other CRM opportunity. They show up in:</p>
                 <ul>
-                    <li>The standard pipeline kanban (filterable by Vinc tag)</li>
+                    <li>The standard pipeline kanban (filterable by <t t-out="brand_name"/> tag)</li>
                     <li>List, calendar, and graph views</li>
-                    <li>The user dashboard's "Recent Leads" widget (Vinc-only filter)</li>
+                    <li>The user dashboard's "Recent Leads" widget (<t t-out="brand_name"/>-only filter)</li>
                 </ul>
-                <p>The "Vinc-only filter" is a saved search on <code>partner_vcard_id ≠ False</code> — useful for measuring how Vinc compares to your other lead sources.</p>
+                <p>The "<t t-out="brand_name"/>-only filter" is a saved search on <code>partner_vcard_id ≠ False</code> — useful for measuring how <t t-out="brand_name"/> compares to your other lead sources.</p>
 
                 <h2><span class="vg-h2-num">04</span>Lead tags as your reporting backbone</h2>
                 <p>Lead tags applied at capture time are the single most useful piece of structured data for downstream reporting. Treat them as the spec for your weekly review:</p>
@@ -165,11 +165,11 @@
                 <h2><span class="vg-h2-num">03</span>Direct-write vs URL-write</h2>
                 <p>NFC Tools offers two modes; URL-write is what you want.</p>
                 <ul>
-                    <li><strong>URL-write (recommended):</strong> the card stores your Vinc URL. When tapped, the phone opens the URL. Updates are instant — change the page server-side, every card already in the wild reflects the change on the next tap.</li>
+                    <li><strong>URL-write (recommended):</strong> the card stores your <t t-out="brand_name"/> URL. When tapped, the phone opens the URL. Updates are instant — change the page server-side, every card already in the wild reflects the change on the next tap.</li>
                     <li><strong>Direct-write (avoid):</strong> the card stores the contact data directly as a vCard payload. The phone shows "Save contact?" without opening a page. Sounds smooth, but: no analytics, no lead form, no updates after the card is printed. You're stuck.</li>
                 </ul>
                 <div class="vg-note">
-                    The whole point of Vinc is the live page behind the URL. Direct-write throws that away.
+                    The whole point of <t t-out="brand_name"/> is the live page behind the URL. Direct-write throws that away.
                 </div>
 
                 <h2><span class="vg-h2-num">04</span>Testing</h2>
@@ -203,14 +203,14 @@
             <div class="vg-content">
 
                 <h2><span class="vg-h2-num">01</span>Intro emails</h2>
-                <p>When a lead is captured on a card with intro emails enabled, Vinc fires a one-shot intro email <strong>synchronously, immediately</strong> after the opportunity is created. No cron, no delay. The template uses Odoo's standard mail-template system, with placeholders for the lead's name, the cardholder's name, phone, email, and the card URL.</p>
+                <p>When a lead is captured on a card with intro emails enabled, <t t-out="brand_name"/> fires a one-shot intro email <strong>synchronously, immediately</strong> after the opportunity is created. No cron, no delay. The template uses Odoo's standard mail-template system, with placeholders for the lead's name, the cardholder's name, phone, email, and the card URL.</p>
                 <p>Intro emails are <em class="vg-mark">opt-in per card</em> (toggle <em>Intro email enabled</em> on the card's form view). When off, leads still land in CRM but no automated reply goes out.</p>
                 <div class="vg-note">
                     Because intro emails fire inline with the lead-capture request, your outgoing mail server's responsiveness affects the lead form's response time. If your SMTP host is slow, lead submissions feel slow. Use a transactional sender (Postmark, Mailgun, AWS SES) for sub-second send times.
                 </div>
 
                 <h2><span class="vg-h2-num">02</span>Leadback — the multi-channel follow-up</h2>
-                <p>Leadback is Vinc's spec for "what happens after the form submission." Two independent tracks per card:</p>
+                <p>Leadback is <t t-out="brand_name"/>'s spec for "what happens after the form submission." Two independent tracks per card:</p>
                 <ul>
                     <li><strong>Email track</strong> (toggle <em>Send email</em>). One automated email back to the lead. Delay preset: <em>immediate</em>, <em>1 min</em>, <em>5 min</em>, <em>15 min</em>, <em>1 hour</em>, or <em>custom</em> (any number of minutes / hours / days). Default: immediate.</li>
                     <li><strong>Messaging track</strong> (toggle <em>Enable messaging</em>). Generates a tap-to-message link in one or more of three channels: <strong>WhatsApp</strong>, <strong>Viber</strong>, <strong>Telegram</strong>. Same delay presets as the email track. Default template: friendly &amp; short, with placeholders for <code>{contact_name}</code>, <code>{vcard_url}</code>, <code>{booking_url}</code>, and conditional <code>{if field}…{/if}</code> blocks.</li>
@@ -222,7 +222,7 @@
                 <p>For administrators, the org-level digest aggregates across all cards your account manages, with leaderboards by lead count and review count. Useful for sales-team standups.</p>
 
                 <h2><span class="vg-h2-num">04</span>Editing templates</h2>
-                <p>All the Vinc templates live in Odoo's standard <em class="vg-mark">Settings → Technical → Email Templates</em>, prefixed with <code>Vinc —</code> so they cluster alphabetically. Search for <code>Vinc —</code> in the list and you'll see:</p>
+                <p>All the addon's mail templates live in Odoo's standard <em class="vg-mark">Settings → Technical → Email Templates</em>, prefixed with <code>Vinc —</code> so they cluster alphabetically. Search for <code>Vinc —</code> in the list and you'll see:</p>
                 <ul>
                     <li><strong>Vinc — Introduction Email (to new lead)</strong> — fires when a lead is captured and <em>intro email</em> is enabled on the card.</li>
                     <li><strong>Vinc — New Lead Notification (to card owner)</strong> — alerts the cardholder when someone submits their form.</li>
@@ -236,7 +236,7 @@
                 </div>
                 <figure class="vg-figure">
                     <img src="/qr_code_odoo/static/src/img/guide/email-templates-vinc.png"
-                         alt="The Settings → Technical → Email Templates list filtered to Vinc, showing all 5 Vinc-prefixed templates"
+                         alt="The Settings → Technical → Email Templates list filtered to the addon's prefix, showing all 5 templates"
                          loading="lazy"/>
                     <figcaption><strong>Fig. 4</strong>Settings → Technical → Email Templates, filtered to <code>Vinc</code>.</figcaption>
                 </figure>

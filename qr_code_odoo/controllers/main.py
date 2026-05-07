@@ -782,7 +782,12 @@ class LeadController(http.Controller):
             # Add all tracking data to opportunity
             opportunity_vals.update(tracking_data)
 
+            event_registration = partner.sudo()._stamp_event_on_lead(
+                opportunity_vals, contact_name, email_from, phone,
+            )
             opportunity = request.env['crm.lead'].sudo().create(opportunity_vals)
+            if event_registration:
+                opportunity.sudo().write({'registration_ids': [(4, event_registration.id)]})
 
             _logger.info(f"Opportunity created with tracking data: IP={tracking_data.get('submission_ip')}, Country={tracking_data.get('submission_country')}, UTM={tracking_data.get('submission_utm_source')}")
             _logger.info(f"Opportunity created with ID: {opportunity.id}")
@@ -1199,8 +1204,13 @@ class LeadController(http.Controller):
             # Add all tracking data to opportunity
             opportunity_vals.update(tracking_data)
 
+            event_registration = partner.sudo()._stamp_event_on_lead(
+                opportunity_vals, contact_name, email_from, phone,
+            )
             opportunity = request.env['crm.lead'].sudo().create(opportunity_vals)
-            
+            if event_registration:
+                opportunity.sudo().write({'registration_ids': [(4, event_registration.id)]})
+
             _logger.info(f"Service request opportunity created with tracking data: IP={tracking_data.get('submission_ip')}, Country={tracking_data.get('submission_country')}, UTM={tracking_data.get('submission_utm_source')}")
 
             _logger.info(f"Service request opportunity created with ID: {opportunity.id}")

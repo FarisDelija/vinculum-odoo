@@ -11,6 +11,15 @@
                     <attribute name="invisible">True</attribute>
                 </button>
                 
+                <!-- Surface the source event next to the lead title so it's
+                     immediately visible without opening a tab. -->
+                <xpath expr="//h1[field[@name='name']]" position="after">
+                    <div class="o_row" invisible="not event_id">
+                        <span class="badge text-bg-info me-2">Captured at:</span>
+                        <field name="event_id" readonly="1" nolabel="1"/>
+                    </div>
+                </xpath>
+
                 <!-- Add Submission Tracking Information Tab -->
                 <xpath expr="//notebook" position="inside">
                     <page string="Submission Tracking" name="submission_tracking" invisible="not submission_ip">
