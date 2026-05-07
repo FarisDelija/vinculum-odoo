@@ -3208,35 +3208,19 @@ If you'd like to save my info again later, here's my card: {vcard_url}
         return ','.join(str(tag_id) for tag_id in self.lead_tag_ids.ids)
 
     def _stamp_event_on_lead(self, lead_vals, contact_name, email, phone):
-        """If this card has an active_event_id, mutate lead_vals to attribute
-        the lead to that event and create a matching event.registration so the
-        prospect appears in the event's attendee list.
+        """If this card has an active_event_id, attribute the captured lead to
+        that event by setting event_id on the lead vals.
 
-        Returns the registration recordset (empty if no active event), so the
-        caller can link it via lead.registration_ids after lead.create().
+        We deliberately do NOT create an event.registration here: that would
+        fire Odoo's standard "thanks for registering" email plus any scheduled
+        event reminders to the prospect, which is wrong for a lead-capture
+        scan. The event_id on the lead is enough for "leads from this show"
+        reporting; an admin can manually add the prospect to the attendee
+        list later if they want.
         """
         self.ensure_one()
-        if not self.active_event_id:
-            return self.env['event.registration']
-        lead_vals['event_id'] = self.active_event_id.id
-        Registration = self.env['event.registration'].sudo()
-        # Dedupe: if this email is already registered for this event (e.g. they
-        # scanned a different rep's card earlier today), reuse the existing
-        # attendee record instead of creating a duplicate.
-        if email:
-            existing = Registration.search(
-                [('event_id', '=', self.active_event_id.id),
-                 ('email', '=', email)],
-                limit=1,
-            )
-            if existing:
-                return existing
-        return Registration.with_context(event_lead_rule_skip=True).create({
-            'event_id': self.active_event_id.id,
-            'name': contact_name or email or 'Anonymous',
-            'email': email or False,
-            'phone': phone or False,
-        })
+        if self.active_event_id:
+            lead_vals['event_id'] = self.active_event_id.id
     
     def _get_google_maps_url(self):
         """Build Google Maps URL for the address"""
