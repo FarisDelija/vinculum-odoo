@@ -21,8 +21,8 @@ This module is designed for companies that want Vinc-style digital cards and lea
 """,
     'author': 'Faris Delija',
     'license': 'OPL-1',
-    'price': 343,
-    'currency': 'EUR',
+    'price': 399,
+    'currency': 'USD',
     'support': 'support@getvinc.com',
     'images': ['static/description/Banner.png'],
     'depends': ['base', 'web', 'crm', 'website', 'utm', 'mass_mailing', 'event_crm'],
@@ -36,6 +36,7 @@ This module is designed for companies that want Vinc-style digital cards and lea
         'data/followup_scheduled_reminder_model.xml',
         'data/vcard_download_tracking_model.xml',
         'data/cron_actions.xml',
+        'data/license_cron.xml',
         'data/leadback_channels.xml',
         'data/digest_email_template.xml',
         'data/lead_notification_email_template.xml',
@@ -59,6 +60,9 @@ This module is designed for companies that want Vinc-style digital cards and lea
         'views/bulk_onboarding_templates.xml',
         'views/magic_link_templates.xml',
         'views/res_config_settings_views.xml',
+        'views/vinc_license_views.xml',
+        'views/license_required_template.xml',
+        'views/license_banner_views.xml',
     ],
     'assets': {
         'web.assets_frontend': [

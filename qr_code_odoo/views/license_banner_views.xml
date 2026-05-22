@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- License banner on the main vCard form -->
+    <record id="partner_vcard_form_license_banner" model="ir.ui.view">
+        <field name="name">partner.vcard.form.license.banner</field>
+        <field name="model">partner.vcard</field>
+        <field name="inherit_id" ref="partner_vcard_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/header" position="before">
+                <div class="alert alert-danger text-center mb-0" role="alert"
+                     invisible="vinc_license_ok or not id">
+                    <strong>Vinc is not licensed.</strong>
+                    All editing and public pages are disabled.
+                    Go to <em>Vinc &#x25B8; License</em> to activate your license key.
+                    <field name="vinc_license_ok" invisible="1"/>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- License banner on the vCard kanban/dashboard -->
+    <record id="partner_vcard_kanban_license_banner" model="ir.ui.view">
+        <field name="name">partner.vcard.kanban.license.banner</field>
+        <field name="model">partner.vcard</field>
+        <field name="inherit_id" ref="partner_vcard_kanban_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//kanban" position="inside">
+                <field name="vinc_license_ok"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

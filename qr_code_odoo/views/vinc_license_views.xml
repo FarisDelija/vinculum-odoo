@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- License settings form -->
+    <record id="vinc_license_form_view" model="ir.ui.view">
+        <field name="name">vinc.license.form</field>
+        <field name="model">vinc.license</field>
+        <field name="arch" type="xml">
+            <form string="Vinc License" create="false" delete="false" copy="false">
+                <div class="alert alert-warning text-center" role="alert"
+                     style="font-size: 15px; padding: 20px; margin-bottom: 0;"
+                     invisible="license_status in ('active', 'warning')">
+                    <strong style="font-size: 17px;">Vinc requires a license to operate.</strong><br/>
+                    <span invisible="license_status != 'not_activated'">
+                        Enter your license key below and click <strong>Activate License</strong> to get started.<br/>
+                        Don't have a key? Scroll down to request one by email.
+                    </span>
+                    <span invisible="license_status != 'failed'">
+                        Your previous activation attempt failed. Check the key and try again,<br/>
+                        or contact your reseller for assistance.
+                    </span>
+                    <span invisible="license_status != 'degraded'">
+                        License validation has failed for over 60 days. The module is in read-only mode.<br/>
+                        Click <strong>Re-validate Now</strong> or contact your reseller.
+                    </span>
+                    <span invisible="license_status != 'suspended'">
+                        This license has been <strong>suspended</strong> by the administrator.<br/>
+                        All module functionality is blocked. Contact your reseller or Vinc support.
+                    </span>
+                    <span invisible="license_status != 'revoked'">
+                        This license has been <strong>revoked</strong>.<br/>
+                        Click <strong>Change License Key</strong> to enter a new key, or contact your reseller.
+                    </span>
+                </div>
+                <header>
+                    <button name="action_activate" type="object" string="Activate License"
+                            class="btn-primary"
+                            invisible="license_status in ('active', 'warning', 'degraded', 'suspended', 'revoked')"/>
+                    <button name="action_activate" type="object" string="Re-validate Now"
+                            class="btn-secondary"
+                            invisible="license_status not in ('active', 'warning', 'degraded', 'suspended')"/>
+                    <button name="action_change_key" type="object" string="Change License Key"
+                            class="btn-warning"
+                            invisible="license_status not in ('active', 'warning', 'degraded', 'suspended', 'revoked')"
+                            confirm="This will deactivate your current license. You will need to enter and activate a new key. Continue?"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box"/>
+                    <widget name="web_ribbon" title="Warning" bg_color="text-bg-warning"
+                            invisible="license_status != 'warning'"/>
+                    <widget name="web_ribbon" title="Degraded" bg_color="text-bg-danger"
+                            invisible="license_status != 'degraded'"/>
+                    <widget name="web_ribbon" title="Suspended" bg_color="text-bg-danger"
+                            invisible="license_status != 'suspended'"/>
+                    <widget name="web_ribbon" title="Revoked" bg_color="text-bg-danger"
+                            invisible="license_status != 'revoked'"/>
+                    <widget name="web_ribbon" title="Active" bg_color="text-bg-success"
+                            invisible="license_status != 'active'"/>
+                    <group>
+                        <group string="License">
+                            <field name="license_key" password="True" invisible="license_status in ('active', 'warning', 'degraded', 'suspended', 'revoked')"/>
+                            <field name="key_hint" invisible="license_status == 'not_activated'"/>
+                            <field name="license_status"/>
+                            <field name="database_fingerprint" invisible="not database_fingerprint"/>
+                        </group>
+                        <group string="Validation">
+                            <field name="activated_at"/>
+                            <field name="last_validated_at"/>
+                            <field name="last_validation_attempt_at"/>
+                            <field name="consecutive_failures"/>
+                            <field name="module_version"/>
+                        </group>
+                    </group>
+                    <group string="Don't have a license key?" invisible="license_status != 'not_activated'">
+                        <div colspan="2" style="margin-bottom: 12px;">
+                            <p style="color: #475569; margin: 0 0 8px;">
+                                <strong>Bought from a Vinc reseller?</strong> Ask your reseller for your license key.
+                            </p>
+                            <p style="color: #475569; margin: 0;">
+                                <strong>Bought from the Odoo App Store?</strong> Enter your email below and we'll send you a key:
+                            </p>
+                        </div>
+                        <field name="request_email" placeholder="your@email.com"/>
+                        <button name="action_request_key" type="object" string="Send me a License Key"
+                                class="btn-secondary"/>
+                    </group>
+                    <group string="Server" invisible="license_status != 'not_activated'">
+                        <field name="server_url"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- License tree view -->
+    <record id="vinc_license_tree_view" model="ir.ui.view">
+        <field name="name">vinc.license.tree</field>
+        <field name="model">vinc.license</field>
+        <field name="arch" type="xml">
+            <tree string="Vinc License" create="false" delete="false">
+                <field name="key_hint"/>
+                <field name="license_status" decoration-success="license_status == 'active'"
+                       decoration-warning="license_status == 'warning'"
+                       decoration-danger="license_status in ('degraded', 'failed', 'suspended', 'revoked')" widget="badge"/>
+                <field name="last_validated_at"/>
+                <field name="module_version"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Menu action: always open the singleton license record -->
+    <record id="action_vinc_license_open" model="ir.actions.server">
+        <field name="name">Vinc License</field>
+        <field name="model_id" ref="model_vinc_license"/>
+        <field name="state">code</field>
+        <field name="code">
+record = model._get_license_record()
+action = {
+    'type': 'ir.actions.act_window',
+    'res_model': 'vinc.license',
+    'view_mode': 'form',
+    'res_id': record.id,
+    'target': 'inline',
+    'views': [(env.ref('qr_code_odoo.vinc_license_form_view').id, 'form')],
+}
+        </field>
+    </record>
+
+    <!-- License activation wizard action (called from setup) -->
+    <record id="action_vinc_license_activate" model="ir.actions.server">
+        <field name="name">Activate Vinc License</field>
+        <field name="model_id" ref="model_vinc_license"/>
+        <field name="state">code</field>
+        <field name="code">
+record = model._get_license_record()
+if not record.license_key:
+    action = {
+        'type': 'ir.actions.act_window',
+        'res_model': 'vinc.license',
+        'view_mode': 'form',
+        'res_id': record.id,
+        'target': 'new',
+        'views': [(env.ref('qr_code_odoo.vinc_license_form_view').id, 'form')],
+    }
+else:
+    model.action_activate()
+        </field>
+    </record>
+
+    <!-- Add under Vinc top-level menu -->
+    <menuitem id="menu_vinc_license"
+              name="License"
+              parent="partner_vcard_menu"
+              action="action_vinc_license_open"
+              sequence="99"
+              groups="base.group_system"/>
+</odoo>
