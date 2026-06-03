@@ -423,32 +423,47 @@ class VCardController(http.Controller):
                 website_page = request.env['website.page'].sudo().search([
                     ('url', '=', f'/{slug}')
                 ], limit=1)
-                
+
                 if website_page and not website_page.is_published:
                     _logger.warning(f"Blocked access to vCard slug '{slug}' (ID: {vcard.id}) - website page is unpublished")
                     return request.not_found()
-                
+
                 # Also check via website_page_id if set
                 if vcard.website_page_id and not vcard.website_page_id.is_published:
                     _logger.warning(f"Blocked access to vCard slug '{slug}' (ID: {vcard.id}) - website page via website_page_id is unpublished")
                     return request.not_found()
-            
+
             # Increment page view count
             old_count = vcard.page_view_count
             vcard.sudo().write({'page_view_count': vcard.page_view_count + 1})
             _logger.info(f"Page view tracked for vCard slug '{slug}' (ID: {vcard.id}). Views: {old_count} -> {vcard.page_view_count}")
-            
+
             # Referral URL is always /get-started
             final_referral_url = '/get-started'
-            
+
             # Render the page using the view key (same as how website pages are rendered)
             # Pass the computed referral URL in context to ensure it's available
             view_key = f'website.{slug}'
             return request.render(view_key, {
                 'referral_url': final_referral_url,
             })
-        
-        # Not a vCard slug, let Odoo handle it
+
+        # Not a vCard slug. If a published website.page owns this URL, render
+        # it directly so this priority=10 catch-all does not shadow ordinary
+        # website pages. Returning request.not_found() here is unreliable for
+        # authenticated users: Odoo's _serve_fallback recovery does not always
+        # run after the catch-all matched, producing a 404 on real pages
+        # (e.g. /help-desk, /about-us) for logged-in users while logged-out
+        # users see the page correctly.
+        website_page = request.env['website.page'].sudo().search([
+            ('url', '=', f'/{slug}'),
+            ('is_published', '=', True),
+        ], limit=1)
+        if website_page:
+            return request.render(website_page.view_id.id, {
+                'main_object': website_page,
+            })
+
         return request.not_found()
 
     @http.route('/website/vcard/download/<int:partner_id>', type='http', auth="public")
