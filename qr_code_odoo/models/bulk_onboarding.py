@@ -123,6 +123,46 @@ class BulkOnboardingBatch(models.Model):
             'timestamp': datetime.now().isoformat()
         })
         self.error_log = json.dumps(errors)
+
+    @staticmethod
+    def _clean_email(raw):
+        """Normalise an email pulled from a CSV / Excel / form field.
+
+        Spreadsheets routinely inject stray whitespace (e.g.
+        ``robert@ noeticerp.com`` — a space after the @) and Excel sometimes
+        concatenates trailing digits. We strip ALL internal whitespace first
+        — that single step is what turned the Jobe-batch failure into a
+        match against the real ``robert@noeticerp.com`` user — then extract
+        the valid email pattern. Returns '' when nothing usable is left.
+        """
+        if not raw:
+            return ''
+        email = re.sub(r'\s+', '', str(raw)).strip().lower()
+        match = re.match(r'^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})', email)
+        if match:
+            return match.group(1)
+        # No clean pattern — drop trailing digits Excel may have appended.
+        return re.sub(r'(\d+)$', '', email).strip()
+
+    def _refresh_status(self):
+        """Re-derive batch status after a rep was edited / retried / removed.
+
+        Only meaningful once a batch has actually been processed — a draft or
+        in-flight batch keeps its lifecycle status. Mirrors the terminal-state
+        logic in _process_batch so a fixed-and-retried row can move a batch
+        from 'failed' back to 'completed' / 'partial'.
+        """
+        self.ensure_one()
+        if self.status in ('draft', 'pending', 'processing'):
+            return
+        if not self.rep_ids:
+            return
+        if self.failed_reps == 0:
+            self.status = 'completed'
+        elif self.invited_reps:
+            self.status = 'partial'
+        else:
+            self.status = 'failed'
     
     def action_start_processing(self):
         """Start processing the batch - returns immediately, cron job will process"""
@@ -326,22 +366,11 @@ class BulkOnboardingBatch(models.Model):
     
     def _create_rep_account(self, rep_record, common_data, rep_data):
         """Create user account and Card for a rep"""
-        email = rep_data.get('email', '').strip().lower()
-        
+        email = self._clean_email(rep_data.get('email', ''))
+
         if not email:
             raise ValidationError("Email is required for rep")
-        
-        # Clean email - remove any non-email characters that might have been added by Excel
-        # Remove any trailing numbers or characters that aren't part of a valid email
-        # Extract valid email pattern (before any trailing invalid characters)
-        email_match = re.match(r'^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})', email)
-        if email_match:
-            email = email_match.group(1)
-        else:
-            # If no valid email pattern found, try to clean it
-            # Remove trailing digits that might have been concatenated
-            email = re.sub(r'(\d+)$', '', email).strip()
-        
+
         # Validate email format
         if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
             raise ValidationError(f"Invalid email format: {rep_data.get('email', '')}")
@@ -743,13 +772,10 @@ class BulkOnboardingBatch(models.Model):
                 for i, header in enumerate(headers):
                     if i < len(values) and values[i]:
                         value = values[i].strip()
-                        # For email fields, clean any trailing invalid characters
+                        # For email fields, normalise (strips stray spaces such
+                        # as the "robert@ noeticerp.com" case) via the shared helper.
                         if header.lower() in ['email', 'email address']:
-                            # Remove trailing numbers that might have been concatenated
-                            import re
-                            email_match = re.match(r'^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})', value)
-                            if email_match:
-                                value = email_match.group(1)
+                            value = self._clean_email(value)
                         row_dict[header] = value
                     else:
                         row_dict[header] = ''
@@ -825,15 +851,9 @@ class BulkOnboardingBatch(models.Model):
                                     raw_email = str(int(value)) if isinstance(value, float) and value.is_integer() else str(value)
                                 else:
                                     raw_email = str(value).strip()
-                                
-                                # Clean email - extract valid email pattern
-                                email_match = re.match(r'^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})', raw_email)
-                                if email_match:
-                                    row_dict[header] = email_match.group(1).lower()
-                                else:
-                                    # If no valid pattern, try removing trailing digits
-                                    cleaned = re.sub(r'(\d+)$', '', raw_email).strip()
-                                    row_dict[header] = cleaned.lower() if '@' in cleaned else raw_email.lower()
+                                # Normalise via the shared helper (strips stray spaces).
+                                cleaned = self._clean_email(raw_email)
+                                row_dict[header] = cleaned if cleaned else raw_email.lower()
                             else:
                                 row_dict[header] = str(value).strip() if value else ''
                     else:
@@ -932,6 +952,60 @@ class BulkOnboardingRep(models.Model):
         except Exception as e:
             _logger.error(f"Error resending invitation for user {self.user_id.id}: {str(e)}", exc_info=True)
             raise UserError(f"Failed to resend invitation: {str(e)}")
+
+    def action_reprocess(self):
+        """Re-run account + card creation for this single rep.
+
+        This is what the web 'Retry' button on a failed/pending row calls.
+        Unlike a plain resend (which needs an already-created user), this
+        actually creates the Odoo-user-linked card when one was never made —
+        the case that left the Jobe batch stuck. If the rep already has a
+        user and card, a retry degrades gracefully to a resend.
+
+        Returns a dict {'success': bool, 'status': str, 'error': str|None}
+        instead of raising, so the per-row UI can show the outcome inline.
+        A savepoint isolates a failed attempt so we can still persist the
+        'failed' status + error without poisoning the whole request.
+        """
+        self.ensure_one()
+        if self.status == 'completed':
+            return {'success': True, 'status': 'completed', 'error': None}
+
+        batch = self.batch_id
+
+        # Already provisioned — retry just resends the notification.
+        if self.user_id and self.vcard_id:
+            try:
+                self.action_resend_invitation()
+                return {'success': True, 'status': self.status, 'error': None}
+            except Exception as e:
+                return {'success': False, 'status': self.status, 'error': str(e)}
+
+        common_data = batch.get_common_data()
+        rep_data = self.get_rep_data()
+        # Honour any inline edit to the rep's email before re-running.
+        if self.email:
+            rep_data['email'] = self.email
+            self.set_rep_data(rep_data)
+
+        try:
+            with self.env.cr.savepoint():
+                batch._create_rep_account(self, common_data, rep_data)
+            self.status = 'invited'
+            self.error_message = False
+            batch._refresh_status()
+            return {'success': True, 'status': 'invited', 'error': None}
+        except Exception as e:
+            _logger.error(f"Reprocess failed for rep {self.id} ({self.email}): {e}", exc_info=True)
+            # The savepoint rolled back the partial vcard INSERT and the
+            # rep.user_id / rep.vcard_id assignments at the DB level, but those
+            # values may still sit in the ORM cache. Drop the cache before
+            # recording the failure so we never flush a dangling foreign key.
+            self.env.invalidate_all()
+            self.status = 'failed'
+            self.error_message = str(e)
+            batch._refresh_status()
+            return {'success': False, 'status': 'failed', 'error': str(e)}
 
 
 class BulkOnboardingToken(models.Model):

@@ -537,7 +537,8 @@
     });
 
     // ================================================================
-    // Batch detail — per-rep + bulk resend
+    // Batch detail — per-rep lifecycle (edit / retry / resend / delete /
+    // add / process) + bulk resend
     // ================================================================
     onReady(function () {
         const batch = document.getElementById("bk-batch");
@@ -551,59 +552,167 @@
                 body: JSON.stringify({ jsonrpc: "2.0", method: "call", params: payload || {} }),
             }).then(function (r) { return r.json(); });
         }
+        function result(resp) { return resp && (resp.result || resp); }
+        function el(tag, props) {
+            const node = document.createElement(tag);
+            if (props) { Object.keys(props).forEach(function (k) { node[k] = props[k]; }); }
+            return node;
+        }
 
+        // ---- Per-rep resend ----
+        function doResend(btn) {
+            const repId = Number(btn.getAttribute("data-rep-id"));
+            const original = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = "Sending…";
+            callJson("/bulk-onboard/resend-invite/" + repId, {}).then(function (resp) {
+                const r = result(resp);
+                if (r && r.success) { btn.textContent = "Sent ✓"; }
+                else { btn.textContent = original; btn.disabled = false; alert((r && r.error) || "Failed to resend."); }
+            }).catch(function (err) { btn.textContent = original; btn.disabled = false; alert("Network error: " + err.message); });
+        }
+
+        // ---- Per-rep reprocess (actually (re)create the card) ----
+        function doReprocess(btn) {
+            const repId = Number(btn.getAttribute("data-rep-id"));
+            const original = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = "Working…";
+            callJson("/bulk-onboard/rep/" + repId + "/reprocess", {}).then(function (resp) {
+                const r = result(resp);
+                if (r && r.success) {
+                    btn.textContent = "Done ✓";
+                    setTimeout(function () { window.location.reload(); }, 700);
+                } else {
+                    btn.textContent = original; btn.disabled = false;
+                    alert((r && r.error) || "Could not process this rep.");
+                    setTimeout(function () { window.location.reload(); }, 300);
+                }
+            }).catch(function (err) { btn.textContent = original; btn.disabled = false; alert("Network error: " + err.message); });
+        }
+
+        // ---- Per-rep delete ----
+        function doDelete(btn) {
+            const repId = Number(btn.getAttribute("data-rep-id"));
+            if (!confirm("Remove this rep from the batch?")) { return; }
+            btn.disabled = true;
+            callJson("/bulk-onboard/rep/" + repId + "/delete", {}).then(function (resp) {
+                const r = result(resp);
+                if (r && r.success) {
+                    const row = batch.querySelector('[data-rep-row="' + repId + '"]');
+                    if (row) { row.remove(); }
+                } else { btn.disabled = false; alert((r && r.error) || "Delete failed."); }
+            }).catch(function (err) { btn.disabled = false; alert("Network error: " + err.message); });
+        }
+
+        // ---- Per-rep inline edit (DOM-built, no innerHTML) ----
+        function startEdit(btn) {
+            const repId = Number(btn.getAttribute("data-rep-id"));
+            const row = batch.querySelector('[data-rep-row="' + repId + '"]');
+            if (!row || row.getAttribute("data-editing") === "true") { return; }
+            row.setAttribute("data-editing", "true");
+            const nameCell = row.querySelector(".bk-cell-name");
+            const emailCell = row.querySelector(".bk-cell-email");
+            const actions = row.querySelector(".bk-row-actions");
+
+            const nameInput = el("input", { type: "text", className: "gs-input bk-edit-name", value: nameCell.getAttribute("data-rep-name") || "" });
+            const emailInput = el("input", { type: "email", className: "gs-input bk-edit-email", value: emailCell.getAttribute("data-rep-email") || "" });
+            const nameText = nameCell.querySelector(".bk-cell-name-text");
+            const emailText = emailCell.querySelector(".bk-cell-email-text");
+            if (nameText) { nameCell.replaceChild(nameInput, nameText); }
+            if (emailText) { emailCell.replaceChild(emailInput, emailText); }
+
+            const save = el("button", { type: "button", className: "bk-btn bk-btn-primary bk-btn-sm", textContent: "Save" });
+            save.setAttribute("data-save-rep", "true"); save.setAttribute("data-rep-id", String(repId));
+            const cancel = el("button", { type: "button", className: "bk-btn bk-btn-ghost bk-btn-sm", textContent: "Cancel" });
+            cancel.setAttribute("data-cancel-rep", "true"); cancel.setAttribute("data-rep-id", String(repId));
+            actions.replaceChildren(save, cancel);
+        }
+        function saveEdit(btn) {
+            const repId = Number(btn.getAttribute("data-rep-id"));
+            const row = batch.querySelector('[data-rep-row="' + repId + '"]');
+            if (!row) { return; }
+            const name = (row.querySelector(".bk-edit-name") || {}).value || "";
+            const email = (row.querySelector(".bk-edit-email") || {}).value || "";
+            if (!email.trim()) { alert("Email is required."); return; }
+            btn.disabled = true;
+            btn.textContent = "Saving…";
+            callJson("/bulk-onboard/rep/" + repId + "/update", { name: name, email: email }).then(function (resp) {
+                const r = result(resp);
+                if (r && r.success) { window.location.reload(); }
+                else { btn.disabled = false; btn.textContent = "Save"; alert((r && r.error) || "Update failed."); }
+            }).catch(function (err) { btn.disabled = false; btn.textContent = "Save"; alert("Network error: " + err.message); });
+        }
+
+        // ---- Add rep ----
+        const addToggle = document.getElementById("bk-add-rep-toggle");
+        const addForm = document.getElementById("bk-add-rep-form");
+        if (addToggle && addForm) {
+            addToggle.addEventListener("click", function () {
+                addForm.setAttribute("data-open", addForm.getAttribute("data-open") === "true" ? "false" : "true");
+            });
+        }
+        function doAddRep(btn) {
+            const form = document.getElementById("bk-add-rep-form");
+            const batchId = Number(form.getAttribute("data-batch-id"));
+            const get = function (k) { const node = form.querySelector('[data-addrep="' + k + '"]'); return node ? node.value : ""; };
+            const email = (get("email") || "").trim();
+            if (!email) { alert("Email is required."); return; }
+            btn.disabled = true;
+            btn.textContent = "Adding…";
+            callJson("/bulk-onboard/batch/" + batchId + "/add-rep", {
+                name: get("name"), email: email, phone: get("phone"), function: get("function"),
+            }).then(function (resp) {
+                const r = result(resp);
+                if (r && r.success) { window.location.reload(); }
+                else { btn.disabled = false; btn.textContent = "Add rep"; alert((r && r.error) || "Could not add rep."); }
+            }).catch(function (err) { btn.disabled = false; btn.textContent = "Add rep"; alert("Network error: " + err.message); });
+        }
+
+        // ---- Process / resume batch ----
+        function doProcess(btn) {
+            const batchId = Number(btn.getAttribute("data-batch-id"));
+            btn.disabled = true;
+            const original = btn.textContent;
+            btn.textContent = "Starting…";
+            callJson("/bulk-onboard/batch/" + batchId + "/process", {}).then(function (resp) {
+                const r = result(resp);
+                if (r && r.success) {
+                    btn.textContent = "Processing…";
+                    setTimeout(function () { window.location.reload(); }, 2500);
+                } else { btn.disabled = false; btn.textContent = original; alert((r && r.error) || "Could not start processing."); }
+            }).catch(function (err) { btn.disabled = false; btn.textContent = original; alert("Network error: " + err.message); });
+        }
+
+        // ---- Bulk resend (to invited reps) ----
+        function doBulkResend(btn) {
+            const rows = Array.from(batch.querySelectorAll("[data-resend-rep]"));
+            const repIds = rows.map(function (b) { return Number(b.getAttribute("data-rep-id")); }).filter(Boolean);
+            if (!repIds.length) { alert("No invited reps to resend to."); return; }
+            if (!confirm("Resend " + repIds.length + " invitation" + (repIds.length === 1 ? "" : "s") + "?")) { return; }
+            btn.disabled = true;
+            btn.textContent = "Sending…";
+            callJson("/bulk-onboard/bulk-resend-invite", { rep_ids: repIds }).then(function (resp) {
+                const r = result(resp);
+                if (r && r.success) {
+                    btn.textContent = "Sent " + (r.sent_count || 0) + " / " + (r.total_count || repIds.length);
+                    setTimeout(function () { window.location.reload(); }, 1500);
+                } else { btn.textContent = "Resend invites"; btn.disabled = false; alert((r && r.error) || "Bulk resend failed."); }
+            }).catch(function (err) { btn.textContent = "Resend invites"; btn.disabled = false; alert("Network error: " + err.message); });
+        }
+
+        // ---- Delegated dispatch ----
         batch.addEventListener("click", function (e) {
-            const perRep = e.target.closest("[data-resend-rep]");
-            if (perRep) {
-                const repId = Number(perRep.getAttribute("data-rep-id"));
-                perRep.disabled = true;
-                perRep.textContent = "Sending…";
-                callJson("/bulk-onboard/resend-invite/" + repId, {}).then(function (resp) {
-                    const r = resp.result || resp;
-                    if (r && r.success) {
-                        perRep.textContent = "Sent ✓";
-                    } else {
-                        perRep.textContent = "Retry";
-                        perRep.disabled = false;
-                        alert((r && r.error) || "Failed to resend.");
-                    }
-                }).catch(function (err) {
-                    perRep.textContent = "Retry";
-                    perRep.disabled = false;
-                    alert("Network error: " + err.message);
-                });
-                return;
-            }
-
-            if (e.target.id === "bk-bulk-resend") {
-                const btn = e.target;
-                const rows = Array.from(batch.querySelectorAll("[data-resend-rep]"));
-                const repIds = rows.map(function (b) { return Number(b.getAttribute("data-rep-id")); }).filter(Boolean);
-                if (!repIds.length) {
-                    alert("Nothing to resend.");
-                    return;
-                }
-                if (!confirm("Resend " + repIds.length + " invitation" + (repIds.length === 1 ? "" : "s") + "?")) {
-                    return;
-                }
-                btn.disabled = true;
-                btn.textContent = "Sending…";
-                callJson("/bulk-onboard/bulk-resend-invite", { rep_ids: repIds }).then(function (resp) {
-                    const r = resp.result || resp;
-                    if (r && r.success) {
-                        btn.textContent = "Sent " + (r.sent_count || 0) + " / " + (r.total_count || repIds.length);
-                        setTimeout(function () { window.location.reload(); }, 1500);
-                    } else {
-                        btn.textContent = "Resend all pending / failed";
-                        btn.disabled = false;
-                        alert((r && r.error) || "Bulk resend failed.");
-                    }
-                }).catch(function (err) {
-                    btn.textContent = "Resend all pending / failed";
-                    btn.disabled = false;
-                    alert("Network error: " + err.message);
-                });
-            }
+            const t = e.target;
+            if (t.closest("[data-resend-rep]")) { return doResend(t.closest("[data-resend-rep]")); }
+            if (t.closest("[data-reprocess-rep]")) { return doReprocess(t.closest("[data-reprocess-rep]")); }
+            if (t.closest("[data-delete-rep]")) { return doDelete(t.closest("[data-delete-rep]")); }
+            if (t.closest("[data-edit-rep]")) { return startEdit(t.closest("[data-edit-rep]")); }
+            if (t.closest("[data-save-rep]")) { return saveEdit(t.closest("[data-save-rep]")); }
+            if (t.closest("[data-cancel-rep]")) { return window.location.reload(); }
+            if (t.id === "bk-add-rep-save") { return doAddRep(t); }
+            if (t.id === "bk-process-batch") { return doProcess(t); }
+            if (t.id === "bk-bulk-resend") { return doBulkResend(t); }
         });
     });
 

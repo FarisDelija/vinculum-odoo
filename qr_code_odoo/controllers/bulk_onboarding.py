@@ -421,21 +421,18 @@ class BulkOnboardingController(http.Controller):
             duplicate_emails = []
             existing_user_emails = []
             
+            Batch = request.env['bulk.onboarding.batch']
             # First pass: clean emails and find duplicates within batch
             for rep_data in rep_data_list:
                 email = rep_data.get('email', '').strip().lower()
                 if not email:
                     continue
-                
-                # Clean email - extract valid email pattern
-                email_match = re.match(r'^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})', email)
-                if email_match:
-                    cleaned_email = email_match.group(1)
-                else:
-                    # If no valid pattern, try removing trailing digits
-                    cleaned_email = re.sub(r'(\d+)$', '', email).strip()
-                    if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', cleaned_email):
-                        continue  # Skip invalid emails
+
+                # Clean email via the shared helper (strips stray spaces, e.g.
+                # "robert@ noeticerp.com", and trailing Excel digits).
+                cleaned_email = Batch._clean_email(email)
+                if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', cleaned_email):
+                    continue  # Skip invalid emails
                 
                 # Check for duplicates in this batch
                 if cleaned_email in seen_emails:
@@ -469,11 +466,12 @@ class BulkOnboardingController(http.Controller):
                 })
             
             # Create rep records (emails are now cleaned and validated)
+            created_reps = 0
             for rep_data in rep_data_list:
-                email = rep_data.get('email', '').strip().lower()
+                email = Batch._clean_email(rep_data.get('email', ''))
                 if not email:  # Skip rows without valid emails
                     continue
-                    
+
                 rep_record = request.env['bulk.onboarding.rep'].sudo().create({
                     'batch_id': batch.id,
                     'name': rep_data.get('name', '').strip(),
@@ -482,7 +480,21 @@ class BulkOnboardingController(http.Controller):
                     'status': 'pending',
                 })
                 rep_record.set_rep_data(rep_data)
-            
+                created_reps += 1
+
+            # Guard against the empty-draft zombie (the "RJ2" case): if nothing
+            # survived cleaning, delete the just-created batch instead of
+            # leaving a draft with zero reps and no available actions.
+            if not created_reps:
+                batch.sudo().unlink()
+                countries = request.env['res.country'].sudo().search([], order='name')
+                states = request.env['res.country.state'].sudo().search([], order='name')
+                return request.render('qr_code_odoo.bulk_onboarding_wizard', {
+                    'error': 'None of the rows had a usable email address, so no batch was created. Check the email column and try again.',
+                    'countries': countries,
+                    'states': states,
+                })
+
             # Start processing (returns immediately, cron will process in background)
             batch.action_start_processing()
             
@@ -632,6 +644,146 @@ class BulkOnboardingController(http.Controller):
             result['errors'] = errors[:10]  # Limit to first 10 errors
         
         return result
+
+    # ------------------------------------------------------------------
+    # Batch / rep lifecycle management (web UI)
+    # ------------------------------------------------------------------
+    def _start_batch_async(self, batch):
+        """Kick a batch's processing on a background thread (same pattern as
+        submit) so a draft can be (re)processed without blocking the request."""
+        batch_id = batch.id
+
+        def _run():
+            try:
+                with batch.env.registry.cursor() as cr:
+                    env = batch.env(cr=cr)
+                    rec = env['bulk.onboarding.batch'].browse(batch_id)
+                    if rec.exists() and rec.status == 'processing':
+                        rec.with_user(rec.created_by)._process_batch()
+                        cr.commit()
+            except Exception as e:
+                _logger.error(f"Error processing batch {batch_id} in background: {e}", exc_info=True)
+
+        threading.Thread(target=_run, daemon=True).start()
+
+    @http.route('/bulk-onboard/rep/<int:rep_id>/update', type='json', auth='user', website=True, csrf=False, methods=['POST'])
+    def update_rep(self, rep_id, **kwargs):
+        """Inline-edit a rep's name / email (e.g. fix a typo'd address), reset
+        it to pending and clear the prior error so it can be retried."""
+        if not self._check_admin_access():
+            return {'success': False, 'error': 'Access denied'}
+        rep = request.env['bulk.onboarding.rep'].sudo().browse(rep_id)
+        if not rep.exists():
+            return {'success': False, 'error': 'Rep not found'}
+        if rep.status in ('completed', 'activated'):
+            return {'success': False, 'error': 'This rep is already active and cannot be edited.'}
+
+        Batch = request.env['bulk.onboarding.batch']
+        vals = {}
+        name = kwargs.get('name')
+        email = kwargs.get('email')
+        if name is not None:
+            vals['name'] = name.strip()
+        if email is not None:
+            cleaned = Batch._clean_email(email)
+            vals['email'] = cleaned
+        # Reset the row so the edit can be retried cleanly.
+        vals['status'] = 'pending'
+        vals['error_message'] = False
+        rep.write(vals)
+        # Keep the JSON payload in sync with the edited fields.
+        rep_data = rep.get_rep_data()
+        if name is not None:
+            rep_data['name'] = vals['name']
+        if email is not None:
+            rep_data['email'] = vals['email']
+        rep.set_rep_data(rep_data)
+        rep.batch_id._refresh_status()
+        return {'success': True, 'name': rep.name, 'email': rep.email, 'status': rep.status}
+
+    @http.route('/bulk-onboard/rep/<int:rep_id>/delete', type='json', auth='user', website=True, csrf=False, methods=['POST'])
+    def delete_rep(self, rep_id, **kwargs):
+        """Remove a rep row from a batch."""
+        if not self._check_admin_access():
+            return {'success': False, 'error': 'Access denied'}
+        rep = request.env['bulk.onboarding.rep'].sudo().browse(rep_id)
+        if not rep.exists():
+            return {'success': False, 'error': 'Rep not found'}
+        batch = rep.batch_id
+        rep.unlink()
+        batch._refresh_status()
+        return {'success': True}
+
+    @http.route('/bulk-onboard/rep/<int:rep_id>/reprocess', type='json', auth='user', website=True, csrf=False, methods=['POST'])
+    def reprocess_rep(self, rep_id, **kwargs):
+        """Actually (re)create the user-linked card for a failed/pending rep —
+        not just resend. Degrades to a resend if already provisioned."""
+        if not self._check_admin_access():
+            return {'success': False, 'error': 'Access denied'}
+        rep = request.env['bulk.onboarding.rep'].sudo().browse(rep_id)
+        if not rep.exists():
+            return {'success': False, 'error': 'Rep not found'}
+        return rep.action_reprocess()
+
+    @http.route('/bulk-onboard/batch/<int:batch_id>/add-rep', type='json', auth='user', website=True, csrf=False, methods=['POST'])
+    def add_rep(self, batch_id, **kwargs):
+        """Add a single rep to an existing batch (resurrects an empty draft)."""
+        if not self._check_admin_access():
+            return {'success': False, 'error': 'Access denied'}
+        batch = request.env['bulk.onboarding.batch'].sudo().browse(batch_id)
+        if not batch.exists():
+            return {'success': False, 'error': 'Batch not found'}
+        Batch = request.env['bulk.onboarding.batch']
+        email = Batch._clean_email(kwargs.get('email', ''))
+        if not email:
+            return {'success': False, 'error': 'A valid email is required.'}
+        name = (kwargs.get('name') or '').strip()
+        rep_data = {
+            'name': name,
+            'email': email,
+            'phone': (kwargs.get('phone') or '').strip(),
+            'function': (kwargs.get('function') or '').strip(),
+        }
+        rep = request.env['bulk.onboarding.rep'].sudo().create({
+            'batch_id': batch.id,
+            'name': name,
+            'email': email,
+            'phone': rep_data['phone'],
+            'status': 'pending',
+        })
+        rep.set_rep_data(rep_data)
+        return {'success': True, 'rep_id': rep.id}
+
+    @http.route('/bulk-onboard/batch/<int:batch_id>/process', type='json', auth='user', website=True, csrf=False, methods=['POST'])
+    def process_batch(self, batch_id, **kwargs):
+        """Process / resume a batch that still has pending reps (draft, or a
+        partial/failed batch with rows that never ran)."""
+        if not self._check_admin_access():
+            return {'success': False, 'error': 'Access denied'}
+        batch = request.env['bulk.onboarding.batch'].sudo().browse(batch_id)
+        if not batch.exists():
+            return {'success': False, 'error': 'Batch not found'}
+        pending = batch.rep_ids.filtered(lambda r: r.status == 'pending')
+        if not pending:
+            return {'success': False, 'error': 'There are no pending reps to process in this batch.'}
+        # Move to draft so action_start_processing accepts it, then kick it off.
+        batch.write({'status': 'draft'})
+        try:
+            batch.action_start_processing()
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        self._start_batch_async(batch)
+        return {'success': True, 'message': f'Processing {len(pending)} rep(s) in the background.'}
+
+    @http.route('/bulk-onboard/batch/<int:batch_id>/delete', type='http', auth='user', website=True, csrf=True, methods=['POST'])
+    def delete_batch(self, batch_id, **kwargs):
+        """Delete an entire batch and its reps, then return to the index."""
+        if not self._check_admin_access():
+            return request.redirect('/web/login')
+        batch = request.env['bulk.onboarding.batch'].sudo().browse(batch_id)
+        if batch.exists():
+            batch.unlink()
+        return request.redirect('/bulk-onboard')
 
     @http.route('/bulk-onboard/activate', type='http', auth='public', website=True, csrf=False)
     def activate_account(self, token=None, **kwargs):

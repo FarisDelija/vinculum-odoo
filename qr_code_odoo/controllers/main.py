@@ -418,6 +418,18 @@ class VCardController(http.Controller):
         ], limit=1)
         
         if vcard:
+            # Persist any UTM / referral params from the landing URL into the
+            # session. The vCard download endpoint (/website/vcard/download/<id>)
+            # carries no query string, so without this the download-tracking
+            # row never captures UTM. _extract_tracking_data_from_request reads
+            # these session values back when the download happens.
+            for _utm_key in ('utm_source', 'utm_medium', 'utm_campaign'):
+                _utm_val = kwargs.get(_utm_key)
+                if _utm_val:
+                    request.session[_utm_key] = _utm_val
+            if kwargs.get('ref'):
+                request.session['referral_code'] = kwargs.get('ref')
+
             if not is_preview:
                 # Check if website page is published
                 website_page = request.env['website.page'].sudo().search([

@@ -62,8 +62,20 @@ class UserDashboard(models.TransientModel):
     
     @api.depends()
     def _compute_vcards(self):
-        """Get all vCards for current user"""
+        """Get the vCards this dashboard should aggregate.
+
+        Vinc Managers (and Odoo admins, who imply the group) can see every
+        card via the record rules, so the *Cards* menu shows them all. The
+        dashboard must follow the same rule — otherwise a manager sees the
+        full card list in the menu but stats for only their own card. For a
+        manager we therefore aggregate ALL cards; everyone else gets the cards
+        they created (plus any matched by their partner email).
+        """
+        is_manager = self.env.user.has_group('qr_code_odoo.group_vinc_manager')
         for record in self:
+            if is_manager:
+                record.vcard_ids = self.env['partner.vcard'].search([])
+                continue
             # Find vCards created by this user
             vcards = self.env['partner.vcard'].search([
                 ('create_uid', '=', self.env.user.id)

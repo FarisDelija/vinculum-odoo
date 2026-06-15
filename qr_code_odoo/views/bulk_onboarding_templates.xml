@@ -540,6 +540,23 @@
                         </div>
                     </div>
 
+                    <t t-set="pending_count" t-value="len(batch.rep_ids.filtered(lambda r: r.status == 'pending'))"/>
+                    <div class="bk-actionbar">
+                        <t t-if="pending_count">
+                            <button type="button" class="bk-btn bk-btn-primary bk-btn-sm" id="bk-process-batch" t-att-data-batch-id="batch.id">
+                                Process <t t-esc="pending_count"/> pending
+                            </button>
+                        </t>
+                        <form method="post" t-attf-action="/bulk-onboard/batch/#{batch.id}/delete"
+                              onsubmit="return confirm('Delete this entire batch and all its reps? This cannot be undone.');"
+                              style="display:inline;">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <button type="submit" class="bk-btn bk-btn-ghost bk-btn-sm" data-tone="danger">
+                                Delete batch
+                            </button>
+                        </form>
+                    </div>
+
                     <t t-if="show_started_message">
                         <div class="bk-alert" data-tone="success" role="status">
                             <strong>Batch started.</strong>
@@ -550,16 +567,36 @@
                     <div class="bk-card">
                         <div class="bk-card-head">
                             <h2 class="bk-card-title">Reps</h2>
-                            <button type="button" class="bk-btn bk-btn-ghost bk-btn-sm" id="bk-bulk-resend" t-att-data-batch-id="batch.id">
-                                Resend all pending / failed
-                            </button>
+                            <div class="bk-row-actions">
+                                <button type="button" class="bk-btn bk-btn-ghost bk-btn-sm" id="bk-add-rep-toggle">
+                                    + Add rep
+                                </button>
+                                <button type="button" class="bk-btn bk-btn-ghost bk-btn-sm" id="bk-bulk-resend" t-att-data-batch-id="batch.id">
+                                    Resend invites
+                                </button>
+                            </div>
                         </div>
+
+                        <!-- Inline "add a rep" form (hidden until toggled, or shown by default when the batch is empty). -->
+                        <div class="bk-addrep" id="bk-add-rep-form" t-att-data-batch-id="batch.id" t-att-data-open="'true' if not reps else 'false'">
+                            <div class="bk-addrep-grid">
+                                <input class="gs-input" type="text" data-addrep="name" placeholder="Full name"/>
+                                <input class="gs-input" type="email" data-addrep="email" placeholder="email@company.com"/>
+                                <input class="gs-input" type="text" data-addrep="phone" placeholder="Phone (optional)"/>
+                                <input class="gs-input" type="text" data-addrep="function" placeholder="Job title (optional)"/>
+                            </div>
+                            <div class="bk-addrep-actions">
+                                <button type="button" class="bk-btn bk-btn-primary bk-btn-sm" id="bk-add-rep-save">Add rep</button>
+                                <span class="bk-addrep-hint">The email must already belong to an Odoo user. After adding, click “Process pending”.</span>
+                            </div>
+                        </div>
+
                         <div class="bk-card-body bk-card-body-flush">
                             <t t-if="not reps">
                                 <div class="bk-empty">
                                     <div class="bk-empty-icon" aria-hidden="true">◯</div>
                                     <h3>No reps in this batch</h3>
-                                    <p>The batch was created empty. Create a new batch from the landing page to try again.</p>
+                                    <p>This batch has no reps yet. Add one above, or delete the batch.</p>
                                 </div>
                             </t>
                             <t t-if="reps">
@@ -570,14 +607,14 @@
                                                 <th>Name</th>
                                                 <th>Email</th>
                                                 <th>Status</th>
-                                                <th class="bk-col-tight"></th>
+                                                <th class="bk-col-actions"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <t t-foreach="reps" t-as="rep">
-                                                <tr>
-                                                    <td>
-                                                        <t t-esc="rep.name"/>
+                                                <tr t-att-data-rep-row="rep.id">
+                                                    <td class="bk-cell-name" t-att-data-rep-name="rep.name">
+                                                        <span class="bk-cell-name-text"><t t-esc="rep.name"/></span>
                                                         <t t-if="rep.error_message">
                                                             <div class="bk-cell-meta" style="color: var(--gs-red, #DC2626);" t-att-title="rep.error_message">
                                                                 <t t-esc="rep.error_message[:80]"/>
@@ -585,18 +622,29 @@
                                                             </div>
                                                         </t>
                                                     </td>
-                                                    <td><t t-esc="rep.email"/></td>
+                                                    <td class="bk-cell-email" t-att-data-rep-email="rep.email">
+                                                        <span class="bk-cell-email-text"><t t-esc="rep.email"/></span>
+                                                    </td>
                                                     <td>
                                                         <span class="bk-status" t-att-data-status="rep.status or 'pending'">
                                                             <t t-esc="(rep.status or 'pending').replace('_', ' ')"/>
                                                         </span>
                                                     </td>
-                                                    <td class="bk-col-tight">
-                                                        <t t-if="rep.status in ('failed', 'invited', 'sent', 'pending')">
-                                                            <button type="button" class="bk-btn bk-btn-ghost bk-btn-sm" data-resend-rep="true" t-att-data-rep-id="rep.id">
-                                                                <t t-esc="'Retry' if rep.status == 'failed' else 'Resend'"/>
-                                                            </button>
-                                                        </t>
+                                                    <td class="bk-col-actions">
+                                                        <div class="bk-row-actions" t-att-data-rep-id="rep.id">
+                                                            <t t-if="rep.status not in ('completed', 'activated')">
+                                                                <button type="button" class="bk-btn bk-btn-ghost bk-btn-sm" data-edit-rep="true" t-att-data-rep-id="rep.id">Edit</button>
+                                                            </t>
+                                                            <t t-if="rep.status in ('failed', 'pending')">
+                                                                <button type="button" class="bk-btn bk-btn-ghost bk-btn-sm" data-reprocess-rep="true" t-att-data-rep-id="rep.id">
+                                                                    <t t-esc="'Retry' if rep.status == 'failed' else 'Process'"/>
+                                                                </button>
+                                                            </t>
+                                                            <t t-if="rep.status in ('invited', 'completed')">
+                                                                <button type="button" class="bk-btn bk-btn-ghost bk-btn-sm" data-resend-rep="true" t-att-data-rep-id="rep.id">Resend</button>
+                                                            </t>
+                                                            <button type="button" class="bk-btn bk-btn-ghost bk-btn-sm" data-tone="danger" data-delete-rep="true" t-att-data-rep-id="rep.id">Delete</button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             </t>

@@ -1207,3 +1207,46 @@ body:has(.vg-magic) #wrapwrap > main { background: #FFFFFF !important; }
     line-height: 1.5;
     color: var(--gs-ink-soft, #3A4569);
 }
+
+/* ---------- Batch lifecycle actions (added: edit / retry / delete / add / process) ---------- */
+.vg-bulk .bk-actionbar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin: 0 0 18px;
+}
+.vg-bulk .bk-btn[data-tone="danger"] {
+    color: var(--gs-red, #DC2626);
+    border-color: #F5B5B5;
+    background: #FFFFFF;
+}
+.vg-bulk .bk-btn[data-tone="danger"]:hover {
+    background: var(--gs-red-pale, #FEE2E2);
+    border-color: #F09A9A;
+}
+.vg-bulk .bk-row-actions {
+    display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.vg-bulk .bk-table .bk-col-actions { width: 1%; white-space: nowrap; text-align: right; }
+.vg-bulk .bk-table .bk-cell-name input.gs-input,
+.vg-bulk .bk-table .bk-cell-email input.gs-input { max-width: 240px; }
+
+/* Inline "add a rep" surface */
+.vg-bulk .bk-addrep {
+    display: none;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--gs-line, #D9E2F3);
+    background: var(--gs-bg-soft, #F4F7FC);
+}
+.vg-bulk .bk-addrep[data-open="true"] { display: block; }
+.vg-bulk .bk-addrep-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.vg-bulk .bk-addrep-actions {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.vg-bulk .bk-addrep-hint {
+    font-size: 12px;
+    color: var(--gs-ink-faint, #6B7494);
+}

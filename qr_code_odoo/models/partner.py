@@ -2334,16 +2334,19 @@ class PartnerVCard(models.Model):
         return None
 
     @api.model
-    def _cron_enrich_geolocation(self, batch_size=50):
+    def _cron_enrich_geolocation(self, batch_size=50, window_days=180):
         """Backfill country / city / timezone on recent leads and downloads.
 
         Runs every 5 minutes. Processes up to `batch_size` rows per model per
         tick so a large backlog is drained smoothly instead of blocking the
-        cron worker. Only considers rows created in the last 7 days — older
-        rows with a stuck empty country are left alone.
+        cron worker. Considers rows created in the last `window_days` days
+        (default 180) — wide enough to fill an accumulated backlog (e.g. rows
+        that piled up while this cron was disabled) on the next few ticks,
+        while still letting very old, permanently-unresolvable IPs age out so
+        the cron doesn't retry them forever.
         """
         from datetime import datetime, timedelta
-        recent_cutoff = datetime.now() - timedelta(days=7)
+        recent_cutoff = datetime.now() - timedelta(days=window_days)
 
         # Leads submitted through the public /create_lead handler.
         leads = self.env['crm.lead'].sudo().search([
