@@ -3549,6 +3549,70 @@ If you'd like to save my info again later, here's my card: {vcard_url}
         if self.qr_code_data:
             self._generate_qr_code_image()
 
+    def _get_card_owner_user(self):
+        """Resolve the Odoo user this card belongs to, keyed by the card email.
+
+        res_users keeps partner email in sync with login, so a login/email
+        match is reliable. We deliberately do NOT fall back to create_uid:
+        for bulk-onboarded cards that is OdooBot, and applying a card's
+        signature to the wrong person's user would ride their outgoing email.
+        No email match => no owner, and the caller surfaces a clear error.
+        """
+        self.ensure_one()
+        if not self.email:
+            return self.env['res.users'].browse()
+        User = self.env['res.users'].sudo()
+        user = User.search([('login', '=ilike', self.email)], limit=1)
+        if not user:
+            user = User.search([('partner_id.email', '=ilike', self.email)], limit=1)
+        return user
+
+    def action_apply_email_signature(self, signature_html):
+        """Set the generated Vinc signature as the owning user's Odoo email
+        signature (res.users.signature) — the block appended when that user
+        sends mail from Odoo.
+
+        Authorization: the caller must have write access to THIS card (the
+        standard record rules already gate who can open its form). Given that,
+        we set the owner's signature with elevated rights so a manager can do
+        this for a rep they onboard. The Html field sanitizes on write.
+        """
+        self.ensure_one()
+        if not signature_html or not signature_html.strip():
+            raise UserError("Generate a signature preview before applying it.")
+        # Gate on write access to this card.
+        self.check_access_rights('write')
+        self.check_access_rule('write')
+        user = self._get_card_owner_user()
+        if not user:
+            raise UserError(
+                "Couldn't find an Odoo user for this card. Its email must match "
+                "a user's login or email to set that user's signature."
+            )
+        user.sudo().write({'signature': signature_html})
+        return {'user_id': user.id, 'user_name': user.name, 'login': user.login}
+
+    @api.constrains('qr_logo')
+    def _check_qr_logo_is_raster(self):
+        """Reject QR logos PIL can't rasterize (e.g. SVG) at upload time.
+
+        Company logos are frequently stored as SVG. The image widget renders
+        SVG fine in the browser, so the upload *looks* successful — but PIL
+        can't open it, so the logo silently never appears on the generated QR.
+        Fail fast with an actionable message instead.
+        """
+        for record in self:
+            if not record.qr_logo:
+                continue
+            try:
+                Image.open(io.BytesIO(base64.b64decode(record.qr_logo))).verify()
+            except Exception:
+                raise ValidationError(
+                    "That QR logo couldn't be read as an image. Please upload a "
+                    "PNG or JPG (vector formats like SVG aren't supported for the "
+                    "QR logo)."
+                )
+
     def _generate_qr_code_data(self):
         """Generate and store QR code data based on the partner's information."""
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
@@ -3621,37 +3685,73 @@ If you'd like to save my info again later, here's my card: {vcard_url}
         self.qr_code = image_data
 
     def _add_logo_to_qr_code(self, img, logo_bytes=None):
-        """Overlay the provided logo on the QR code."""
+        """Overlay the provided logo on the QR code.
+
+        The logo is drawn on a white rounded backing plate for two reasons:
+        (1) a light/transparent logo (very common — brand marks are often
+        white-on-transparent) is otherwise invisible against the white QR
+        background, which reads to the user as "my logo didn't show up";
+        (2) the plate carves a clean quiet-zone around the logo so the QR
+        stays scannable. The logo is capped at ~22% of the QR width so the
+        ERROR_CORRECT_H redundancy (tolerates ~30% obscuration) can still
+        recover the code.
+
+        Note: PIL cannot open vector formats (SVG). If an SVG is passed here
+        it raises UnidentifiedImageError, which we log clearly and skip. The
+        `_check_qr_logo_is_raster` constraint rejects such uploads up front so
+        the user gets an actionable error instead of a silently logo-less QR.
+        """
+        import logging
+        _logger = logging.getLogger(__name__)
         try:
             if logo_bytes is None:
                 logo_bytes = base64.b64decode(self.qr_logo)
             logo = Image.open(io.BytesIO(logo_bytes))
-            
+
             # Convert logo to RGBA if it's not already
             if logo.mode != 'RGBA':
                 logo = logo.convert('RGBA')
-        
-            # Resize the logo based on the QR code size
-            logo_size = min(img.size) // 3
-            logo.thumbnail((logo_size, logo_size), Image.Resampling.LANCZOS)
-        
+
             qr_width, qr_height = img.size
+
+            # Cap the logo at ~22% of the QR (keeps it scannable under H-level
+            # error correction), preserving the logo's aspect ratio.
+            logo_box = int(min(qr_width, qr_height) * 0.22)
+            logo.thumbnail((logo_box, logo_box), Image.Resampling.LANCZOS)
             logo_width, logo_height = logo.size
-        
-            # Center the logo
-            logo_position = (
-                (qr_width - logo_width) // 2,
-                (qr_height - logo_height) // 2
+
+            # White rounded backing plate a touch larger than the logo.
+            pad = max(6, int(logo_box * 0.14))
+            plate_w, plate_h = logo_width + 2 * pad, logo_height + 2 * pad
+            plate = Image.new('RGBA', (plate_w, plate_h), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(plate)
+            radius = max(4, int(min(plate_w, plate_h) * 0.18))
+            try:
+                draw.rounded_rectangle(
+                    [(0, 0), (plate_w - 1, plate_h - 1)],
+                    radius=radius, fill=(255, 255, 255, 255),
+                )
+            except AttributeError:
+                # Older Pillow without rounded_rectangle: square plate.
+                draw.rectangle([(0, 0), (plate_w - 1, plate_h - 1)],
+                               fill=(255, 255, 255, 255))
+
+            # Compose logo onto the plate, then plate onto the QR (centered).
+            plate.paste(logo, (pad, pad), logo)
+            plate_position = (
+                (qr_width - plate_w) // 2,
+                (qr_height - plate_h) // 2,
             )
-            
-            # Paste the logo with transparency
-            img.paste(logo, logo_position, logo)
+            img.paste(plate, plate_position, plate)
             return img
         except Exception as e:
-            # If logo processing fails, return the original QR code without logo
-            import logging
-            _logger = logging.getLogger(__name__)
-            _logger.warning(f"Failed to add logo to QR code: {e}")
+            # Keep QR generation resilient: a bad logo must never block the
+            # whole QR. Log loudly so this doesn't disappear silently again.
+            _logger.warning(
+                "QR logo overlay failed for vCard %s (%s): %s — QR generated "
+                "without a logo. If the logo is an SVG, re-upload it as PNG/JPG.",
+                self.id, type(e).__name__, e,
+            )
             return img
 
 

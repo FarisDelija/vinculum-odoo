@@ -539,6 +539,84 @@ function showCopySuccess(btn, color) {
 }
 
 /**
+ * Set a button's icon + label using safe DOM methods (no innerHTML), so a
+ * user-supplied name in the label can't inject markup.
+ */
+function setSigBtnContent(btn, iconClass, text) {
+    btn.textContent = '';
+    const icon = document.createElement('i');
+    icon.className = iconClass;
+    btn.appendChild(icon);
+    btn.appendChild(document.createTextNode(' ' + text));
+}
+
+/**
+ * Push the current signature onto the owning user's Odoo email signature
+ * (res.users.signature) via a server method on partner.vcard.
+ */
+async function setOdooSignature() {
+    const preview = document.getElementById('sig-preview');
+    const btn = document.getElementById('set-odoo-sig-btn');
+    if (!preview || !btn) return;
+
+    if (!recordId) {
+        recordId = getRecordId();
+    }
+    if (!recordId) {
+        setOdooSigFeedback(btn, false, 'Save the card first');
+        return;
+    }
+
+    // The preview HTML is exactly what the user sees; the server sanitizes it
+    // (res.users.signature is a sanitized Html field) before storing.
+    const signatureHtml = preview.innerHTML;
+    setSigBtnContent(btn, 'fa fa-spinner fa-spin', 'Applying...');
+    btn.style.pointerEvents = 'none';
+
+    try {
+        const response = await fetch('/web/dataset/call_kw/partner.vcard/action_apply_email_signature', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'call',
+                params: {
+                    model: 'partner.vcard',
+                    method: 'action_apply_email_signature',
+                    args: [[parseInt(recordId)], signatureHtml],
+                    kwargs: {}
+                },
+                id: Math.floor(Math.random() * 1000000)
+            })
+        });
+        const data = await response.json();
+        if (data.error) {
+            const msg = (data.error.data && data.error.data.message) || 'Failed';
+            console.error('Set Odoo signature failed:', msg);
+            setOdooSigFeedback(btn, false, 'Failed');
+        } else {
+            const name = (data.result && data.result.user_name) || 'user';
+            setOdooSigFeedback(btn, true, 'Applied to ' + name);
+        }
+    } catch (e) {
+        console.error('Set Odoo signature error:', e);
+        setOdooSigFeedback(btn, false, 'Failed');
+    }
+}
+
+function setOdooSigFeedback(btn, ok, label) {
+    btn.style.pointerEvents = '';
+    setSigBtnContent(btn, ok ? 'fa fa-check' : 'fa fa-times', label);
+    btn.style.color = '#ffffff';
+    btn.style.background = ok ? '#10b981' : '#ef4444';
+    setTimeout(() => {
+        setSigBtnContent(btn, 'fa fa-user-plus', 'Set as Odoo signature');
+        btn.style.background = '#ffffff';
+        btn.style.color = '#4C75A3';
+    }, 2600);
+}
+
+/**
  * Handle template change
  */
 function onTemplateChange(e) {
@@ -570,6 +648,16 @@ function initSignatureGenerator() {
             e.preventDefault();
             e.stopPropagation();
             copySignature();
+        });
+    }
+
+    // Setup "Set as Odoo signature" button
+    const setOdooBtn = document.getElementById('set-odoo-sig-btn');
+    if (setOdooBtn) {
+        setOdooBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            setOdooSignature();
         });
     }
 

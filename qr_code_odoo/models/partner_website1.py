@@ -620,15 +620,14 @@ class PartnerWebsite(models.Model):
                 <!-- Main content continues here -->
 
             <!-- Classic Template Header with Cover Image (React Design) -->
-            <div class="banner-container" style="position: relative; width: 100%; height: 160px; margin-bottom: 56px; z-index: 1; overflow: visible; padding-bottom: 0;">
+            <div class="banner-container" style="position: relative; width: 100%; height: 200px; margin-bottom: 56px; z-index: 1; overflow: visible; padding-bottom: 0;">
                 <t t-if="partner.banner_attachment_id">
                     <!-- Banner Image with Dark Overlay -->
-                    <div class="banner-image-wrapper" style="width: 100%; height: 100%; overflow: hidden; background-color: #e0e0e0; position: relative;">
+                    <div class="banner-image-wrapper" style="width: 100%; height: 100%; overflow: hidden; background-color: #ffffff; position: relative; padding: 18px 28px; box-sizing: border-box;">
                         <img t-att-src="'/website/image/ir.attachment/' + str(partner.banner_attachment_id.id) + '/datas'"
                              alt="" 
-                             style="width: 100%; height: 100%; object-fit: cover; display: block;"
+                             style="width: 100%; height: 100%; object-fit: contain; display: block;"
                              onerror="this.style.display='none';"/>
-                        <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.4); z-index: 1;"></div>
                     </div>
                 </t>
                 <t t-if="not partner.banner_attachment_id">
@@ -2384,14 +2383,13 @@ class PartnerWebsite(models.Model):
                 <div class="container-fluid" style="max-width: 800px; margin: 0 auto; padding: 0; overflow: visible;">
 
             <!-- Modern Template Header with Banner Image -->
-            <div class="banner-container" style="position: relative; width: 100%; height: 256px; margin-bottom: 0; z-index: 1; overflow: hidden; border-radius: 0 0 2.5rem 2.5rem;">
+            <div class="banner-container" style="position: relative; width: 100%; height: 288px; margin-bottom: 0; z-index: 1; overflow: hidden; border-radius: 0 0 2.5rem 2.5rem;">
                 <t t-if="partner.banner_attachment_id">
-                    <div class="banner-image-wrapper" style="width: 100%; height: 100%; overflow: hidden; background-color: #e0e0e0; position: relative;">
+                    <div class="banner-image-wrapper" style="width: 100%; height: 100%; overflow: hidden; background-color: #ffffff; position: relative; padding: 18px 28px; box-sizing: border-box;">
                         <img t-att-src="'/website/image/ir.attachment/' + str(partner.banner_attachment_id.id) + '/datas'"
                              alt="" 
-                             style="width: 100%; height: 100%; object-fit: cover; display: block;"
+                             style="width: 100%; height: 100%; object-fit: contain; display: block;"
                              onerror="this.style.display='none';"/>
-                        <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.3); z-index: 1;"></div>
                     </div>
                 </t>
                 <t t-if="not partner.banner_attachment_id">
@@ -3629,12 +3627,12 @@ class PartnerWebsite(models.Model):
                     <div class="container-fluid" style="max-width: 600px; margin: 0 auto; padding: 0;">
                         
                         <!-- Minimal Banner -->
-                        <div class="banner-container" style="position: relative; width: 100%; height: 120px; margin-bottom: 0; z-index: 1; overflow: hidden;">
+                        <div class="banner-container" style="position: relative; width: 100%; height: 160px; margin-bottom: 0; z-index: 1; overflow: hidden;">
                             <t t-if="partner.banner_attachment_id">
-                                <div class="banner-image-wrapper" style="width: 100%; height: 100%; overflow: hidden; background-color: #e0e0e0; position: relative;">
+                                <div class="banner-image-wrapper" style="width: 100%; height: 100%; overflow: hidden; background-color: #ffffff; position: relative; padding: 18px 28px; box-sizing: border-box;">
                                     <img t-att-src="'/website/image/ir.attachment/' + str(partner.banner_attachment_id.id) + '/datas'"
                                          alt="" 
-                                         style="width: 100%; height: 100%; object-fit: cover; display: block;"
+                                         style="width: 100%; height: 100%; object-fit: contain; display: block;"
                                          onerror="this.style.display='none';"/>
                                 </div>
                             </t>
@@ -4624,12 +4622,12 @@ class PartnerWebsite(models.Model):
                 <div class="container-fluid" style="max-width: 1000px; margin: 0 auto; padding: 0; overflow: visible;">
 
             <!-- Corporate Template Banner -->
-            <div class="banner-container" style="position: relative; width: 100%; height: 160px; margin-bottom: 0; z-index: 1; overflow: hidden;">
+            <div class="banner-container" style="position: relative; width: 100%; height: 200px; margin-bottom: 0; z-index: 1; overflow: hidden;">
                 <t t-if="partner.banner_attachment_id">
-                    <div class="banner-image-wrapper" style="width: 100%; height: 100%; overflow: hidden; background-color: #e0e0e0; position: relative;">
+                    <div class="banner-image-wrapper" style="width: 100%; height: 100%; overflow: hidden; background-color: #ffffff; position: relative; padding: 18px 28px; box-sizing: border-box;">
                         <img t-att-src="'/website/image/ir.attachment/' + str(partner.banner_attachment_id.id) + '/datas'"
                              alt="" 
-                             style="width: 100%; height: 100%; object-fit: cover; display: block;"
+                             style="width: 100%; height: 100%; object-fit: contain; display: block;"
                              onerror="this.style.display='none';"/>
                     </div>
                 </t>

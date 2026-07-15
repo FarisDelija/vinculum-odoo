@@ -664,9 +664,14 @@
                                             </div>
                                             <span id="sig-template-name" style="font-weight: 600; font-size: 16px; color: #111827;">Modern Template</span>
                                         </div>
-                                        <span id="copy-sig-btn" class="copy-sig-btn" style="color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; display: inline-block;">
-                                            <i class="fa fa-copy"></i> Copy Signature
-                                        </span>
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <span id="set-odoo-sig-btn" class="set-odoo-sig-btn" style="color: #4C75A3; background: #ffffff; border: 1px solid #4C75A3; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; display: inline-block;" title="Set this as the Odoo email signature of the user who owns this card">
+                                                <i class="fa fa-user-plus"></i> Set as Odoo signature
+                                            </span>
+                                            <span id="copy-sig-btn" class="copy-sig-btn" style="color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; display: inline-block;">
+                                                <i class="fa fa-copy"></i> Copy Signature
+                                            </span>
+                                        </div>
                                     </div>
                                     <div style="padding: 24px; background: #ffffff; overflow-x: auto;">
                                         <div id="sig-preview" class="signature-preview">

@@ -428,6 +428,19 @@ class BulkOnboardingBatch(models.Model):
             vcard.sudo()._update_banner_attachment_if_image_changed()
             self.env.cr.flush()
 
+        # Publish the card immediately so a bulk card behaves like a normally
+        # created one: this generates its website page and makes the public URL
+        # live. Without it the card stays is_published=False — counted in card
+        # lists but absent from published-only stats and not viewable, which
+        # reads to the admin as "the upload created a card that doesn't work".
+        try:
+            vcard.sudo().is_published = True
+        except Exception as e:
+            _logger.warning(
+                "Bulk onboarding: could not auto-publish vCard %s for %s: %s",
+                vcard.id, email, e,
+            )
+
         rep_record.vcard_id = vcard.id
 
         # No magic-link token needed: the user already has a working Odoo
