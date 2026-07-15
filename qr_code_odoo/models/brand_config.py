@@ -46,7 +46,8 @@ class ResConfigSettings(models.TransientModel):
         Brand = self.env['qr_code_odoo.brand']
         Brand._set_attachment_data(ATTACHMENT_BRAND_ICON, self.vinc_brand_icon)
         Brand._set_attachment_data(ATTACHMENT_BRAND_WORDMARK, self.vinc_brand_wordmark)
-        Brand._sync_app_chrome()
+        # Disabled due to causing serialization issue on write
+        # Brand._sync_app_chrome()
 
 
 class VincBrand(models.AbstractModel):
@@ -67,14 +68,16 @@ class VincBrand(models.AbstractModel):
         admin had saved. Running the sync once on registry load restores them
         without requiring a manual Settings → Save.
         """
-        super()._register_hook()
-        try:
-            self.sudo()._sync_app_chrome()
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning(
-                "Vinc brand chrome sync skipped: %s", e
-            )
+        res = super()._register_hook()
+        # Disabled due to causing serialization error on load
+        # try:
+        #     self.sudo()._sync_app_chrome()
+        # except Exception as e:
+        #     import logging
+        #     logging.getLogger(__name__).warning(
+        #         "Vinc brand chrome sync skipped: %s", e
+        #     )
+        return res
 
     @api.model
     def get_brand_name(self):
