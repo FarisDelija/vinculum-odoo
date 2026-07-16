@@ -419,7 +419,7 @@ class BulkOnboardingController(http.Controller):
             import re
             seen_emails = set()
             duplicate_emails = []
-            existing_user_emails = []
+            missing_user_emails = []
             
             Batch = request.env['bulk.onboarding.batch']
             # First pass: clean emails and find duplicates within batch
@@ -441,20 +441,28 @@ class BulkOnboardingController(http.Controller):
                     seen_emails.add(cleaned_email)
                     rep_data['email'] = cleaned_email  # Update with cleaned email
             
-            # Check for existing users in database
+            # Bulk onboarding attaches cards to Odoo users that ALREADY exist —
+            # it does not create logins (see _create_rep_account). So the check
+            # is the inverse: flag rows whose email has no user yet. Rejecting
+            # emails *because* they exist made every upload impossible.
             if seen_emails:
-                existing_users = request.env['res.users'].sudo().search([
-                    ('login', 'in', list(seen_emails))
-                ])
-                if existing_users:
-                    existing_user_emails = [u.login for u in existing_users]
-            
+                found_logins = {
+                    u.login.lower()
+                    for u in request.env['res.users'].sudo().search([
+                        ('login', 'in', list(seen_emails))
+                    ])
+                }
+                missing_user_emails = sorted(seen_emails - found_logins)
+
             # Report all errors at once
             errors = []
             if duplicate_emails:
                 errors.append(f"Duplicate emails found in upload: {', '.join(set(duplicate_emails))}")
-            if existing_user_emails:
-                errors.append(f"These emails already exist in the system: {', '.join(existing_user_emails)}")
+            if missing_user_emails:
+                errors.append(
+                    f"No Odoo user found for: {', '.join(missing_user_emails)}. "
+                    f"Add them under Settings → Users & Companies → Users first"
+                )
             
             if errors:
                 countries = request.env['res.country'].sudo().search([], order='name')

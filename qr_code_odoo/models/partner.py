@@ -3717,7 +3717,11 @@ If you'd like to save my info again later, here's my card: {vcard_url}
             # Cap the logo at ~22% of the QR (keeps it scannable under H-level
             # error correction), preserving the logo's aspect ratio.
             logo_box = int(min(qr_width, qr_height) * 0.22)
-            logo.thumbnail((logo_box, logo_box), Image.Resampling.LANCZOS)
+            # Image.LANCZOS, not Image.Resampling.LANCZOS: the Resampling enum
+            # only exists on Pillow >= 9.1, and on older Pillow the AttributeError
+            # got swallowed below — silently dropping the logo for every upload
+            # regardless of file type. The legacy alias works on all versions.
+            logo.thumbnail((logo_box, logo_box), Image.LANCZOS)
             logo_width, logo_height = logo.size
 
             # White rounded backing plate a touch larger than the logo.

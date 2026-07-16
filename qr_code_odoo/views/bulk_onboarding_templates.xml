@@ -260,7 +260,7 @@
                                 <div class="bk-grid">
                                     <div class="gs-field">
                                         <label class="gs-label" for="bk-company">Company name</label>
-                                        <input class="gs-input" type="text" id="bk-company" name="company_name" placeholder="Your Company"/>
+                                        <input class="gs-input" type="text" id="bk-company" name="company_name" placeholder="Your Company" t-att-value="request.env.company.name"/>
                                     </div>
                                     <div class="gs-field">
                                         <label class="gs-label" for="bk-brand-color-visible">Brand color</label>
