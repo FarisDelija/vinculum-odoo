@@ -46,8 +46,9 @@ class ResConfigSettings(models.TransientModel):
         Brand = self.env['qr_code_odoo.brand']
         Brand._set_attachment_data(ATTACHMENT_BRAND_ICON, self.vinc_brand_icon)
         Brand._set_attachment_data(ATTACHMENT_BRAND_WORDMARK, self.vinc_brand_wordmark)
-        # Disabled due to causing serialization issue on write
-        # Brand._sync_app_chrome()
+        # Safe here: one admin, one transaction. The concurrency problem was the
+        # registry-load copy of this call (see _register_hook), not this one.
+        Brand._sync_app_chrome()
 
 
 class VincBrand(models.AbstractModel):
@@ -61,23 +62,18 @@ class VincBrand(models.AbstractModel):
     _description = 'Vinc Brand Configuration Helper'
 
     def _register_hook(self):
-        """Re-apply brand chrome after every module load.
+        """Deliberately does not re-apply brand chrome.
 
-        Odoo's data reload during `-u qr_code_odoo` resets the root menu's name
-        and web_icon back to the XML defaults, which wipes any custom brand the
-        admin had saved. Running the sync once on registry load restores them
-        without requiring a manual Settings → Save.
+        `-u qr_code_odoo` reloads the module's data and resets the root menu name
+        and web_icon to the XML defaults, so a custom brand has to be re-applied
+        by saving Settings again. Syncing from here instead used to do that
+        automatically, but this hook runs on every registry load: with several
+        workers rebuilding at once the overlapping writes to the shared
+        ir.ui.menu row raised a Postgres serialization error that poisoned the
+        transaction and failed the upgrade. Re-applying on upgrade needs a
+        collision-safe design, not this hook.
         """
-        res = super()._register_hook()
-        # Disabled due to causing serialization error on load
-        # try:
-        #     self.sudo()._sync_app_chrome()
-        # except Exception as e:
-        #     import logging
-        #     logging.getLogger(__name__).warning(
-        #         "Vinc brand chrome sync skipped: %s", e
-        #     )
-        return res
+        return super()._register_hook()
 
     @api.model
     def get_brand_name(self):
@@ -134,23 +130,19 @@ class VincBrand(models.AbstractModel):
         # from web_icon whenever 'web_icon' is in the vals dict, so we must
         # write web_icon_data in a separate write() that does NOT touch web_icon.
         import base64
-        menu = self.env.ref('qr_code_odoo.menu_main_partner_vcard', raise_if_not_found=False) \
-               or self._find_root_menu()
+        menu = self._find_root_menu()
         if menu:
             menu.sudo().write({'name': brand_name})
             if icon_bytes:
                 menu.sudo().write({'web_icon_data': base64.b64encode(icon_bytes)})
 
-        # Apps grid tile
+        # Apps grid tile. Only shortdesc is writable — ir.module.module.icon_image
+        # is a non-stored computed field read from the module folder on disk.
         module = self.env['ir.module.module'].sudo().search(
             [('name', '=', 'qr_code_odoo')], limit=1
         )
         if module:
             module.write({'shortdesc': brand_name})
-            if icon_bytes:
-                # ir.module.module also has an icon_image binary; write it as a
-                # standalone field so the Apps installer tile picks it up.
-                module.write({'icon_image': base64.b64encode(icon_bytes)})
 
     @api.model
     def _find_root_menu(self):
