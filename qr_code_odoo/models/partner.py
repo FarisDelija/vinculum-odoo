@@ -1227,8 +1227,11 @@ class PartnerVCard(models.Model):
     website_page_id = fields.Many2one('website.page', string="Website Page", readonly=True)
     preview_template_hash = fields.Char(string='Preview Template Hash', copy=False, help='sha256 of inputs that produced the current preview arch_db; used by /vcard/preview to short-circuit no-op rebuilds')
     is_published = fields.Boolean(string='Published', compute='_compute_is_published', inverse='_inverse_is_published', store=False, help='Whether this vCard is published and accessible publicly')
-    attachment_id = fields.Many2one('ir.attachment', string='Image Attachment', readonly=True)
-    banner_attachment_id = fields.Many2one('ir.attachment', string='Banner Image Attachment', readonly=True)
+    # copy=False: a duplicated card must get its own attachment rows. Sharing
+    # them made the two cards serve one image, so regenerating either card's
+    # website overwrote the other card's picture.
+    attachment_id = fields.Many2one('ir.attachment', string='Image Attachment', readonly=True, copy=False)
+    banner_attachment_id = fields.Many2one('ir.attachment', string='Banner Image Attachment', readonly=True, copy=False)
     primary_color = fields.Char(string="Primary Color", help="This color is used as the background color for all vCard templates.", default="#ffffff")
     secondary_color = fields.Char(string="Brand Color", help="This color is used for all accent elements (buttons, sections, highlights) across all templates.", default="#4C75A3")
     # Sanitised on write. Published-card templates render `about` into the
@@ -1718,6 +1721,10 @@ class PartnerVCard(models.Model):
         default['website_page_id'] = False  # Don't copy the website page reference
         default['name'] = default.get('name', f"{self.name} (Copy)" if self.name else "Copy")
         default['is_published'] = False  # Unpublish the copy
+        # The copy owns no attachment rows yet - it must never point at the
+        # original's, or writing one card's image would rewrite the other's.
+        default['attachment_id'] = False
+        default['banner_attachment_id'] = False
         
         return super().copy(default)
     
