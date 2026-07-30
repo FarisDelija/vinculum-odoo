@@ -18,6 +18,32 @@ class PartnerWebsite(models.Model):
     def _onchange_website_slug(self):
         self._compute_website_full_url()
 
+    def _own_attachment_res_id(self):
+        """The ir.attachment.res_id this record's own attachments must carry.
+
+        Inside an onchange `self.id` is a NewId, so fall back to the saved
+        record the pseudo-record was built from. A card that has never been
+        saved has neither, and therefore owns nothing yet.
+        """
+        self.ensure_one()
+        return self.id if isinstance(self.id, int) else self._origin.id
+
+    def _owns_attachment(self, attachment):
+        """True only when `attachment` is this record's own attachment row.
+
+        Attachment references can end up shared between cards (duplicating a
+        card used to hand the copy the original's row, and data edits can do
+        the same). Rewriting such a row in place changes every card pointing
+        at it, so an attachment that is missing, belongs to another model, or
+        carries another record's id must never be written - a fresh one is
+        created for this record instead.
+        """
+        self.ensure_one()
+        res_id = self._own_attachment_res_id()
+        return bool(attachment) and bool(res_id) \
+            and attachment.res_model == 'partner.vcard' \
+            and attachment.res_id == res_id
+
     # Imperative side-effect method (no field assignment), invoked from the
     # matching @api.onchange and from controllers. Do NOT decorate with
     # @api.depends — it misleads the registry into treating this as a compute.
@@ -25,15 +51,15 @@ class PartnerWebsite(models.Model):
         """Create or update the attachment when image_url is changed."""
         for record in self:
             if record.image_url:
-                # Step 1: Check if an attachment already exists; if not, create it
-                if not record.attachment_id:
+                # Step 1: Create an attachment unless this record already owns one
+                if not record._owns_attachment(record.attachment_id):
                     # Create a new attachment for the uploaded image
                     new_attachment = self.env['ir.attachment'].create({
                         'name': f"Partner Image {record.name}",
                         'type': 'binary',
                         'datas': record.image_url,
                         'res_model': 'partner.vcard',
-                        'res_id': record.id,
+                        'res_id': record._own_attachment_res_id(),
                         'public': True,  # Make it accessible to the public
                         'mimetype': 'image/png',  # Adjust based on the actual image type
                     })
@@ -61,15 +87,15 @@ class PartnerWebsite(models.Model):
         """Create or update the attachment when banner_image is changed."""
         for record in self:
             if record.banner_image:
-                # Step 1: Check if an attachment already exists; if not, create it
-                if not record.banner_attachment_id:
+                # Step 1: Create an attachment unless this record already owns one
+                if not record._owns_attachment(record.banner_attachment_id):
                     # Create a new attachment for the uploaded banner image
                     new_attachment = self.env['ir.attachment'].create({
                         'name': f"Partner Banner Image {record.name}",
                         'type': 'binary',
                         'datas': record.banner_image,
                         'res_model': 'partner.vcard',
-                        'res_id': record.id,
+                        'res_id': record._own_attachment_res_id(),
                         'public': True,  # Make it accessible to the public
                         'mimetype': 'image/png',  # Adjust based on the actual image type
                     })
@@ -85,14 +111,18 @@ class PartnerWebsite(models.Model):
             else:
                 # Step 3: If banner_image is removed, clear the attachment reference
                 if record.banner_attachment_id:
-                    # Optionally delete the old attachment to clean up
+                    # Only delete the row when it is this record's own - a shared
+                    # reference belongs to another card and unlinking it would
+                    # blank that card's banner too. Dropping the reference is enough.
+                    owned = record._owns_attachment(record.banner_attachment_id)
                     old_attachment = record.banner_attachment_id
                     record.banner_attachment_id = False
-                    try:
-                        old_attachment.unlink()
-                    except Exception:
-                        # If deletion fails, just continue - the reference is already cleared
-                        pass
+                    if owned:
+                        try:
+                            old_attachment.unlink()
+                        except Exception:
+                            # If deletion fails, just continue - the reference is already cleared
+                            pass
     
     @api.onchange('banner_image')
     def _onchange_banner_image(self):
@@ -109,6 +139,25 @@ class PartnerWebsite(models.Model):
         import logging
         _logger = logging.getLogger(__name__)
         
+        # A card with no slug has no page to build: the view would be created
+        # with name/key derived from an empty slug, which fails NOT NULL at
+        # flush and aborts the whole transaction - after this method has
+        # already returned "Success!". Skip those records and say so instead.
+        skipped = self.filtered(lambda r: not r.website_slug)
+        if skipped:
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': 'Website slug required',
+                    'message': 'No website was generated. These cards have no '
+                               'URL slug: %s. Enter a unique slug first.'
+                               % ', '.join(skipped.mapped('display_name')),
+                    'type': 'danger',
+                    'sticky': True,
+                }
+            }
+
         try:
             for record in self:
                 # Ensure that the image is attached and publicly accessible
